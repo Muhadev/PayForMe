@@ -1,14 +1,25 @@
-from flask import Flask, jsonify
-from flask_cors import CORS
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from config import Config
 
-app = Flask(__name__)
-CORS(app)
+db = SQLAlchemy()
 
-@app.route('/api/data')
-def get_data():
-    data = {"message": "Hello, World!"}
-    return jsonify(data)
+def create_app():
+    app = Flask(__name__)
+    app.config.from_object(Config)
 
+    db.init_app(app)
 
-if __name__ == '__main__':
-    app.run(debug=True)
+    from app.models import User, Project, Donation, Category, Comment, ProjectUpdate, Payment, Reward, Notification, Media, Tag, FAQ, Message
+
+    with app.app_context():
+        db.create_all()
+
+    # Register blueprints here (we'll create these later)
+    from app.routes import main, auth, projects, donations
+    app.register_blueprint(main.bp)
+    app.register_blueprint(auth.bp)
+    app.register_blueprint(projects.bp)
+    app.register_blueprint(donations.bp)
+
+    return app
