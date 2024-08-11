@@ -39,6 +39,7 @@ instance/
 .webassets-cache
 
 # Environments
+.env
 venv/
 
 # Database
