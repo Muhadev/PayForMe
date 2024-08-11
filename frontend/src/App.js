@@ -4,13 +4,14 @@ function App() {
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    fetch('/api/data')
+    fetch('http://localhost:5000/api/data')  // Use the full URL to your backend
       .then(response => response.json())
       .then(data => {
+        console.log('Fetched data:', data);
         setData(data);
-        console.log(data);
-      });
-  }, []); // Empty dependency array means this effect runs once after the initial render
+      })
+      .catch(error => console.error('Error fetching data:', error));
+  }, []);
 
   return (
     <div className="App">
