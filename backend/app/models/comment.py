@@ -13,3 +13,6 @@ class Comment(db.Model):
 
     user = relationship("User", back_populates="comments")
     project = relationship("Project", back_populates="comments")
+
+    def __repr__(self):
+        return f'<Comment by User {self.user_id} on Project {self.project_id}>'

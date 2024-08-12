@@ -9,3 +9,6 @@ class Category(db.Model):
     name = Column(String(50), unique=True, nullable=False)
 
     projects = relationship("Project", back_populates="category")
+
+    def __repr__(self):
+        return f'<Category {self.name}>'

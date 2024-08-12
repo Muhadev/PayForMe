@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, Enum
+from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.orm import relationship
 from app import db
 
@@ -32,3 +33,12 @@ class User(db.Model):
     notifications = relationship("Notification", back_populates="user")
     sent_messages = relationship("Message", foreign_keys="[Message.sender_id]")
     received_messages = relationship("Message", foreign_keys="[Message.recipient_id]")
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+    def __repr__(self):
+        return f'<User {self.username}>'

@@ -12,3 +12,6 @@ class ProjectUpdate(db.Model):
     project_id = Column(Integer, ForeignKey('projects.id'), nullable=False)
 
     project = relationship("Project", back_populates="project_updates")
+
+    def __repr__(self):
+        return f'<Project Update {self.id} for Project {self.project_id}>'

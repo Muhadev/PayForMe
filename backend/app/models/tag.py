@@ -14,3 +14,6 @@ class Tag(db.Model):
     name = Column(String(50), unique=True, nullable=False)
 
     projects = relationship("Project", secondary=project_tags, back_populates="tags")
+
+    def __repr__(self):
+        return f'<Tag {self.name}>'

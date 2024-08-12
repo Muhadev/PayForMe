@@ -19,3 +19,4 @@ class Media(db.Model):
     order = Column(Integer, default=0)
 
     project = relationship("Project", back_populates="media")
+    

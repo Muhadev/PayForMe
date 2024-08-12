@@ -30,3 +30,6 @@ class Payment(db.Model):
 
     user = relationship("User", back_populates="payments")
     donation = relationship("Donation", back_populates="payment")
+
+    def __repr__(self):
+        return f'<Payment {self.id} - {self.amount} {self.currency}>'

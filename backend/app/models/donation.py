@@ -19,3 +19,6 @@ class Donation(db.Model):
     
     # Add this relationship
     payment = relationship("Payment", back_populates="donation", uselist=False)
+
+    def __repr__(self):
+        return f'<Donation {self.amount} to Project {self.project_id}>'

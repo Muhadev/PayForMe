@@ -18,6 +18,7 @@ from .media import Media, MediaType
 from .donation import Donation
 from .payment import Payment, PaymentStatus, PaymentMethod
 from .reward import Reward
+from .token_blocklist import TokenBlocklist
 
 # We don't need to create a Base here since we're using Flask-SQLAlchemy
 # The db.Model will serve as our declarative base

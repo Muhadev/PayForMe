@@ -21,3 +21,5 @@ class Notification(db.Model):
     created_at = Column(DateTime, nullable=False)
     
     user = relationship("User", back_populates="notifications")
+
+    

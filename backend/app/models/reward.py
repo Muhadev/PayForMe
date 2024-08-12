@@ -16,3 +16,6 @@ class Reward(db.Model):
 
     project = relationship("Project", back_populates="rewards")
     donations = relationship("Donation", back_populates="reward")
+
+    def __repr__(self):
+        return f'<Reward {self.title} for Project {self.project_id}>'
