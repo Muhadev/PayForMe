@@ -17,8 +17,8 @@ class User(db.Model):
     __tablename__ = 'users'
 
     id = Column(Integer, primary_key=True)
-    username = Column(String(50), unique=True, nullable=False)
-    email = Column(String(120), unique=True, nullable=False)
+    username = Column(String(50), unique=True, nullable=False, index=True)
+    email = Column(String(120), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
     full_name = Column(String(100))
     bio = Column(Text)
@@ -76,6 +76,16 @@ class User(db.Model):
             self.preferences = {}
         self.preferences.update(new_preferences)
         db.session.commit()
+
+    def get_total_donations(self):
+        return sum(donation.amount for donation in self.donations)
+
+    def update_last_login(self):
+        self.last_login = datetime.utcnow()
+        db.session.commit()
+
+    def is_account_locked(self):
+        return self.failed_login_attempts >= current_app.config['MAX_LOGIN_ATTEMPTS']
 
     def get_verification_token(self, expires_in=3600):
         try:
