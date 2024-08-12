@@ -6,6 +6,7 @@ from flask_migrate import Migrate
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
+
 db = SQLAlchemy()
 jwt = JWTManager()
 migrate = Migrate()
@@ -25,7 +26,9 @@ def create_app():
         Notification, Media, Tag, FAQ, Message, TokenBlocklist
     )
 
-    from .routes.auth import bp as auth_bp
+    
+    # Import and register blueprints here
+    from app.routes.auth import bp as auth_bp
     app.register_blueprint(auth_bp)
 
     return app

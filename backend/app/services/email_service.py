@@ -3,7 +3,7 @@ from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 from flask import current_app, render_template
 import logging
-from sendgrid.exceptions import SendGridAPIClientError
+from python_http_client.exceptions import HTTPError
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -22,7 +22,7 @@ def send_email(to_email, subject, text_content, html_content):
         current_app.logger.info(f"Email sent. Status Code: {response.status_code}")
         return True
     except Exception as e:
-        if isinstance(e, SendGridAPIClientError):
+        if isinstance(e, HTTPError):
             current_app.logger.error(f"SendGrid API error: {str(e)}")
         else:
             current_app.logger.error(f"Unexpected error sending email: {str(e)}")
