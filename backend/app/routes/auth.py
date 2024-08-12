@@ -1,20 +1,15 @@
 from flask import Blueprint, jsonify, request, current_app, url_for
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt
 from app.models import User
-from app import jwt
+from app import jwt, limiter
 from app.services.auth_service import AuthService
-from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import logging
 
 # Configure logging
 logger = logging.getLogger(__name__)
 # Initialize Limiter
-limiter = Limiter(
-    get_remote_address,
-    app=current_app,
-    default_limits=["200 per day", "50 per hour"]  # Global rate limits
-)
+
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 @jwt.token_in_blocklist_loader
@@ -72,6 +67,30 @@ def login():
         logger.warning(f"Failed login attempt for username: {data['username']}")
         return jsonify({"msg": result}), 401
 
+@bp.route('/deactivate', methods=['POST'])
+@jwt_required()
+def deactivate_account():
+    current_user_id = get_jwt_identity()
+    success, message = AuthService.deactivate_user(current_user_id)
+    if success:
+        logger.info(f"User {current_user_id} deactivated their account")
+        return jsonify({"msg": message}), 200
+    else:
+        logger.warning(f"Failed to deactivate account for user {current_user_id}")
+        return jsonify({"msg": message}), 400
+
+@bp.route('/reactivate', methods=['POST'])
+@limiter.limit("5 per minute", key_func=get_remote_address)
+def reactivate_account():
+    data = request.get_json()
+    success, message = AuthService.reactivate_user(data['username'], data['password'])
+    if success:
+        logger.info(f"User {data['username']} reactivated their account")
+        return jsonify({"msg": message}), 200
+    else:
+        logger.warning(f"Failed to reactivate account for user {data['username']}")
+        return jsonify({"msg": message}), 400
+
 @bp.route('/refresh', methods=['POST'])
 @jwt_required(refresh=True)
 def refresh():
@@ -89,6 +108,7 @@ def logout():
     return jsonify(msg=message), 200
 
 @bp.route('/password-reset-request', methods=['POST'])
+@limiter.limit("5 per minute", key_func=get_remote_address)
 def password_reset_request():
     data = request.get_json()
     success, message = AuthService.initiate_password_reset(data['email'])
@@ -109,7 +129,11 @@ def password_reset(token):
 @bp.route('/protected', methods=['GET'])
 @jwt_required()
 def protected():
-    current_user_id = get_jwt_identity()
-    user = User.query.get(current_user_id)
-    logger.info(f"Protected resource accessed by user: {user.username}")
-    return jsonify(logged_in_as=user.username), 200
+    try:
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        logger.info(f"Protected resource accessed by user: {user.username}")
+        return jsonify(logged_in_as=user.username), 200
+    except JWTException as e:
+        logger.error(f"JWT error in protected route: {str(e)}")
+        return jsonify({"msg": "Invalid token"}), 401

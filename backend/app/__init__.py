@@ -4,11 +4,19 @@ from flask_httpauth import HTTPBasicAuth
 from flask_jwt_extended import JWTManager
 from config import Config
 from flask_migrate import Migrate
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 db = SQLAlchemy()
 jwt = JWTManager()
 migrate = Migrate()
+limiter = Limiter(key_func=get_remote_address)
 
+limiter = Limiter(
+    get_remote_address,
+    app=current_app,
+    default_limits=["200 per day", "50 per hour"]  # Global rate limits
+)
 
 def create_app():
     app = Flask(__name__)
@@ -17,7 +25,12 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
+    limiter.init_app(app)
 
+    # Set global limits
+    limiter.limit("200 per day")(app)
+    limiter.limit("50 per hour")(app)
+    
     from app.models import User, Project, Donation, Category, Comment, ProjectUpdate, Payment, Reward, Notification, Media, Tag, FAQ, Message, TokenBlocklist
 
     with app.app_context():

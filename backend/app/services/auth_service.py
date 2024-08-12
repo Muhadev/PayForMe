@@ -3,7 +3,7 @@ import uuid
 from werkzeug.security import generate_password_hash
 from app import db
 from app.models import User, TokenBlocklist
-from app.services.email_service import send_verification_email, send_password_reset_email
+from app.services.email_service import send_templated_email
 from app.utils.validators import validate_password, validate_email
 import logging
 
@@ -40,7 +40,7 @@ class AuthService:
         db.session.add(new_user)
         db.session.commit()
 
-        send_verification_email(new_user)
+        send_templated_email(new_user.email, 'verification', new_user)
         logger.info(f"User {username} registered successfully")
 
         return True, "User created successfully. Please check your email to verify your account."
@@ -65,13 +65,52 @@ class AuthService:
             if not user.is_verified:
                 logger.warning(f"Unverified login attempt for user: {username}")
                 return False, "Please verify your email before logging in"
+            
+            if not user.is_active:
+                logger.warning(f"Login attempt for deactivated account: {username}")
+                return False, "This account has been deactivated"
+
+            if user.failed_login_attempts >= 5:
+                logger.warning(f"Account locked due to too many failed attempts: {username}")
+                return False, "Account locked. Please reset your password."
 
             user.last_login = datetime.utcnow()
+            user.failed_login_attempts = 0
             db.session.commit()
             logger.info(f"User {username} logged in successfully")
             return True, user.id
+        
+        if user:
+            user.increment_failed_login_attempts()
         logger.warning(f"Failed login attempt for username: {username}")
         return False, "Invalid username or password"
+
+    @staticmethod
+    def deactivate_user(user_id):
+        user = User.query.get(user_id)
+        if user:
+            user.soft_delete()
+            logger.info(f"User {user.username} deactivated their account")
+            return True, "Account deactivated successfully"
+        return False, "User not found"
+
+    @staticmethod
+    def reactivate_user(username, password):
+        user = User.query.filter_by(username=username).first()
+        if user and user.check_password(password):
+            user.reactivate()
+            logger.info(f"User {username} reactivated their account")
+            return True, "Account reactivated successfully"
+        return False, "Invalid username or password"
+
+    @staticmethod
+    def update_user_preferences(user_id, preferences):
+        user = User.query.get(user_id)
+        if user:
+            user.update_preferences(preferences)
+            logger.info(f"Preferences updated for user {user.username}")
+            return True, "Preferences updated successfully"
+        return False, "User not found"
 
     @staticmethod
     def logout_user(jti):
@@ -89,7 +128,7 @@ class AuthService:
             user.reset_token = reset_token
             user.reset_token_expires = datetime.utcnow() + timedelta(hours=1)
             db.session.commit()
-            send_password_reset_email(user)
+            send_templated_email(user.email, 'reset_password', user)
             logger.info(f"Password reset initiated for user: {user.username}")
         return True, "If an account with this email exists, a password reset link has been sent"
 
