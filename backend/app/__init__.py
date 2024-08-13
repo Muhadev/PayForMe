@@ -31,7 +31,7 @@ def create_app():
     from app.routes.auth import bp as auth_bp
     app.register_blueprint(auth_bp)
 
-    from .auth.google_auth import google_auth
+    from app.routes.google_auth import google_auth
     app.register_blueprint(google_auth)
 
     return app
