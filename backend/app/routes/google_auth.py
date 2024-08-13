@@ -1,24 +1,29 @@
 from flask import Blueprint, redirect, url_for, session, request, jsonify, current_app
 from authlib.integrations.flask_client import OAuth
 from app import db
-from .models.user import User
-
-oauth = OAuth(current_app)
-
-# Configure the OAuth client for Google
-google = oauth.register(
-    name='google',
-    client_id=current_app.config['GOOGLE_CLIENT_ID'],
-    client_secret=current_app.config['GOOGLE_CLIENT_SECRET'],
-    access_token_url='https://accounts.google.com/o/oauth2/token',
-    access_token_params=None,
-    authorize_url='https://accounts.google.com/o/oauth2/auth',
-    authorize_params=None,
-    client_kwargs={'scope': 'openid profile email'},
-    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
-)
+from app.models.user import User
 
 google_auth = Blueprint('google_auth', __name__)
+
+def init_oauth(app):
+    oauth = OAuth(app)
+    google = oauth.register(
+        name='google',
+        client_id=app.config['GOOGLE_CLIENT_ID'],
+        client_secret=app.config['GOOGLE_CLIENT_SECRET'],
+        access_token_url='https://accounts.google.com/o/oauth2/token',
+        access_token_params=None,
+        authorize_url='https://accounts.google.com/o/oauth2/auth',
+        authorize_params=None,
+        client_kwargs={'scope': 'openid profile email'},
+        server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    )
+    return google
+
+@google_auth.before_app_request
+def setup_oauth():
+    global google
+    google = init_oauth(current_app)
 
 @google_auth.route('/login/google')
 def login():
@@ -34,7 +39,7 @@ def authorized():
             'error_reason': request.args.get('error_reason'),
             'error_description': request.args.get('error_description')
         }), 400
-    
+
     # Fetch user information
     user_info = google.parse_id_token(token)
     if not user_info:
@@ -53,7 +58,3 @@ def authorized():
         'name': user_info['name'],
         'token': token['access_token']  # Optional: Only if you need to send the token
     })
-
-@google.tokengetter
-def get_google_oauth_token():
-    return session.get('google_token')
