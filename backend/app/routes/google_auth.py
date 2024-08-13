@@ -1,47 +1,58 @@
-from flask import Blueprint, redirect, url_for, session, request
-from flask_oauthlib.client import OAuth
-from flask import current_app
+from flask import Blueprint, redirect, url_for, session, request, jsonify, current_app
+from authlib.integrations.flask_client import OAuth
 from app import db
 from .models.user import User
 
-oauth = OAuth(app)
+oauth = OAuth(current_app)
 
-google = oauth.remote_app(
-    'google',
-    consumer_key=current_app.config['GOOGLE_CLIENT_ID'],
-    consumer_secret=current_app.config['GOOGLE_CLIENT_SECRET'],
-    request_token_params={
-        'scope': 'email'
-    },
-    base_url='https://www.googleapis.com/oauth2/v1/',
-    request_token_url=None,
-    access_token_method='POST',
+# Configure the OAuth client for Google
+google = oauth.register(
+    name='google',
+    client_id=current_app.config['GOOGLE_CLIENT_ID'],
+    client_secret=current_app.config['GOOGLE_CLIENT_SECRET'],
     access_token_url='https://accounts.google.com/o/oauth2/token',
+    access_token_params=None,
     authorize_url='https://accounts.google.com/o/oauth2/auth',
+    authorize_params=None,
+    client_kwargs={'scope': 'openid profile email'},
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
 )
 
 google_auth = Blueprint('google_auth', __name__)
 
 @google_auth.route('/login/google')
 def login():
-    return google.authorize(callback=url_for('google_auth.authorized', _external=True))
+    redirect_uri = url_for('google_auth.authorized', _external=True)
+    return google.authorize_redirect(redirect_uri)
 
 @google_auth.route('/login/google/authorized')
 def authorized():
-    response = google.authorized_response()
-    if response is None or response.get('access_token') is None:
-        return 'Access denied: reason={} error={}'.format(
-            request.args['error_reason'],
-            request.args['error_description']
-        )
-    session['google_token'] = (response['access_token'], '')
-    user_info = google.get('userinfo')
-    user = User.query.filter_by(email=user_info.data['email']).first()
+    token = google.authorize_access_token()
+    if token is None:
+        return jsonify({
+            'error': 'Access denied',
+            'error_reason': request.args.get('error_reason'),
+            'error_description': request.args.get('error_description')
+        }), 400
+    
+    # Fetch user information
+    user_info = google.parse_id_token(token)
+    if not user_info:
+        return jsonify({'error': 'Failed to fetch user info.'}), 500
+
+    # Check if the user exists in the database
+    user = User.query.filter_by(email=user_info['email']).first()
     if user is None:
-        user = User(email=user_info.data['email'], name=user_info.data['name'])
+        user = User(email=user_info['email'], name=user_info['name'])
         db.session.add(user)
         db.session.commit()
-    return redirect(url_for('main.index'))
+
+    # Send user info or token to React frontend
+    return jsonify({
+        'email': user_info['email'],
+        'name': user_info['name'],
+        'token': token['access_token']  # Optional: Only if you need to send the token
+    })
 
 @google.tokengetter
 def get_google_oauth_token():
