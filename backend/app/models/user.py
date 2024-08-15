@@ -16,38 +16,38 @@ class UserRole(PyEnum):
 class User(db.Model):
     __tablename__ = 'users'
 
-    id = Column(Integer, primary_key=True)
-    username = Column(String(50), unique=True, nullable=False, index=True)
-    email = Column(String(120), unique=True, nullable=False, index=True)
-    password_hash = Column(String(255), nullable=False)
-    full_name = Column(String(100))
-    bio = Column(Text)
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    email = db.Column(db.String(120), unique=True, nullable=False, index=True)
+    password_hash = db.Column(db.String(255), nullable=False)
+    full_name = db.Column(db.String(100))
+    bio = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     
-    is_active = Column(Boolean, default=True)
-    preferences = Column(JSON)
-    failed_login_attempts = Column(Integer, default=0)
-    last_password_change = Column(DateTime, default=datetime.utcnow)
+    is_active = db.Column(db.Boolean, default=True)
+    preferences = db.Column(db.JSON)
+    failed_login_attempts = db.Column(db.Integer, default=0)
+    last_password_change = db.Column(db.DateTime, default=datetime.utcnow)
 
-    projects_created = relationship("Project", back_populates="creator", cascade="all, delete-orphan")
-    donations = relationship("Donation", back_populates="user", cascade="all, delete-orphan")
-    comments = relationship("Comment", back_populates="user", cascade="all, delete-orphan")
-    backed_projects = relationship("Project", secondary="project_backers", back_populates="backers", cascade="save-update")
+    projects_created = db.relationship("Project", back_populates="creator", cascade="all, delete-orphan")
+    donations = db.relationship("Donation", back_populates="user", cascade="all, delete-orphan")
+    comments = db.relationship("Comment", back_populates="user", cascade="all, delete-orphan")
+    backed_projects = db.relationship("Project", secondary="project_backers", back_populates="backers", cascade="save-update")
 
     # Add these fields to the User model
-    stripe_customer_id = Column(String(100), unique=True)
-    is_verified = Column(Boolean, default=False)
-    role = Column(Enum(UserRole), default=UserRole.USER)
-    last_login = Column(DateTime)
+    stripe_customer_id = db.Column(db.String(100), unique=True)
+    is_verified = db.Column(db.Boolean, default=False)
+    role = db.Column(db.Enum(UserRole), default=UserRole.USER)
+    last_login = db.Column(db.DateTime)
     
     # Add this relationship
-    payments = relationship("Payment", back_populates="user", cascade="all, delete-orphan")
+    payments = db.relationship("Payment", back_populates="user", cascade="all, delete-orphan")
 
     
     # Add these relationships
-    notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
-    sent_messages = relationship("Message", foreign_keys="[Message.sender_id]", cascade="all, delete-orphan")
-    received_messages = relationship("Message", foreign_keys="[Message.recipient_id]", cascade="all, delete-orphan")
+    notifications = db.relationship("Notification", back_populates="user", cascade="all, delete-orphan")
+    sent_messages = db.relationship("Message", foreign_keys="[Message.sender_id]", cascade="all, delete-orphan", overlaps="sender")
+    received_messages = db.relationship("Message", foreign_keys="[Message.recipient_id]", cascade="all, delete-orphan", overlaps="recipient")
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)

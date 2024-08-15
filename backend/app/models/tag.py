@@ -10,10 +10,10 @@ project_tags = Table('project_tags', db.metadata,
 class Tag(db.Model):
     __tablename__ = 'tags'
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String(50), unique=True, nullable=False)
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)
 
-    projects = relationship("Project", secondary=project_tags, back_populates="tags")
+    projects = db.relationship("Project", secondary=project_tags, back_populates="tags")
 
     def __repr__(self):
         return f'<Tag {self.name}>'

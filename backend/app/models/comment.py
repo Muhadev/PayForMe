@@ -5,14 +5,14 @@ from app import db
 class Comment(db.Model):
     __tablename__ = 'comments'
 
-    id = Column(Integer, primary_key=True)
-    content = Column(Text, nullable=False)
-    created_at = Column(DateTime, nullable=False)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-    project_id = Column(Integer, ForeignKey('projects.id'), nullable=False)
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False)
+    user_id = db.Column(db.Integer, ForeignKey('users.id'), nullable=False)
+    project_id = db.Column(db.Integer, ForeignKey('projects.id'), nullable=False)
 
-    user = relationship("User", back_populates="comments")
-    project = relationship("Project", back_populates="comments")
+    user = db.relationship("User", back_populates="comments")
+    project = db.relationship("Project", back_populates="comments")
 
     def __repr__(self):
         return f'<Comment by User {self.user_id} on Project {self.project_id}>'

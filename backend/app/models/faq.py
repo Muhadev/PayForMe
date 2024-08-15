@@ -5,9 +5,9 @@ from app import db
 class FAQ(db.Model):
     __tablename__ = 'faqs'
 
-    id = Column(Integer, primary_key=True)
-    project_id = Column(Integer, ForeignKey('projects.id'), nullable=False)
-    question = Column(String(255), nullable=False)
-    answer = Column(Text, nullable=False)
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, ForeignKey('projects.id'), nullable=False)
+    question = db.Column(db.String(255), nullable=False)
+    answer = db.Column(db.Text, nullable=False)
 
-    project = relationship("Project", back_populates="faqs")
+    project = db.relationship("Project", back_populates="faqs")

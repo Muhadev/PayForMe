@@ -5,20 +5,20 @@ from app import db
 class Donation(db.Model):
     __tablename__ = 'donations'
 
-    id = Column(Integer, primary_key=True)
-    amount = Column(Float, nullable=False)
-    created_at = Column(DateTime, nullable=False)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-    project_id = Column(Integer, ForeignKey('projects.id'), nullable=False)
+    id = db.Column(db.Integer, primary_key=True)
+    amount = db.Column(db.Float, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False)
+    user_id = db.Column(db.Integer, ForeignKey('users.id'), nullable=False)
+    project_id = db.Column(db.Integer, ForeignKey('projects.id'), nullable=False)
 
-    user = relationship("User", back_populates="donations")
-    project = relationship("Project", back_populates="donations")
+    user = db.relationship("User", back_populates="donations")
+    project = db.relationship("Project", back_populates="donations")
 
     # Add these fields to the Donation model
-    status = Column(Enum('pending', 'completed', 'refunded'), default='pending')
+    status = db.Column(db.Enum('pending', 'completed', 'refunded'), default='pending')
     
-    # Add this relationship
-    payment = relationship("Payment", back_populates="donation", uselist=False)
+    # Add this db.relationship
+    payment = db.relationship("Payment", back_populates="donation", uselist=False)
 
     def __repr__(self):
         return f'<Donation {self.amount} to Project {self.project_id}>'

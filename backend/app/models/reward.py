@@ -5,17 +5,17 @@ from app import db
 class Reward(db.Model):
     __tablename__ = 'rewards'
 
-    id = Column(Integer, primary_key=True)
-    project_id = Column(Integer, ForeignKey('projects.id'), nullable=False)
-    title = Column(String(100), nullable=False)
-    description = Column(Text, nullable=False)
-    minimum_amount = Column(Float, nullable=False)
-    estimated_delivery = Column(DateTime)
-    quantity_available = Column(Integer)
-    quantity_claimed = Column(Integer, default=0)
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, ForeignKey('projects.id'), nullable=False)
+    title = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    minimum_amount = db.Column(db.Float, nullable=False)
+    estimated_delivery = db.Column(db.DateTime)
+    quantity_available = db.Column(db.Integer)
+    quantity_claimed = db.Column(db.Integer, default=0)
 
-    project = relationship("Project", back_populates="rewards")
-    donations = relationship("Donation", back_populates="reward")
+    project = db.relationship("Project", back_populates="rewards")
+    donations = db.relationship("Donation", back_populates="reward")
 
     def __repr__(self):
         return f'<Reward {self.title} for Project {self.project_id}>'

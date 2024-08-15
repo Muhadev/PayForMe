@@ -13,13 +13,13 @@ class NotificationType(enum.Enum):
 class Notification(db.Model):
     __tablename__ = 'notifications'
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-    type = Column(Enum(NotificationType), nullable=False)
-    message = Column(Text, nullable=False)
-    is_read = Column(Boolean, default=False)
-    created_at = Column(DateTime, nullable=False)
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, ForeignKey('users.id'), nullable=False)
+    type = db.Column(db.Enum(NotificationType), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    is_read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, nullable=False)
     
-    user = relationship("User", back_populates="notifications")
+    user = db.relationship("User", back_populates="notifications")
 
     
