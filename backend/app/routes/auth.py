@@ -131,9 +131,40 @@ def password_reset(token):
 def protected():
     try:
         current_user_id = get_jwt_identity()
-        user = User.query.get(current_user_id)
+        user = AuthService.get_user_profile(current_user_id)
         logger.info(f"Protected resource accessed by user: {user.username}")
         return jsonify(logged_in_as=user.username), 200
     except JWTException as e:
         logger.error(f"JWT error in protected route: {str(e)}")
         return jsonify({"msg": "Invalid token"}), 401
+
+@bp.route('/profile', methods=['GET'])
+@jwt_required()
+def get_profile():
+    current_user_id = get_jwt_identity()
+    user = AuthService.get_user_profile(current_user_id)
+    if user:
+        logger.info(f"User profile retrieved for user {user.username}")
+        return jsonify({'user': user}), 200
+    else:
+        logger.warning(f"Profile retrieval failed: User not found for ID {current_user_id}")
+        return jsonify({"msg": "User not found"}), 404
+
+@bp.route('/profile', methods=['PUT'])
+@jwt_required()
+def update_profile():
+    current_user_id = get_jwt_identity()
+    data = request.get_json()
+
+    if not data:
+        logger.warning(f"Update profile attempt with missing data for user {current_user_id}")
+        return jsonify({"msg": "No data provided"}), 400
+
+    success, message = AuthService.update_user_profile(current_user_id, data)
+    
+    if success:
+        logger.info(f"User {current_user_id} updated their profile")
+        return jsonify({"msg": message}), 200
+    else:
+        logger.warning(f"Failed profile update for user {current_user_id}")
+        return jsonify({"msg": message}), 400
