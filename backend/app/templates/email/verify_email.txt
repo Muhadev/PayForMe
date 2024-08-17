@@ -1,0 +1,8 @@
+Hello {{ user.username }},
+
+Please verify your email address by clicking on the following link:
+
+{{ url_for('auth.verify_email', token=token, _external=True) }}
+
+Thank you,
+The Team

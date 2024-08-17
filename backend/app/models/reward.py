@@ -15,7 +15,8 @@ class Reward(db.Model):
     quantity_claimed = db.Column(db.Integer, default=0)
 
     project = db.relationship("Project", back_populates="rewards")
-    donations = db.relationship("Donation", back_populates="reward")
+    donations = db.relationship("Donation", back_populates="reward", foreign_keys="[Donation.reward_id]")  # Specify the correct foreign key here
+    
 
     def __repr__(self):
         return f'<Reward {self.title} for Project {self.project_id}>'

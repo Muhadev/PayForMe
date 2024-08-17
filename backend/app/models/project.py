@@ -18,10 +18,11 @@ class Project(db.Model):
     start_date = db.Column(db.DateTime, nullable=False)
     end_date = db.Column(db.DateTime, nullable=False)
     created_at = db.Column(db.DateTime, nullable=False)
-    creator_id = Column(db.Integer, ForeignKey('users.id'), nullable=False)
-    category_id = Column(db.Integer, ForeignKey('categories.id'), nullable=False)
+    creator_id = db.Column(db.Integer, ForeignKey('users.id'), nullable=False)
+    category_id = db.Column(db.Integer, ForeignKey('categories.id'), nullable=False)
 
     creator = db.relationship("User", back_populates="projects_created")
+    rewards = db.relationship("Reward", back_populates="project")
     category = db.relationship("Category", back_populates="projects")
     donations = db.relationship("Donation", back_populates="project")
     updates = db.relationship("ProjectUpdate", back_populates="project")  # Corrected line

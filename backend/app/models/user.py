@@ -46,9 +46,12 @@ class User(db.Model):
     
     # Add these relationships
     notifications = db.relationship("Notification", back_populates="user", cascade="all, delete-orphan")
-    sent_messages = db.relationship("Message", foreign_keys="[Message.sender_id]", cascade="all, delete-orphan", overlaps="sender")
-    received_messages = db.relationship("Message", foreign_keys="[Message.recipient_id]", cascade="all, delete-orphan", overlaps="recipient")
+    sent_messages = db.relationship("Message", foreign_keys='Message.sender_id', back_populates="sender")
+    received_messages = db.relationship("Message", foreign_keys='Message.receiver_id', back_populates="receiver")
 
+    # Add verification_token column
+    verification_token = db.Column(db.String(128), unique=True)
+    
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 

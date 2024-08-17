@@ -1,0 +1,36 @@
+/* Navbar.css */
+
+/* Set the background color to white and add a shadow */
+.navbar {
+  background-color: white !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Adjust the height of the Navbar */
+.navbar {
+  height: 70px; /* Adjust this value as needed */
+}
+
+/* Reduce the padding on the left and right */
+.navbar .container {
+  padding-left: 15px; /* Adjust this value as needed */
+  padding-right: 15px; /* Adjust this value as needed */
+}
+
+/* Adjust the padding for Navbar items */
+.navbar-nav .nav-link {
+  padding-left: 10px; /* Adjust this value as needed */
+  padding-right: 10px; /* Adjust this value as needed */
+}
+
+/* Ensure the brand is vertically centered */
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+/* Additional styling to ensure the brand and links are aligned */
+.navbar-brand, .navbar-nav .nav-link {
+  line-height: 70px; /* Match this with the height of the navbar */
+}

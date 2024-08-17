@@ -1,0 +1,27 @@
+/* src/components/layout/HeroSection.css */
+
+.hero-section {
+    background-color: #1a237e; /* Deep navy blue */
+    color: white;
+    padding: 60px 0;
+    min-height: 600px;
+  }
+  
+  .hero-content h1 {
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+  }
+  
+  .hero-content p {
+    font-size: 1.2rem;
+    margin-bottom: 30px;
+  }
+  
+  .hero-content .btn {
+    padding: 10px 20px;
+  }
+  
+  .hero-content .btn-secondary {
+    margin-left: 15px;
+  }
+  

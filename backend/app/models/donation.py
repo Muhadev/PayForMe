@@ -17,6 +17,9 @@ class Donation(db.Model):
     # Add these fields to the Donation model
     status = db.Column(db.Enum('pending', 'completed', 'refunded'), default='pending')
     
+    reward_id = db.Column(db.Integer, db.ForeignKey('rewards.id'))
+    reward = db.relationship("Reward", back_populates="donations", foreign_keys=[reward_id])  # Specify the correct foreign key here
+
     # Add this db.relationship
     payment = db.relationship("Payment", back_populates="donation", uselist=False)
 

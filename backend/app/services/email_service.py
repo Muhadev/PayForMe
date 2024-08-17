@@ -20,12 +20,13 @@ def send_email(to_email, subject, text_content, html_content):
         sg = SendGridAPIClient(current_app.config['SENDGRID_API_KEY'])
         response = sg.send(message)
         current_app.logger.info(f"Email sent. Status Code: {response.status_code}")
+        current_app.logger.info(f"SendGrid Response: {response.body}")
         return True
     except Exception as e:
-        if isinstance(e, HTTPError):
-            current_app.logger.error(f"SendGrid API error: {str(e)}")
-        else:
-            current_app.logger.error(f"Unexpected error sending email: {str(e)}")
+        current_app.logger.error(f"SendGrid API error: {str(e)}")
+        return False
+    except Exception as e:
+        current_app.logger.error(f"Unexpected error sending email: {str(e)}")
         return False
 
 EMAIL_TEMPLATE_TYPES = ['verification', 'reset_password']
