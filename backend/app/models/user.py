@@ -33,7 +33,8 @@ class User(db.Model):
     donations = db.relationship("Donation", back_populates="user", cascade="all, delete-orphan")
     comments = db.relationship("Comment", back_populates="user", cascade="all, delete-orphan")
     backed_projects = db.relationship("Project", secondary="project_backers", back_populates="backers", cascade="save-update")
-
+    roles = db.relationship('Role', secondary='user_roles', back_populates='users')
+    
     # Add these fields to the User model
     stripe_customer_id = db.Column(db.String(100), unique=True)
     is_verified = db.Column(db.Boolean, default=False)
