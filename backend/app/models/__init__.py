@@ -4,6 +4,8 @@ from app import db
 from .user import User
 from .notification import Notification, NotificationType
 from .message import Message
+from .role import Role
+from .permission import Permission
 
 # Project-related models
 from .project import Project
