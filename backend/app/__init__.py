@@ -23,7 +23,7 @@ def create_app():
 
     from app.models import (
         User, Project, Donation, Category, Comment, ProjectUpdate, Payment, Reward, 
-        Notification, Media, Tag, FAQ, Message, TokenBlocklist
+        Notification, Media, Tag, FAQ, Message, TokenBlocklist, Role, Permission
     )
 
     
@@ -33,5 +33,11 @@ def create_app():
 
     from app.routes.google_auth import google_auth
     app.register_blueprint(google_auth)
+
+    from app.routes.profile_routes import profile_bp
+    app.register_blueprint(profile_bp)
+
+    from app.routes.role_permissions import role_permissions_bp
+    app.register_blueprint(role_permissions_bp)
 
     return app
