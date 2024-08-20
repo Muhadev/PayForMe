@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 # Create a Blueprint for the profile routes
 profile_bp = Blueprint('profile', __name__, url_prefix='/profile')
 
-@profile_bp.route('/', methods=['GET'])
+@profile_bp.route('/get_profile', methods=['GET'])
 @jwt_required()
 def get_profile():
     current_user_id = get_jwt_identity()
@@ -21,7 +21,7 @@ def get_profile():
         logger.warning(f"Profile retrieval failed: User not found for ID {current_user_id}")
         return jsonify({"msg": "User not found"}), 404
 
-@profile_bp.route('/', methods=['PUT'])
+@profile_bp.route('/update_profile', methods=['PUT'])
 @jwt_required()
 def update_profile():
     current_user_id = get_jwt_identity()
