@@ -1,5 +1,6 @@
 
 from app import db
+from app.models.association_tables import role_permissions  # Import the association table
 
 class Permission(db.Model):
     __tablename__ = 'permissions'

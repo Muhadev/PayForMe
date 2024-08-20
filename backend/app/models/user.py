@@ -8,6 +8,7 @@ import jwt
 from enum import Enum as PyEnum
 from flask import current_app
 from datetime import datetime
+from app.models.association_tables import user_roles  # Import the association table
 
 class UserRole(PyEnum):
     USER = 'user'
