@@ -1,0 +1,35 @@
+/* AboutPayForMeSection.css */
+.about-payforme-section {
+    background-color: #00264d; /* Deep blue background */
+    color: #ffffff; /* White text color for contrast */
+    padding: 40px 20px;
+    text-align: left;
+  }
+  
+  .about-payforme-section .container {
+    max-width: 800px;
+    margin: 0 40px;
+  }
+  
+  .about-payforme-section h2 {
+    font-size: 2rem;
+    margin-bottom: 20px;
+  }
+  
+  .about-payforme-section p {
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+  
+  .about-payforme-section .learn-more-link {
+    color: #ffffff;
+    text-decoration: underline;
+    font-weight: bold;
+    font-size: 1rem;
+  }
+  
+  .about-payforme-section .learn-more-link:hover {
+    color: #ffcc00; /* Optional: Change color on hover */
+  }
+  

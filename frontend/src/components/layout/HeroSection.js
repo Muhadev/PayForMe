@@ -3,7 +3,7 @@
 import React from 'react';
 import { Container, Row, Col, Button } from 'react-bootstrap';
 import './HeroSection.css'; // Create a CSS file for styling
-import imagePath from '../assets/image.jpg';
+import imagePath from '../../assets/image.png';
 
 function HeroSection() {
   return (

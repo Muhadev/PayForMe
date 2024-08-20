@@ -1,0 +1,83 @@
+/* src/components/layout/DiscoverySection.css */
+
+.discovery-section {
+    padding: 60px 0;
+    background-color: #f8f9fa; /* Light background */
+  }
+
+  .discovery-header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  
+  .discovery-header h2 {
+    font-size: 2rem;
+    margin-bottom: 10px;
+  }
+  
+  .discovery-header p {
+    font-size: 1.2rem;
+    color: #6c757d; /* Secondary text color */
+  }
+  
+  .featured-card {
+    margin-bottom: 30px;
+    background-color: #fff; /* Card background */
+    border: none; /* Remove border for a clean look */
+  }
+  .featured-card img{
+    height: 515px;
+    object-fit: cover;
+  }
+  .featured-card .card-title {
+    font-size: 1.5rem;
+    margin-top: 20px;
+  }
+  
+  .featured-card .card-text {
+    font-size: 1.1rem;
+    color: #6c757d;
+  }
+  
+  .featured-card .amount-raised {
+    font-weight: bold;
+    font-size: 1.2rem;
+    margin-bottom: 15px;
+  }
+  
+  .fundraiser-card {
+    background-color: #fff;
+    border: none;
+    margin-bottom: 30px;
+    display: flex;
+    height: 350px;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  
+  .fundraiser-card .card-title {
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+  }
+  
+  .fundraiser-card img {
+    height: 150px;
+    object-fit: cover;
+  }
+  .fundraiser-card .card-text {
+    font-size: 1rem;
+    color: #6c757d;
+  }
+  .d-flex {
+    display: flex;
+  }
+  
+  .align-items-stretch {
+    align-items: stretch;
+  }
+  .fundraiser-card .amount-raised {
+    font-weight: bold;
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+  }
+  
