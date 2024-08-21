@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Text, Float, DateTime, ForeignKey, Table, Enum, Boolean
 from sqlalchemy.orm import relationship
 from . import db
+from datetime import datetime
 
 project_backers = Table('project_backers', db.metadata,
     Column('user_id', Integer, ForeignKey('users.id')),
@@ -17,7 +18,7 @@ class Project(db.Model):
     current_amount = db.Column(db.Float, default=0)
     start_date = db.Column(db.DateTime, nullable=False)
     end_date = db.Column(db.DateTime, nullable=False)
-    created_at = db.Column(db.DateTime, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)  # Set default value
     creator_id = db.Column(db.Integer, ForeignKey('users.id'), nullable=False)
     category_id = db.Column(db.Integer, ForeignKey('categories.id'), nullable=False)
 

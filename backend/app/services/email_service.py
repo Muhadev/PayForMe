@@ -7,6 +7,7 @@ from python_http_client.exceptions import HTTPError
 
 # Configure logging
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 def send_email(to_email, subject, text_content, html_content):
     message = Mail(
@@ -20,14 +21,15 @@ def send_email(to_email, subject, text_content, html_content):
         sg = SendGridAPIClient(current_app.config['SENDGRID_API_KEY'])
         response = sg.send(message)
         current_app.logger.info(f"Email sent. Status Code: {response.status_code}")
-        current_app.logger.info(f"SendGrid Response: {response.body}")
+        # Check if response has a body, and log it if available
+        if response.body:
+            current_app.logger.info(f"SendGrid Response: {response.body.decode('utf-8')}")
         return True
-    except Exception as e:
-        current_app.logger.error(f"SendGrid API error: {str(e)}")
-        return False
+    except HTTPError as e:
+        current_app.logger.error(f"SendGrid HTTP error: {str(e)}")
     except Exception as e:
         current_app.logger.error(f"Unexpected error sending email: {str(e)}")
-        return False
+    return False
 
 EMAIL_TEMPLATE_TYPES = ['verification', 'reset_password']
 
@@ -37,7 +39,7 @@ def send_templated_email(to_email, email_type, user):
         return False
     
     if email_type == 'verification':
-        token = user.get_verification_token()
+        token = user.generate_verification_token()
         subject = 'Verify Your Email'
         text_content = render_template('email/verify_email.txt', user=user, token=token)
         html_content = render_template('email/verify_email.html', user=user, token=token)

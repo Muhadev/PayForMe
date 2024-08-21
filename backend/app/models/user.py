@@ -52,7 +52,7 @@ class User(db.Model):
     received_messages = db.relationship("Message", foreign_keys='Message.receiver_id', back_populates="receiver")
 
     # Add verification_token column
-    verification_token = db.Column(db.String(128), unique=True)
+    verification_token = db.Column(db.String(256), unique=True)
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -92,14 +92,15 @@ class User(db.Model):
     def is_account_locked(self):
         return self.failed_login_attempts >= current_app.config['MAX_LOGIN_ATTEMPTS']
 
-    def get_verification_token(self, expires_in=3600):
-        try:
-            return jwt.encode(
-                {'verify_email': self.id, 'exp': time() + expires_in},
-                current_app.config['SECRET_KEY'], algorithm='HS256')
-        except Exception as e:
-            current_app.logger.error(f"Error generating verification token: {str(e)}")
-            return None
+    def generate_verification_token(self, expires_in=600):
+        token = jwt.encode(
+            {'verify_email': self.id, 'exp': time() + expires_in},
+            current_app.config['SECRET_KEY'],
+            algorithm='HS256'
+        )
+        self.verification_token = token
+        # db.session.commit()
+        return token
 
     def get_reset_password_token(self, expires_in=600):
         try:
@@ -113,16 +114,15 @@ class User(db.Model):
     @staticmethod
     def verify_verification_token(token):
         try:
-            data = jwt.decode(token, current_app.config['SECRET_KEY'],
-                              algorithms=['HS256'])
-            id = data['verify_email']
+            data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
+            user_id = data.get('verify_email')
+            if user_id:
+                return User.query.get(user_id)
         except ExpiredSignatureError:
             current_app.logger.warning("Expired verification token")
-            return None
         except (InvalidTokenError, DecodeError, KeyError) as e:
             current_app.logger.error(f"Invalid verification token: {str(e)}")
-            return None
-        return User.query.get(id)
+        return None
 
     @staticmethod
     def verify_reset_password_token(token):

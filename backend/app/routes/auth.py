@@ -62,7 +62,11 @@ def login():
         logger.info(f"User {data['username']} logged in successfully")
         access_token = create_access_token(identity=result)
         refresh_token = create_refresh_token(identity=result)
-        return jsonify(access_token=access_token, refresh_token=refresh_token), 200
+        return jsonify({
+            "msg": "Login successful",
+            "access_token": access_token,
+            "refresh_token": refresh_token
+        }), 200
     else:
         logger.warning(f"Failed login attempt for username: {data['username']}")
         return jsonify({"msg": result}), 401

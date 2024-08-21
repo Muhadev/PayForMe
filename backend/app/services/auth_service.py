@@ -32,30 +32,49 @@ class AuthService:
             username=username,
             email=email,
             full_name=full_name,
-            created_at=datetime.utcnow(),
-            verification_token=str(uuid.uuid4())
+            created_at=datetime.utcnow()
         )
         new_user.set_password(password)
 
+        # Step 2: Add the user to the session to generate the ID
         db.session.add(new_user)
-        db.session.commit()
+        db.session.flush()  # Ensure that the ID is generated
 
-        send_templated_email(new_user.email, 'verification', new_user)
+        logger.debug(f"Generated user ID: {new_user.id}")
+        
+        # Step 3: Generate the verification token using the now-available new_user.id
+        verification_token = new_user.generate_verification_token()
+        logger.debug(f"Generated verification token: {verification_token}")
+
+        try:
+            send_templated_email(new_user.email, 'verification', new_user)
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Registration failed: Error sending verification email to {email} - {str(e)}")
+            return False, "An error occurred during registration. Please try again."
+
         logger.info(f"User {username} registered successfully")
-
         return True, "User created successfully. Please check your email to verify your account."
 
     @staticmethod
     def verify_email(token):
-        user = User.query.filter_by(verification_token=token).first()
-        if user:
+        user = User.verify_verification_token(token)
+        if user and user.verification_token == token:  # Check that the tokens match
+            if user.is_verified:
+                logger.info(f"Email verification attempt for already verified user: {user.username}")
+                return False, "Email is already verified"
+            
+            # Mark the user as verified
             user.is_verified = True
-            user.verification_token = None
+            user.verification_token = None  # Clear the token after verification
             db.session.commit()
+            
             logger.info(f"Email verified successfully for user {user.username}")
             return True, "Email verified successfully"
-        logger.warning(f"Invalid verification token: {token}")    
-        return False, "Invalid verification token"
+
+        logger.warning(f"Invalid or expired verification token: {token}")
+        return False, "Invalid or expired verification token"
 
     @staticmethod
     def login_user(username, password):
