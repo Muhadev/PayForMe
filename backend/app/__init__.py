@@ -49,4 +49,7 @@ def create_app():
     from app.routes.projects import projects_bp
     app.register_blueprint(projects_bp)
 
+    from app.routes.categories import categories_bp
+    app.register_blueprint(categories_bp)
+
     return app
