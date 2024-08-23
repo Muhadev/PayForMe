@@ -1,0 +1,27 @@
+/* PayForMeSection.css */
+.payforme-section {
+    padding: 80px 15px; /* Increase padding for more height and add horizontal padding */
+    background-color: #003366; /* Deep blue background */
+    color: #ffffff; /* White text color */
+    display: flex; /* Use flexbox for alignment */
+    align-items: center; /* Center vertically */
+    justify-content: flex-start; /* Align content to the left */
+  }
+  
+  .content-container {
+    max-width: 800px; /* Control maximum width */
+    margin: 0; /* Remove horizontal margins */
+    padding: 0 50px; /* Add horizontal padding */
+    text-align: left; /* Align text to the left */
+  }
+  
+  h2 {
+    font-size: 2rem; /* Font size for heading */
+    margin-bottom: 20px; /* Space below heading */
+  }
+  
+  p {
+    font-size: 1.2rem; /* Font size for paragraph */
+    line-height: 1.6; /* Line height for readability */
+  }
+  

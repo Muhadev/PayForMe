@@ -1,27 +1,29 @@
 /* Navbar.css */
 
-/* Set the background color to white and add a shadow */
+/* Ensure the navbar is sticky and has a white background */
 .navbar {
   background-color: white !important;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  
-}
-
-/* Adjust the height of the Navbar */
-.navbar {
   height: 70px; /* Adjust this value as needed */
+  padding-left: 15px;
+  padding-right: 15px;
+  position: fixed; /* Keep navbar fixed */
+  top: 0; /* Position it at the top */
+  width: 100%; /* Full width */
+  z-index: 1000; /* Ensure it sits above other content */
 }
 
-/* Reduce the padding on the left and right */
-.navbar .container {
-  padding-left: 15px; /* Adjust this value as needed */
-  padding-right: 15px; /* Adjust this value as needed */
-}
-
-/* Adjust the padding for Navbar items */
+/* Update the height and alignment for Navbar items */
 .navbar-nav .nav-link {
-  padding-left: 10px; /* Adjust this value as needed */
-  padding-right: 10px; /* Adjust this value as needed */
+  padding-left: 10px;
+  padding-right: 10px;
+  line-height: 70px; /* Match this with the height of the navbar */
+}
+
+/* Style the brand logo with deep blue color */
+.brand-logo {
+  color: #003366; /* Deep blue color */
+  font-size: 1.5rem; /* Adjust the font size as needed */
 }
 
 /* Ensure the brand is vertically centered */
@@ -29,9 +31,4 @@
   display: flex;
   align-items: center;
   height: 100%;
-}
-
-/* Additional styling to ensure the brand and links are aligned */
-.navbar-brand, .navbar-nav .nav-link {
-  line-height: 70px; /* Match this with the height of the navbar */
 }

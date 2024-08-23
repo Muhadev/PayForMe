@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import uuid
+from flask import current_app
 from werkzeug.security import generate_password_hash
 from app import db
 from app.models import User, TokenBlocklist
@@ -77,32 +78,32 @@ class AuthService:
         return False, "Invalid or expired verification token"
 
     @staticmethod
-    def login_user(username, password):
-        user = User.query.filter_by(username=username).first()
+    def login_user(email, password):
+        user = User.query.filter_by(email=email).first()
 
         if user and user.check_password(password):
             if not user.is_verified:
-                logger.warning(f"Unverified login attempt for user: {username}")
+                logger.warning(f"Unverified login attempt for user: {email}")
                 return False, "Please verify your email before logging in"
             
             if not user.is_active:
-                logger.warning(f"Login attempt for deactivated account: {username}")
+                logger.warning(f"Login attempt for deactivated account: {email}")
                 return False, "This account has been deactivated"
 
             if user.failed_login_attempts >= 5:
-                logger.warning(f"Account locked due to too many failed attempts: {username}")
+                logger.warning(f"Account locked due to too many failed attempts: {email}")
                 return False, "Account locked. Please reset your password."
 
             user.last_login = datetime.utcnow()
             user.failed_login_attempts = 0
             db.session.commit()
-            logger.info(f"User {username} logged in successfully")
+            logger.info(f"User {email} logged in successfully")
             return True, user.id
         
         if user:
             user.increment_failed_login_attempts()
-        logger.warning(f"Failed login attempt for username: {username}")
-        return False, "Invalid username or password"
+        logger.warning(f"Failed login attempt for email: {email}")
+        return False, "Invalid email or password"
 
     @staticmethod
     def deactivate_user(user_id):
@@ -143,24 +144,21 @@ class AuthService:
     def initiate_password_reset(email):
         user = User.query.filter_by(email=email).first()
         if user:
-            reset_token = str(uuid.uuid4())
-            user.reset_token = reset_token
-            user.reset_token_expires = datetime.utcnow() + timedelta(hours=1)
-            db.session.commit()
-            send_templated_email(user.email, 'reset_password', user)
-            logger.info(f"Password reset initiated for user: {user.username}")
+            reset_token = user.get_reset_password_token()  # Generate the token
+            reset_link = f"{current_app.config['FRONTEND_URL']}/password-reset/{reset_token}"
+            send_templated_email(user.email, 'reset_password', user, reset_link=reset_link)
+            logger.info(f"Password reset initiated for user: {user.email}")
         return True, "If an account with this email exists, a password reset link has been sent"
+
 
     @staticmethod
     def reset_password(token, new_password):
-        user = User.query.filter_by(reset_token=token).first()
-        if user and user.reset_token_expires > datetime.utcnow():
+        user = User.verify_reset_password_token(token)
+        if user:
             if not validate_password(new_password):
                 logger.warning(f"Password reset failed: New password does not meet requirements for user {user.username}")
                 return False, "Password does not meet requirements"
             user.set_password(new_password)
-            user.reset_token = None
-            user.reset_token_expires = None
             db.session.commit()
             logger.info(f"Password reset successfully for user {user.username}")
             return True, "Password reset successfully"

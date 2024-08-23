@@ -33,7 +33,7 @@ def send_email(to_email, subject, text_content, html_content):
 
 EMAIL_TEMPLATE_TYPES = ['verification', 'reset_password']
 
-def send_templated_email(to_email, email_type, user):
+def send_templated_email(to_email, email_type, user, reset_link=None):
     if email_type not in EMAIL_TEMPLATE_TYPES:
         current_app.logger.error(f"Unknown email type: {email_type}")
         return False
@@ -45,9 +45,12 @@ def send_templated_email(to_email, email_type, user):
         html_content = render_template('email/verify_email.html', user=user, token=token)
     
     elif email_type == 'reset_password':
-        token = user.get_reset_password_token()
+        if not reset_link:
+            current_app.logger.error("Reset link is missing for password reset email.")
+            return False
+
         subject = 'Reset Your Password'
-        text_content = render_template('email/reset_password.txt', user=user, token=token)
-        html_content = render_template('email/reset_password.html', user=user, token=token)
+        text_content = render_template('email/reset_password.txt', user=user, reset_link=reset_link)
+        html_content = render_template('email/reset_password.html', user=user, reset_link=reset_link)
     
     return send_email(to_email, subject, text_content, html_content)

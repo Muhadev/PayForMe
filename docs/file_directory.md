@@ -6,8 +6,8 @@ frontend/
     │   │   ├── Footer.js
     │   │   └── Layout.js
     │   ├── auth/
-    │   │   ├── LoginForm.js
-    │   │   ├── RegisterForm.js
+    │   │   ├── SignInPage.js
+    │   │   ├── SignUpPage.js
     │   │   └── ForgotPasswordForm.js
     │   ├── projects/
     │   │   ├── ProjectCard.js

@@ -2,10 +2,11 @@ from flask import Flask
 import logging
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
-from config import Config
+from config import Config  # This is correct
 from flask_migrate import Migrate
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_cors import CORS
 
 
 db = SQLAlchemy()
@@ -24,7 +25,7 @@ def create_app():
     migrate.init_app(app, db)
     jwt.init_app(app)
     limiter.init_app(app)
-
+    CORS(app)
     configure_logging()  # Configure logging
 
     from app.models import (

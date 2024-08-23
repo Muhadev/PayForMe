@@ -104,12 +104,17 @@ class User(db.Model):
 
     def get_reset_password_token(self, expires_in=600):
         try:
-            return jwt.encode(
+            token = jwt.encode(
                 {'reset_password': self.id, 'exp': time() + expires_in},
-                current_app.config['SECRET_KEY'], algorithm='HS256')
+                current_app.config['SECRET_KEY'], 
+                algorithm='HS256'
+            )
+            current_app.logger.info(f"Generated reset token: {token}")
+            return token
         except Exception as e:
             current_app.logger.error(f"Error generating reset password token: {str(e)}")
             return None
+
 
     @staticmethod
     def verify_verification_token(token):
@@ -127,16 +132,14 @@ class User(db.Model):
     @staticmethod
     def verify_reset_password_token(token):
         try:
-            data = jwt.decode(token, current_app.config['SECRET_KEY'],
-                              algorithms=['HS256'])
-            id = data['reset_password']
+            data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
+            user_id = data['reset_password']
+            return User.query.get(user_id)
         except ExpiredSignatureError:
             current_app.logger.warning("Expired reset password token")
-            return None
         except (InvalidTokenError, DecodeError, KeyError) as e:
             current_app.logger.error(f"Invalid reset password token: {str(e)}")
-            return None
-        return User.query.get(id)
+        return None
 
     def __repr__(self):
         return f'<User {self.username}>'

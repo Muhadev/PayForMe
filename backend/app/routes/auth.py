@@ -52,14 +52,14 @@ def register():
 def login():
     data = request.get_json()
 
-    if not all(k in data for k in ("username", "password")):
-        logger.warning("Login attempt with missing username or password")
-        return jsonify({"msg": "Missing username or password"}), 400
+    if not all(k in data for k in ("email", "password")):
+        logger.warning("Login attempt with missing email or password")
+        return jsonify({"msg": "Missing email or password"}), 400
 
-    success, result = AuthService.login_user(data['username'], data['password'])
+    success, result = AuthService.login_user(data['email'], data['password'])
 
     if success:
-        logger.info(f"User {data['username']} logged in successfully")
+        logger.info(f"User {data['email']} logged in successfully")
         access_token = create_access_token(identity=result)
         refresh_token = create_refresh_token(identity=result)
         return jsonify({
@@ -68,7 +68,7 @@ def login():
             "refresh_token": refresh_token
         }), 200
     else:
-        logger.warning(f"Failed login attempt for username: {data['username']}")
+        logger.warning(f"Failed login attempt for email: {data['email']}")
         return jsonify({"msg": result}), 401
 
 @bp.route('/deactivate', methods=['POST'])

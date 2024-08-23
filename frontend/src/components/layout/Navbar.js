@@ -4,9 +4,11 @@ import './Navbar.css';
 
 function AppNavbar() {
   return (
-    <Navbar bg="blue" expand="lg">
+    <Navbar bg="white" expand="lg" fixed="top">
       <Container>
-        <Navbar.Brand href="/">PayForMe</Navbar.Brand>
+        <Navbar.Brand href="/" className="navbar-brand">
+          <span className="brand-logo">PayForMe</span>
+        </Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav"/>
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="me-auto">
@@ -21,8 +23,8 @@ function AppNavbar() {
             <Nav.Link href="/dashboard">Dashboard</Nav.Link>
           </Nav>
           <Nav>
-            <Nav.Link href="/login">Login</Nav.Link>
-            <Nav.Link href="/register">Sign Up</Nav.Link>
+            <Nav.Link href="/signin">Signin</Nav.Link>
+            <Nav.Link href="/faqs">FAQS</Nav.Link>
           </Nav>
         </Navbar.Collapse>
       </Container>
