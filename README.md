@@ -1,5 +1,5 @@
 # PayForMe
-PayForMe is an online crowdfunding platform designed to help individuals, groups, and organizations raise money for various personal, charitable, and community-driven causes. Similar to GoFundMe, PayForMe offers an easy-to-use interface, flexible campaign management, and robust features that empower users to share their stories and gather support from a global audience.
+PayForMe is an online crowdfunding platform designed to help individuals, groups, and organizations raise money for various personal, charitable, and community-driven causes. Like GoFundMe, PayForMe offers an easy-to-use interface, flexible campaign management, and robust features that empower users to share their stories and gather support from a global audience.
 
 ## Table of Contents
 * Features
@@ -25,4 +25,9 @@ To run PayForMe locally, follow these steps:
 * Flask
 * Virtual Environment
 * A database system (e.g., PostgreSQL, MySQL)
-
+## Setup
+1. Clone the repository:
+```
+git clone https://github.com/yourusername/PayForMe.git
+cd PayForMe
+```
