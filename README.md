@@ -12,4 +12,17 @@ PayForMe is an online crowdfunding platform designed to help individuals, groups
 
 ## Features
 * Create Campaigns: Users can create fundraising campaigns with customized goals, descriptions, and multimedia content.
-* 
+* Secure Donations: Seamlessly process payments with secure gateways, ensuring donor trust and safety.
+* User Profiles: Manage personal information, view backed projects, and track donation history.
+* Social Sharing: Share campaigns on social media platforms to reach a wider audience and increase donations.
+* Campaign Management: Edit and update campaign details, monitor progress, and communicate with backers.
+* Backer Management: View a list of all backers, and send updates or messages directly to supporters.
+
+## Installation
+To run PayForMe locally, follow these steps:
+## Prerequisites
+* Python 3.8+
+* Flask
+* Virtual Environment
+* A database system (e.g., PostgreSQL, MySQL)
+
