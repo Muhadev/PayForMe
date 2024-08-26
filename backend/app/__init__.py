@@ -52,7 +52,4 @@ def create_app():
     from app.routes.categories import categories_bp
     app.register_blueprint(categories_bp)
 
-    from app.routes.project_routes import project_bp
-    app.register_blueprint(project_bp)
-
     return app
