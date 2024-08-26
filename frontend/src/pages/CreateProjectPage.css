@@ -1,0 +1,17 @@
+.create-project-page {
+  padding-top: 80px;
+  padding-bottom: 50px;
+}
+
+.create-project-page h2 {
+  color: #333;
+  margin-bottom: 30px;
+}
+
+.create-project-page .card {
+  border-radius: 15px;
+}
+
+.create-project-page .alert {
+  margin-bottom: 30px;
+}

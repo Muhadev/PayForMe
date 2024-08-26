@@ -1,0 +1,9 @@
+/* body {
+  padding-top: 70px; 
+} */
+
+.dashboard-container {
+  padding-top: 70px;
+  padding-bottom: 50px;
+  min-height: calc(100vh - 70px);
+}
