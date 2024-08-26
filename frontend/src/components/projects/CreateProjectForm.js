@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Form, Button, Row, Col } from 'react-bootstrap';
 import axios from 'axios';
-import { toast, ToastContainer } from 'react-toastify';
+import { toast } from 'react-toastify'; // Only import the toast function
 import 'react-toastify/dist/ReactToastify.css';
 
 function CreateProjectForm() {
@@ -28,7 +28,8 @@ function CreateProjectForm() {
     setIsLoading(true);
 
     try {
-      const response = await axios.post('/api/projects', formData, {
+        // eslint-disable-next-line no-unused-vars
+      const response = await axios.post('/projects', formData, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -55,7 +56,6 @@ function CreateProjectForm() {
 
   return (
     <>
-      <ToastContainer position="top-right" autoClose={5000} />
       <Form onSubmit={handleSubmit}>
         <Form.Group className="mb-3">
           <Form.Label>Project Title</Form.Label>

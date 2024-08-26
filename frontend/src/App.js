@@ -10,11 +10,25 @@ import UserDashboardPage from './pages/UserDashboardPage';  // Added for user da
 import SignInPage from './components/auth/SignInPage';
 import SignUpPage from './components/auth/SignUpPage';
 import ForgotPasswordForm from './components/auth/ForgotPasswordForm';
+import 'react-toastify/dist/ReactToastify.css';
+import { ToastContainer } from 'react-toastify';
+// import CreateProjectPage from './pages/CreateProjectPage';
 // Other imports...
 
 function App() {
   return (
     <Router>
+      <ToastContainer
+        position="bottom-center"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
       <Routes>
         <Route path="/" element={<MainLayout />}>
           <Route index element={<HomePage />} />
