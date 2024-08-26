@@ -2,11 +2,10 @@ from flask import Flask
 import logging
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
-from config import Config  # This is correct
+from config import Config
 from flask_migrate import Migrate
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from flask_cors import CORS
 
 
 db = SQLAlchemy()
@@ -25,15 +24,15 @@ def create_app():
     migrate.init_app(app, db)
     jwt.init_app(app)
     limiter.init_app(app)
-    CORS(app)
+
     configure_logging()  # Configure logging
 
     from app.models import (
-        User, Project, Donation, Category, Comment, ProjectUpdate, Payment, Reward, 
+        User, Project, Donation, Category, Comment, ProjectUpdate, Payment, Reward,
         Notification, Media, Tag, FAQ, Message, TokenBlocklist, Role, Permission
     )
 
-    
+
     # Import and register blueprints here
     from app.routes.auth import bp as auth_bp
     app.register_blueprint(auth_bp)
@@ -52,5 +51,8 @@ def create_app():
 
     from app.routes.categories import categories_bp
     app.register_blueprint(categories_bp)
+
+    from app.routes.project_routes import project_bp
+    app.register_blueprint(project_bp)
 
     return app
