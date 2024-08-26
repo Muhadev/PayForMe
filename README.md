@@ -29,5 +29,32 @@ To run PayForMe locally, follow these steps:
 1. Clone the repository:
 ```
 git clone https://github.com/yourusername/PayForMe.git
-cd PayForMe
+cd PayForMeC
 ```
+2. Create and activate a virtual environment:
+```
+python3 -m venv venv
+source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+```
+3. Install dependencies:
+```
+pip install -r requirements.txt
+```
+4. Set up the database: Configure your database settings in config.py, then initialize the database:
+```
+flask db init
+flask db migrate
+flask db upgrade
+```
+5. Run the application:
+```
+python3 run.py or flask run
+```
+Access the platform at http://127.0.0.1:5000/.
+
+## Usage
+### Creating a Campaign
+1. Sign up or log in to your account.
+2. Navigate to the "Create Campaign" page.
+3. Fill in the required information: campaign title, description, target amount, and upload any relevant media.
+4. Launch your campaign and share it via social media or direct links.
