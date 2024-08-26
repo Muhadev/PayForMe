@@ -3,6 +3,7 @@ import { Container, Row, Col, Card, Button, Nav } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faChartLine, faHeart, faBell } from '@fortawesome/free-solid-svg-icons';
 import './UserDashboardPage.css'; // Import the new CSS file
+import { Link } from 'react-router-dom';
 
 const UserDashboardPage = () => {
   return (
@@ -70,10 +71,12 @@ const UserDashboardPage = () => {
             <Card className="mb-4">
               <Card.Header className="d-flex justify-content-between align-items-center">
                 <h5 className="mb-0">My Projects</h5>
-                <Button variant="primary" size="sm">
-                  <FontAwesomeIcon icon={faPlus} className="me-2" />
-                  Create New Project
-                </Button>
+                <Link to="/create-project">
+                  <Button variant="primary" size="sm">
+                    <FontAwesomeIcon icon={faPlus} className="me-2" />
+                    Create New Project
+                  </Button>
+                </Link>
               </Card.Header>
               <Card.Body>
                 <Row>
