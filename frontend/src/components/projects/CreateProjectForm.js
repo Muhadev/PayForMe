@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
 import { Form, Button, Row, Col } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';  // Import useNavigate
 import axios from 'axios';
-import { toast } from 'react-toastify'; // Only import the toast function
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import React, { useState, useEffect } from 'react';
 
 function CreateProjectForm() {
   const [formData, setFormData] = useState({
@@ -14,7 +15,21 @@ function CreateProjectForm() {
     category_id: '',
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const navigate = useNavigate();  // Initialize navigate
 
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/categories`);
+      setCategories(response.data);
+    } catch (error) {
+      toast.error('Failed to fetch categories');
+    }
+  };
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prevState => ({
@@ -28,8 +43,7 @@ function CreateProjectForm() {
     setIsLoading(true);
 
     try {
-        // eslint-disable-next-line no-unused-vars
-      const response = await axios.post('/projects', formData, {
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/projects`, formData, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -37,16 +51,10 @@ function CreateProjectForm() {
       });
 
       toast.success('Project created successfully!');
-      setFormData({
-        title: '',
-        description: '',
-        goal_amount: '',
-        start_date: '',
-        end_date: '',
-        category_id: '',
-      });
-      // You might want to redirect the user here
-      // history.push(`/projects/${response.data.project}`);
+      
+      // Redirect to the project detail page using the project ID from the response
+      navigate(`/projects/${response.data.project}`);
+      
     } catch (error) {
       toast.error(error.response?.data?.error || 'An error occurred while creating the project');
     } finally {
@@ -78,10 +86,11 @@ function CreateProjectForm() {
             required
           >
             <option value="">Select a category</option>
-            <option value="1">Technology</option>
-            <option value="2">Arts</option>
-            <option value="3">Community</option>
-            {/* Add more categories as needed */}
+            {categories.map(category => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
           </Form.Control>
         </Form.Group>
 

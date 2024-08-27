@@ -4,7 +4,7 @@ import MainLayout from './components/layout/MainLayout';
 import HomePage from './pages/HomePage';
 import AboutPage from './pages/AboutPage';
 import ProjectsPage from './pages/ProjectsPage';
-import ProjectDetailPage from './pages/ProjectDetailPage';  // Added for project details page
+import ProjectDetailPage from './pages/ProjectDetailsPage';  // Added for project details page
 import CreateProjectPage from './pages/CreateProjectPage';  // Added for create project page
 import UserDashboardPage from './pages/UserDashboardPage';  // Added for user dashboard page
 import SignInPage from './components/auth/SignInPage';
@@ -12,6 +12,7 @@ import SignUpPage from './components/auth/SignUpPage';
 import ForgotPasswordForm from './components/auth/ForgotPasswordForm';
 import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from 'react-toastify';
+import CategoryManagement from './pages/CategoryManagement';
 // import CreateProjectPage from './pages/CreateProjectPage';
 // Other imports...
 
@@ -40,6 +41,7 @@ function App() {
           <Route path="signin" element={<SignInPage />} />
           <Route path="register" element={<SignUpPage />} />
           <Route path="forgot-password" element={<ForgotPasswordForm />} />
+          <Route path="categories" element={<CategoryManagement/>} />
           {/* Add more routes as needed */}
         </Route>
       </Routes>
