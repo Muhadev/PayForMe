@@ -1,61 +1,117 @@
-from app.models.project import Project
+# app/services/project_service.py
+
+from typing import List, Dict, Any, Optional
+from datetime import datetime
+from app.models.project import Project, ProjectStatus
 from app import db
 from sqlalchemy.exc import SQLAlchemyError
+from app.utils.project_utils import validate_project_data
+from app.utils.exceptions import ValidationError, ProjectNotFoundError
+import logging
 
-def create_project(data):
-    """Create a new project."""
+logger = logging.getLogger(__name__)
+
+def get_user_drafts(user_id: int) -> List[Project]:
+    """Retrieve all draft projects for a user."""
     try:
+        drafts = Project.query.filter_by(creator_id=user_id, status='draft').all()
+        return drafts
+    except SQLAlchemyError as e:
+        logger.error(f"Error retrieving draft projects: {e}")
+        raise Exception(f"Error retrieving draft projects: {e}")
+
+def create_project(data: Dict[str, Any]) -> Project:
+    try:
+        validate_project_data(data, is_draft=data.get('status') == ProjectStatus.DRAFT.value)
         new_project = Project(
-            title=data.get('title'),
-            description=data.get('description'),
-            goal_amount=data.get('goal_amount'),
-            start_date=data.get('start_date'),
-            end_date=data.get('end_date'),
-            creator_id=data.get('creator_id'),
-            category_id=data.get('category_id'),
-            status='draft'
+            title=data['title'],
+            description=data['description'],
+            goal_amount=data['goal_amount'],
+            start_date=datetime.strptime(data['start_date'], '%Y-%m-%d').date(),
+            end_date=datetime.strptime(data['end_date'], '%Y-%m-%d').date(),
+            status=ProjectStatus(data.get('status', ProjectStatus.DRAFT.value)),
+            featured=data.get('featured', False),
+            risk_and_challenges=data.get('risk_and_challenges', ''),
+            video_url=data.get('video_url', ''),
+            image_url=data.get('image_url', ''),
+            creator_id=data['creator_id'],
+            category_id=data['category_id'],
         )
         db.session.add(new_project)
         db.session.commit()
+        logger.info(f"Created new project: {new_project.id}")
         return new_project
+    except ValidationError as e:
+        logger.warning(f"Validation error while creating project: {e}")
+        raise
     except SQLAlchemyError as e:
         db.session.rollback()
+        logger.error(f"Error creating project: {e}")
         raise Exception(f"Error creating project: {e}")
 
-def get_project_by_id(project_id):
+def update_project(project_id: int, data: Dict[str, Any]) -> Project:
+    try:
+        project = get_project_by_id(project_id)
+        validate_project_data(data, is_draft=data.get('status') == ProjectStatus.DRAFT.value)
+        
+        for key, value in data.items():
+            if hasattr(project, key):
+                if key in ['start_date', 'end_date']:
+                    setattr(project, key, datetime.strptime(value, '%Y-%m-%d').date())
+                elif key == 'status':
+                    setattr(project, key, ProjectStatus(value))
+                else:
+                    setattr(project, key, value)
+        
+        db.session.commit()
+        logger.info(f"Updated project: {project_id}")
+        return project
+    except (ValidationError, ProjectNotFoundError) as e:
+        logger.warning(f"Error updating project {project_id}: {e}")
+        raise
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        logger.error(f"Error updating project {project_id}: {e}")
+        raise Exception(f"Error updating project: {e}")
+
+def get_project_by_id(project_id: int) -> Project:
     """Retrieve a project by its ID."""
     project = Project.query.get(project_id)
     if project is None:
-        raise Exception(f"Project with ID {project_id} not found")
+        logger.warning(f"Project with ID {project_id} not found")
+        raise ProjectNotFoundError(f"Project with ID {project_id} not found")
     return project
 
-def update_project(project_id, data):
-    """Update a project's information."""
+def delete_project(project_id: int) -> bool:
+    """Soft delete a project."""
     try:
         project = get_project_by_id(project_id)
-        project.title = data.get('title', project.title)
-        project.description = data.get('description', project.description)
-        project.goal_amount = data.get('goal_amount', project.goal_amount)
-        project.start_date = data.get('start_date', project.start_date)
-        project.end_date = data.get('end_date', project.end_date)
-        project.status = data.get('status', project.status)
-        project.featured = data.get('featured', project.featured)
-        project.risk_and_challenges = data.get('risk_and_challenges', project.risk_and_challenges)
-        project.video_url = data.get('video_url', project.video_url)
-        
+        project.is_deleted = True
+        project.deleted_at = datetime.utcnow()
         db.session.commit()
-        return project
-    except SQLAlchemyError as e:
-        db.session.rollback()
-        raise Exception(f"Error updating project: {e}")
-
-def delete_project(project_id):
-    """Delete a project."""
-    try:
-        project = get_project_by_id(project_id)
-        db.session.delete(project)
-        db.session.commit()
+        logger.info(f"Soft deleted project: {project_id}")
         return True
+    except ProjectNotFoundError as e:
+        logger.warning(f"Error deleting project {project_id}: {e}")
+        raise
     except SQLAlchemyError as e:
         db.session.rollback()
+        logger.error(f"Error deleting project {project_id}: {e}")
         raise Exception(f"Error deleting project: {e}")
+
+def get_all_projects(page: int = 1, per_page: int = 10, sort_by: str = 'created_at', sort_order: str = 'desc', filters: Dict[str, Any] = None) -> Any:
+    """Retrieve all non-deleted projects with pagination, sorting, and filtering."""
+    query = Project.query.filter_by(is_deleted=False)
+
+    # Apply filters
+    if filters:
+        for key, value in filters.items():
+            if hasattr(Project, key):
+                query = query.filter(getattr(Project, key) == value)
+
+    # Apply sorting
+    if hasattr(Project, sort_by):
+        order = desc(getattr(Project, sort_by)) if sort_order == 'desc' else getattr(Project, sort_by)
+        query = query.order_by(order)
+
+    return query.paginate(page=page, per_page=per_page, error_out=False)
