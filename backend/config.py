@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 from pathlib import Path
+from datetime import timedelta
 
 
 load_dotenv()
@@ -23,6 +24,10 @@ class Config:
     ALLOWED_VIDEO_EXTENSIONS = set(os.getenv('ALLOWED_VIDEO_EXTENSIONS', 'mp4,avi,mov').split(','))
     # Use a relative path for UPLOAD_FOLDER
     # UPLOAD_FOLDER = os.path.join(str(Path.home()), 'payforme_uploads')
+
+    # Set JWT expiration times
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=5)  # Adjust the time as needed
+    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
     
     
     # Set specific upload destinations for photos and videos

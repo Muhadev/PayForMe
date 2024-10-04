@@ -9,8 +9,11 @@ from app.services.project_service import (
 )
 from app.utils.exceptions import ProjectNotFoundError, ValidationError
 from app.utils.response import api_response
+from app.models.enums import ProjectStatus
 from app.utils.file_utils import handle_file_upload
+from app.utils.project_utils import validate_project_data
 
+# logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 projects_bp = Blueprint('projects', __name__)
@@ -29,14 +32,25 @@ def limit_blueprint_requests():
 def create_draft_project():
     try:
         data = request.json
-        data['status'] = 'draft'
+        data['status'] = ProjectStatus.DRAFT  # Enum instance, not the value
         data['creator_id'] = get_jwt_identity()
-        new_project = create_project(data)
+
+        # Log the data before validation
+        logger.info(f"Data before validation: {data}")
+
+        # Validate project data
+        validated_data = validate_project_data(data, is_draft=True)
+        logger.info(f"Validated data: {validated_data}")  # Log the validated data
+
+        # Create the new project using validated data
+        new_project = create_project(validated_data)
+
         return api_response(data=new_project.to_dict(), message="Draft project created successfully", status_code=201)
     except ValidationError as e:
+        logger.warning(f"Validation error in create_draft_project: {e}")
         return api_response(message=str(e), status_code=400)
     except Exception as e:
-        logger.error(f'Error creating draft project: {e}')
+        logger.error(f"Error in create_draft_project: {str(e)}")
         return api_response(message="An unexpected error occurred", status_code=500)
 
 @projects_bp.route('/projects', methods=['POST'])
@@ -48,6 +62,15 @@ def create_new_project():
         data['creator_id'] = get_jwt_identity()
         data['video_file'] = request.files.get('video')
         data['image_file'] = request.files.get('image')
+
+        if 'status' not in data:
+            data['status'] = ProjectStatus.PENDING.value
+
+        # Pass config values
+        data['allowed_video_extensions'] = current_app.config['ALLOWED_VIDEO_EXTENSIONS']
+        data['allowed_image_extensions'] = current_app.config['ALLOWED_EXTENSIONS']
+        data['upload_folder'] = current_app.config['UPLOAD_FOLDER']
+
         new_project = create_project(data)
         return api_response(data=new_project.to_dict(), message="Project created successfully", status_code=201)
     except ValidationError as e:
@@ -72,7 +95,7 @@ def get_user_draft_projects():
 def update_draft_project(draft_id):
     try:
         data = request.json
-        data['status'] = 'draft'
+        data['status'] = ProjectStatus.DRAFT.value
         data['creator_id'] = get_jwt_identity()
         updated_project = update_project(draft_id, data)
         return api_response(data=updated_project.to_dict(), message="Draft project updated successfully", status_code=200)
@@ -90,6 +113,13 @@ def update_existing_project(project_id):
     try:
         data = request.form.to_dict()
         data['creator_id'] = get_jwt_identity()
+
+        # Handle status update
+        if 'status' in data:
+            try:
+                data['status'] = ProjectStatus.from_string(data['status'])  # Use the Enum directly
+            except ValueError as e:
+                return api_response(message=str(e), status_code=400)
 
         if 'image' in request.files:
             data['image_url'] = handle_file_upload(

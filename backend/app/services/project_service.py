@@ -2,7 +2,8 @@
 
 from typing import List, Dict, Any, Optional
 from datetime import datetime
-from app.models.project import Project, ProjectStatus
+from app.models.project import Project
+from app.models.enums import ProjectStatus
 from app import db
 from sqlalchemy.exc import SQLAlchemyError
 from app.utils.project_utils import validate_project_data
@@ -14,7 +15,7 @@ logger = logging.getLogger(__name__)
 def get_user_drafts(user_id: int) -> List[Project]:
     """Retrieve all draft projects for a user."""
     try:
-        drafts = Project.query.filter_by(creator_id=user_id, status='draft').all()
+        drafts = Project.query.filter_by(creator_id=user_id, status=ProjectStatus.DRAFT.value).all()
         return drafts
     except SQLAlchemyError as e:
         logger.error(f"Error retrieving draft projects: {e}")
@@ -22,14 +23,24 @@ def get_user_drafts(user_id: int) -> List[Project]:
 
 def create_project(data: Dict[str, Any]) -> Project:
     try:
-        validate_project_data(data, is_draft=data.get('status') == ProjectStatus.DRAFT.value)
+        # Convert status to enum if it's a string
+        status = data.get('status', ProjectStatus.DRAFT)
+        # logger.debug(f"Initial status value: {status}")
+        
+        # if isinstance(status, str):
+        #     status = ProjectStatus.from_string(status)
+        # elif not isinstance(status, ProjectStatus):
+        #     status = ProjectStatus.DRAFT
+
+        logger.info(f"Status before creating project: {status}")  # Add this log
+
         new_project = Project(
             title=data['title'],
             description=data['description'],
             goal_amount=data['goal_amount'],
             start_date=datetime.strptime(data['start_date'], '%Y-%m-%d').date(),
             end_date=datetime.strptime(data['end_date'], '%Y-%m-%d').date(),
-            status=ProjectStatus(data.get('status', ProjectStatus.DRAFT.value)),
+            status=status,
             featured=data.get('featured', False),
             risk_and_challenges=data.get('risk_and_challenges', ''),
             video_url=data.get('video_url', ''),
@@ -37,9 +48,12 @@ def create_project(data: Dict[str, Any]) -> Project:
             creator_id=data['creator_id'],
             category_id=data['category_id'],
         )
+        logger.info(f"Project status before adding to session: {new_project.status}")
         db.session.add(new_project)
+        logger.info(f"Project status before commit: {new_project.status}")
         db.session.commit()
-        logger.info(f"Created new project: {new_project.id}")
+        logger.info(f"Project status after commit: {new_project.status}")
+        logger.info(f"Created new project: {new_project.id} with status {new_project.status}")
         return new_project
     except ValidationError as e:
         logger.warning(f"Validation error while creating project: {e}")

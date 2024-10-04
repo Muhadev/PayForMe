@@ -35,6 +35,10 @@ def handle_file_upload(file, allowed_extensions: set, upload_folder: str, is_dra
 def save_file(file, upload_folder: str) -> str:
     filename = secure_filename(file.filename)
     file_path = os.path.join(upload_folder, filename)
+
+    # Ensure the directory exists
+    if not os.path.exists(upload_folder):
+        os.makedirs(upload_folder)
     
     if not os.path.commonpath([file_path, upload_folder]) == os.path.abspath(upload_folder):
         raise ValidationError("Invalid file path")
