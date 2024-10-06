@@ -12,6 +12,8 @@ from app.utils.response import api_response
 from app.models.enums import ProjectStatus
 from app.utils.file_utils import handle_file_upload
 from app.utils.project_utils import validate_project_data
+from werkzeug.datastructures import CombinedMultiDict
+
 
 # logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -58,27 +60,75 @@ def create_draft_project():
 @limiter.limit("5 per minute")
 def create_new_project():
     try:
-        data = request.form.to_dict()
+        logger.info(f"Request method: {request.method}")
+        logger.info(f"Request headers: {request.headers}")
+
+        # Handle form data or JSON data
+        if request.content_type.startswith('multipart/form-data'):
+            # Handle form data with file uploads
+            form_data = CombinedMultiDict([request.form, request.files])
+            data = {key: value for key, value in form_data.items()}
+            files = request.files
+            logger.info(f"Multipart form data received: {data}")
+        elif request.is_json:
+            # Handle JSON data
+            data = request.json
+            files = {}
+            logger.info(f"JSON data received: {data}")
+        else:
+            return api_response(message="Unsupported Media Type", status_code=415)
+
+
+        if not data:
+            return api_response(message="No data received in the request", status_code=400)
+
+        # Handle featured field as boolean
+        if 'featured' in data:
+            featured_value = data['featured'].lower() if isinstance(data['featured'], str) else data['featured']
+            if featured_value == 'true':
+                data['featured'] = True
+            elif featured_value == 'false':
+                data['featured'] = False
+        
+        # Handle file uploads
+        if 'video_file' in files:
+            video_file = files['video_file']
+            data['video_url'] = handle_file_upload(
+                video_file,
+                current_app.config['ALLOWED_VIDEO_EXTENSIONS'],
+                current_app.config['UPLOAD_FOLDER'],
+                is_draft=False
+            )
+
+        if 'image_file' in files:
+            image_file = files['image_file']
+            data['image_url'] = handle_file_upload(
+                image_file,
+                current_app.config['ALLOWED_EXTENSIONS'],
+                current_app.config['UPLOAD_FOLDER'],
+                is_draft=False
+            )
+
         data['creator_id'] = get_jwt_identity()
-        data['video_file'] = request.files.get('video')
-        data['image_file'] = request.files.get('image')
 
-        if 'status' not in data:
-            data['status'] = ProjectStatus.PENDING.value
+        # Log the received data
+        logger.info(f"Processed data for new project: {data}")
 
-        # Pass config values
-        data['allowed_video_extensions'] = current_app.config['ALLOWED_VIDEO_EXTENSIONS']
-        data['allowed_image_extensions'] = current_app.config['ALLOWED_EXTENSIONS']
-        data['upload_folder'] = current_app.config['UPLOAD_FOLDER']
+        is_draft = data.get('is_draft', False)
+        # data['status'] = data.get('status', ProjectStatus.DRAFT.value if is_draft else ProjectStatus.PENDING.value)
 
-        new_project = create_project(data)
+        # Validate project data
+        validated_data = validate_project_data(data, is_draft=is_draft)
+        logger.info(f"Validated data: {validated_data}")  # Log the validated data
+
+        new_project = create_project(validated_data)
         return api_response(data=new_project.to_dict(), message="Project created successfully", status_code=201)
     except ValidationError as e:
         return api_response(message=str(e), status_code=400)
     except Exception as e:
-        logger.error(f'Error creating project: {e}')
-        return api_response(message="An unexpected error occurred", status_code=500)
-
+        logger.error(f'Error creating project: {str(e)}', exc_info=True)
+        return api_response(message=f"An unexpected error occurred: {str(e)}", status_code=500)
+        
 @projects_bp.route('/projects/drafts', methods=['GET'])
 @jwt_required()
 def get_user_draft_projects():
@@ -94,11 +144,29 @@ def get_user_draft_projects():
 @jwt_required()
 def update_draft_project(draft_id):
     try:
+        current_user_id = get_jwt_identity()
+
+        try:
+            project = get_project_by_id(draft_id)
+        except ProjectNotFoundError as e:
+            return api_response(message=str(e), status_code=404)
+
+        if project.creator_id != current_user_id:
+            return api_response(message="Not authorized to update this project", status_code=403)
+        if project.status != ProjectStatus.DRAFT:
+            return api_response(message="Only draft projects can be updated through this endpoint", status_code=400)
+
         data = request.json
-        data['status'] = ProjectStatus.DRAFT.value
-        data['creator_id'] = get_jwt_identity()
-        updated_project = update_project(draft_id, data)
-        return api_response(data=updated_project.to_dict(), message="Draft project updated successfully", status_code=200)
+        validated_data = validate_project_data(data, is_draft=True)
+        
+        updated_project = update_project(draft_id, validated_data)
+        
+        return api_response(
+            data=updated_project.to_dict(),
+            message="Draft project updated successfully",
+            status_code=200
+        )
+
     except ValidationError as e:
         return api_response(message=str(e), status_code=400)
     except ProjectNotFoundError as e:
@@ -111,7 +179,12 @@ def update_draft_project(draft_id):
 @jwt_required()
 def update_existing_project(project_id):
     try:
-        data = request.form.to_dict()
+        if request.is_json:
+            data = request.get_json()  # Get JSON data if content type is application/json
+        else:
+            data = request.form.to_dict()  # Fallback to form data for form submissions
+
+        logger.info(f"Request data: {data}")
         data['creator_id'] = get_jwt_identity()
 
         # Handle status update
@@ -121,21 +194,29 @@ def update_existing_project(project_id):
             except ValueError as e:
                 return api_response(message=str(e), status_code=400)
 
-        if 'image' in request.files:
+        logger.info(f"Request files: {request.files}")
+
+        # Handle file uploads
+        if 'video_file' in request.files:
+            video_file = request.files['video_file']
+            data['video_url'] = handle_file_upload(
+                video_file,
+                current_app.config['ALLOWED_VIDEO_EXTENSIONS'],
+                current_app.config['UPLOAD_FOLDER'],
+                is_draft=False  # Assuming this is not a draft project
+            )
+            logger.info(f"Video uploaded: {data['video_url']}")
+
+        if 'image_file' in request.files:
+            image_file = request.files['image_file']
             data['image_url'] = handle_file_upload(
-                request.files['image'],
+                image_file,
                 current_app.config['ALLOWED_EXTENSIONS'],
                 current_app.config['UPLOAD_FOLDER'],
                 is_draft=False
             )
+            logger.info(f"Image uploaded: {data['image_url']}")
 
-        if 'video' in request.files:
-            data['video_url'] = handle_file_upload(
-                request.files['video'],
-                current_app.config['ALLOWED_VIDEO_EXTENSIONS'],
-                current_app.config['UPLOAD_FOLDER'],
-                is_draft=False
-            )
 
         updated_project = update_project(project_id, data)
         return api_response(data=updated_project.to_dict(), message="Project updated successfully", status_code=200)

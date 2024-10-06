@@ -9,6 +9,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.utils.project_utils import validate_project_data
 from app.utils.exceptions import ValidationError, ProjectNotFoundError
 import logging
+from sqlalchemy import desc
+
 
 logger = logging.getLogger(__name__)
 
@@ -23,14 +25,12 @@ def get_user_drafts(user_id: int) -> List[Project]:
 
 def create_project(data: Dict[str, Any]) -> Project:
     try:
+
+        # Log the entire data payload to check the received data
+        logger.info(f"Received data: {data}")
+
         # Convert status to enum if it's a string
         status = data.get('status', ProjectStatus.DRAFT)
-        # logger.debug(f"Initial status value: {status}")
-        
-        # if isinstance(status, str):
-        #     status = ProjectStatus.from_string(status)
-        # elif not isinstance(status, ProjectStatus):
-        #     status = ProjectStatus.DRAFT
 
         logger.info(f"Status before creating project: {status}")  # Add this log
 
@@ -55,6 +55,9 @@ def create_project(data: Dict[str, Any]) -> Project:
         logger.info(f"Project status after commit: {new_project.status}")
         logger.info(f"Created new project: {new_project.id} with status {new_project.status}")
         return new_project
+    except KeyError as e:
+        logger.error(f"Missing required field: {e}")
+        raise ValidationError(f"Missing required field: {e}")
     except ValidationError as e:
         logger.warning(f"Validation error while creating project: {e}")
         raise
@@ -90,9 +93,9 @@ def update_project(project_id: int, data: Dict[str, Any]) -> Project:
 
 def get_project_by_id(project_id: int) -> Project:
     """Retrieve a project by its ID."""
-    project = Project.query.get(project_id)
+    project = Project.query.filter_by(id=project_id, is_deleted=False).first()
     if project is None:
-        logger.warning(f"Project with ID {project_id} not found")
+        logger.warning(f"Project with ID {project_id} not found or has been deleted")
         raise ProjectNotFoundError(f"Project with ID {project_id} not found")
     return project
 

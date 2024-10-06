@@ -1,27 +1,35 @@
-from flask import Blueprint, jsonify, request, current_app
+from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.services.auth_service import AuthService
+from app.services.user_service import UserService  # Update this import
+from app.utils.response import api_response
 import logging
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
 # Create a Blueprint for the profile routes
-profile_bp = Blueprint('profile', __name__, url_prefix='/profile')
+profile_bp = Blueprint('profile', __name__)
 
-@profile_bp.route('/get_profile', methods=['GET'])
+@profile_bp.route('/profile', methods=['GET'])
 @jwt_required()
 def get_profile():
     current_user_id = get_jwt_identity()
-    user = AuthService.get_user_profile(current_user_id)
-    if user:
-        logger.info(f"User profile retrieved for user {user.username}")
-        return jsonify({'user': user}), 200
+    user_profile = UserService.get_user_private_profile(current_user_id)
+    if user_profile:
+        logger.info(f"User profile retrieved for user ID {current_user_id}")
+        return api_response(
+            data={'user': user_profile},
+            message="User profile retrieved successfully",
+            status_code=200
+        )
     else:
         logger.warning(f"Profile retrieval failed: User not found for ID {current_user_id}")
-        return jsonify({"msg": "User not found"}), 404
+        return api_response(
+            message="User not found",
+            status_code=404
+        )
 
-@profile_bp.route('/update_profile', methods=['PUT'])
+@profile_bp.route('/profile', methods=['PUT'])
 @jwt_required()
 def update_profile():
     current_user_id = get_jwt_identity()
@@ -29,13 +37,39 @@ def update_profile():
 
     if not data:
         logger.warning(f"Update profile attempt with missing data for user {current_user_id}")
-        return jsonify({"msg": "No data provided"}), 400
+        return api_response(
+            message="No data provided",
+            status_code=400
+        )
 
-    success, message = AuthService.update_user_profile(current_user_id, data)
+    success, message = UserService.update_user_profile(current_user_id, data)
 
     if success:
         logger.info(f"User {current_user_id} updated their profile")
-        return jsonify({"msg": message}), 200
+        return api_response(
+            message=message,
+            status_code=200
+        )
     else:
-        logger.warning(f"Failed profile update for user {current_user_id}")
-        return jsonify({"msg": message}), 400
+        logger.warning(f"Failed profile update for user {current_user_id}: {message}")
+        return api_response(
+            message=message,
+            status_code=400
+        )
+
+@profile_bp.route('/profile/<int:user_id>', methods=['GET'])
+def get_public_profile(user_id):
+    user_profile = UserService.get_user_public_profile(user_id)
+    if user_profile:
+        logger.info(f"Public profile retrieved for user ID {user_id}")
+        return api_response(
+            data={'user': user_profile},
+            message="User public profile retrieved successfully",
+            status_code=200
+        )
+    else:
+        logger.warning(f"Public profile retrieval failed: User not found for ID {user_id}")
+        return api_response(
+            message="User not found",
+            status_code=404
+        )

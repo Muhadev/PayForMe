@@ -22,7 +22,7 @@ class ProjectStatus(Enum):
         if value is None:
             return cls.DRAFT
         try:
-            return cls(value.upper())
+            return cls[value.upper()]
         except ValueError:
             logger.warning(f"Invalid status value: {value}. Defaulting to DRAFT.")
             return cls.DRAFT

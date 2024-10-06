@@ -27,6 +27,10 @@ class Project(db.Model):
     featured = Column(Boolean, default=False)
     risk_and_challenges = Column(Text)
     video_url = Column(String(200))
+
+    # Add soft delete fields
+    is_deleted = Column(Boolean, default=False, nullable=False)
+    deleted_at = Column(DateTime)
     
     # Relationships
     creator = relationship("User", back_populates="projects_created")
@@ -68,4 +72,6 @@ class Project(db.Model):
             "featured": self.featured,
             "risk_and_challenges": self.risk_and_challenges,
             "video_url": self.video_url,
+            "is_deleted": self.is_deleted,
+            "deleted_at": self.deleted_at.isoformat() if self.deleted_at else None,
         }

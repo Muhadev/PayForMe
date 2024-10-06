@@ -141,5 +141,28 @@ class User(db.Model):
             current_app.logger.error(f"Invalid reset password token: {str(e)}")
         return None
 
-    def __repr__(self):
-        return f'<User {self.username}>'
+    def to_dict(self, include_private=False):
+        user_dict = {
+            'id': self.id,
+            'username': self.username,
+            'full_name': self.full_name,
+            'bio': self.bio,
+            'created_at': self.created_at.isoformat(),
+            'is_active': self.is_active,
+            'is_verified': self.is_verified,
+            'role': self.role.value,
+            'last_login': self.last_login.isoformat() if self.last_login else None,
+            'projects_created_count': len(self.projects_created),
+            'backed_projects_count': len(self.backed_projects),
+            'total_donations': self.get_total_donations(),
+        }
+
+        if include_private:
+            user_dict.update({
+                'email': self.email,
+                'preferences': self.preferences,
+                'stripe_customer_id': self.stripe_customer_id,
+                'last_password_change': self.last_password_change.isoformat(),
+            })
+
+        return user_dict

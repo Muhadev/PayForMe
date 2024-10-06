@@ -3,6 +3,7 @@ from flask_jwt_extended import create_access_token, create_refresh_token, jwt_re
 from app.models import User
 from app import jwt, limiter
 from app.services.auth_service import AuthService
+from app.utils.response import api_response
 from flask_limiter.util import get_remote_address
 import logging
 
@@ -117,7 +118,7 @@ def password_reset_request():
     data = request.get_json()
     success, message = AuthService.initiate_password_reset(data['email'])
     logger.info(f"Password reset request initiated for email: {data['email']}")
-    return jsonify({"msg": message}), 200
+    return api_response(message=message, status_code=200)
 
 @bp.route('/password-reset/<token>', methods=['POST'])
 def password_reset(token):
@@ -125,10 +126,10 @@ def password_reset(token):
     success, message = AuthService.reset_password(token, data['password'])
     if success:
         logger.info(f"Password reset successful for token: {token}")
-        return jsonify({"msg": message}), 200
+        return api_response(message=message, status_code=200)
     else:
         logger.warning(f"Failed password reset attempt with token: {token}")
-        return jsonify({"msg": message}), 400
+        return api_response(message=message, status_code=400)
 
 @bp.route('/protected', methods=['GET'])
 @jwt_required()

@@ -45,19 +45,32 @@ class ProjectValidator:
                 raise ValidationError("Invalid goal amount")
 
     @staticmethod
-    def validate_dates(start_date: str, end_date: str, is_draft: bool) -> None:
+    def validate_end_date(end_date: str, is_draft: bool) -> None:
         if not is_draft:
+            try:
+                end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+                today = date.today()
+
+                if end_date <= today:
+                    raise ValidationError("End date must be in the future")
+            except ValueError:
+                raise ValidationError("Invalid date format for end date. Use YYYY-MM-DD")
+
+    @staticmethod
+    def validate_start_date(start_date: str, end_date: str, is_draft: bool) -> None:
+        if not is_draft and start_date:
             try:
                 start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
                 end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
                 today = date.today()
 
-                if start_date >= end_date:
-                    raise ValidationError("End date must be after start date")
                 if start_date < today:
                     raise ValidationError("Start date cannot be in the past")
+                if start_date >= end_date:
+                    raise ValidationError("Start date must be before end date")
             except ValueError:
                 raise ValidationError("Invalid date format. Use YYYY-MM-DD")
+
 
     @staticmethod
     def validate_category(category_id: Any, is_draft: bool) -> None:
@@ -91,73 +104,76 @@ class ProjectValidator:
         if is_draft and status_value != ProjectStatus.DRAFT:
             raise ValidationError("Draft projects must have 'DRAFT' status")
 
-        if not is_draft and status_value == ProjectStatus.DRAFT:
+        if not is_draft and status_value not in [ProjectStatus.ACTIVE, ProjectStatus.PENDING]:
             raise ValidationError("Non-draft projects cannot have 'DRAFT' status")
 
-        # if status_value not in ProjectStatus.__members__.values():
-        #     raise ValidationError(f"Invalid status. Must be one of: {', '.join([s.value for s in ProjectStatus])}")
+        if status_value not in ProjectStatus.__members__.values():
+            raise ValidationError(f"Invalid status. Must be one of: {', '.join([s.value for s in ProjectStatus])}")
 
     @staticmethod
     def validate_video_url(video_url: str) -> None:
-        if video_url and not validators.url(video_url):
+        if video_url and not (validators.url(video_url) or video_url.startswith('/uploads/')):
             raise ValidationError("Invalid video URL")
 
     @staticmethod
     def validate_image_url(image_url: str) -> None:
-        if image_url and not validators.url(image_url):
+        if image_url and not (validators.url(image_url) or image_url.startswith('/uploads/')):
             raise ValidationError("Invalid image URL")
 
 def validate_project_data(data: Dict[str, Any], is_draft: bool = False) -> Dict[str, Any]:
-    required_fields = ['title', 'description', 'goal_amount', 'start_date', 'end_date', 'category_id']
+    required_fields = ['title', 'description', 'goal_amount', 'end_date', 'category_id']
+
+    # Check if all required fields are provided
+    all_required_fields_present = all(field in data and data[field] for field in required_fields)
 
     # Handle status
-    status = data.get('status', ProjectStatus.DRAFT)
-    if isinstance(status, str):
-        try:
-            status = ProjectStatus.from_string(status)
-        except ValueError as e:
-            raise ValidationError(str(e))
-    elif not isinstance(status, ProjectStatus):
-        raise ValidationError("Invalid status type")
+    if 'status' in data:
+        status_value = data['status']
+        if isinstance(status_value, ProjectStatus):
+            status = status_value
+        else:
+            try:
+                status = ProjectStatus.from_string(status_value)
+            except ValueError:
+                raise ValidationError(f"Invalid status. Must be one of: {', '.join([s.value for s in ProjectStatus])}")
+    else:
+        if is_draft or not all_required_fields_present:
+            status = ProjectStatus.DRAFT
+        else:
+            status = ProjectStatus.PENDING  # Default to PENDING for new complete projects
+
+    data['status'] = status
     
-    data['status'] = status  # Update the status in the data dictionary
-
-
+    # Check for required fields
     if not is_draft:
-        for field in required_fields:
-            if field not in data or not data[field]:
-                raise ValidationError(f"{field.replace('_', ' ').capitalize()} is required")
+        missing_fields = [field for field in required_fields if field not in data or not data[field]]
+        if missing_fields:
+            raise ValidationError(f"Missing required fields: {', '.join(missing_fields)}")
 
-    ProjectValidator.validate_title(data.get('title', ''))
-    ProjectValidator.validate_description(data.get('description', ''), is_draft)
+    # Validate fields
+    if 'title' in data:
+        ProjectValidator.validate_title(data['title'])
+    if 'description' in data:
+        ProjectValidator.validate_description(data['description'], is_draft)
+    if 'goal_amount' in data and not is_draft:
+        ProjectValidator.validate_goal_amount(data['goal_amount'], is_draft)
+    if 'end_date' in data and not is_draft:
+        ProjectValidator.validate_end_date(data['end_date'], is_draft)
+    if 'category_id' in data:
+        ProjectValidator.validate_category(data['category_id'], is_draft)
     
-    if not is_draft:
-        ProjectValidator.validate_goal_amount(data.get('goal_amount'), is_draft)
-        ProjectValidator.validate_dates(data.get('start_date', ''), data.get('end_date', ''), is_draft)
+    # Optional fields
+    if 'start_date' in data:
+        ProjectValidator.validate_start_date(data.get('start_date'), data.get('end_date'), is_draft)
+    if 'featured' in data:
+        ProjectValidator.validate_featured(data['featured'])
+    if 'risk_and_challenges' in data:
+        ProjectValidator.validate_risk_and_challenges(data['risk_and_challenges'])
+    if 'video_url' in data:
+        ProjectValidator.validate_video_url(data['video_url'])
+    if 'image_url' in data:
+        ProjectValidator.validate_image_url(data['image_url'])
 
-    ProjectValidator.validate_category(data.get('category_id'), is_draft)
-    ProjectValidator.validate_featured(data.get('featured'))
-    ProjectValidator.validate_risk_and_challenges(data.get('risk_and_challenges', ''))
     ProjectValidator.validate_status(status, is_draft)
-    
-    ProjectValidator.validate_video_url(data.get('video_url', ''))
-    ProjectValidator.validate_image_url(data.get('image_url', ''))
 
     return data
-
-    # File validation and upload
-    if 'video_file' in data:
-        data['video_url'] = handle_file_upload(
-            data['video_file'],
-            data['allowed_video_extensions'],
-            data['upload_folder'],
-            is_draft
-        )
-
-    if 'image_file' in data:
-        data['image_url'] = handle_file_upload(
-            data['image_file'],
-            data['allowed_image_extensions'],
-            data['upload_folder'],
-            is_draft
-        )
