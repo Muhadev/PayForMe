@@ -50,24 +50,30 @@ def create_app():
     configure_logging()
 
     from app.routes.auth import bp as auth_bp
-    app.register_blueprint(auth_bp)
+    app.register_blueprint(auth_bp, url_prefix='/api/v1/auth')
 
     from app.routes.google_auth import google_auth
-    app.register_blueprint(google_auth)
+    app.register_blueprint(google_auth, url_prefix='/api/v1/auth/google')
 
+    # User-related routes
     from app.routes.profile_routes import profile_bp
-    app.register_blueprint(profile_bp)
-
-    from app.routes.role_permissions import role_permissions_bp
-    app.register_blueprint(role_permissions_bp)
-
-    from app.routes.projects import projects_bp
-    app.register_blueprint(projects_bp)
-
-    from app.routes.categories import categories_bp
-    app.register_blueprint(categories_bp)
+    app.register_blueprint(profile_bp, url_prefix='/api/v1/profile')
 
     from app.routes.two_factor_auth import two_factor_auth_bp
-    app.register_blueprint(two_factor_auth_bp, url_prefix='/users')
+    app.register_blueprint(two_factor_auth_bp, url_prefix='/api/v1/auth/2fa')
+
+    # Admin routes
+    from app.routes.role_permissions import role_permissions_bp
+    app.register_blueprint(role_permissions_bp, url_prefix='/api/v1/admin')
+
+    # Project-related routes
+    from app.routes.projects import projects_bp
+    app.register_blueprint(projects_bp, url_prefix='/api/v1/projects')
+
+    from app.routes.categories import categories_bp
+    app.register_blueprint(categories_bp, url_prefix='/api/v1/categories')
+
+    from app.routes.backer_routes import backer_bp
+    app.register_blueprint(backer_bp, url_prefix='/api/v1/backers')
     
     return app

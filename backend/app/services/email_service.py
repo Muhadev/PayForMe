@@ -31,7 +31,10 @@ def send_email(to_email, subject, text_content, html_content):
         logger.error(f"Unexpected error sending email: {str(e)}")
         return False
 
-EMAIL_TEMPLATE_TYPES = ['verification', 'reset_password', '2fa_enabled', '2fa_disabled', '2fa_setup']
+EMAIL_TEMPLATE_TYPES = [
+    'verification', 'reset_password', '2fa_enabled', '2fa_disabled', 
+    '2fa_setup', 'project_backed', 'project_update', 'project_milestone'
+]
 
 def send_templated_email(to_email, email_type, **kwargs):
     if email_type not in EMAIL_TEMPLATE_TYPES:
@@ -53,6 +56,9 @@ def get_email_subject(email_type):
         'verification': 'Verify Your Email',
         'reset_password': 'Reset Your Password',
         '2fa_enabled': 'Two-Factor Authentication Enabled',
-        '2fa_disabled': 'Two-Factor Authentication Disabled'
+        '2fa_disabled': 'Two-Factor Authentication Disabled',
+        'project_backed': 'Thank You for Backing Our Project!',
+        'project_update': 'New Update on Your Backed Project',
+        'project_milestone': 'Project Milestone Reached!'
     }
     return subjects.get(email_type, 'Notification from PayForMe')

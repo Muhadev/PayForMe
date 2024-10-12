@@ -13,7 +13,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-role_permissions_bp = Blueprint('role_permissions', __name__, url_prefix='/users')
+role_permissions_bp = Blueprint('role_permissions', __name__)
 
 @role_permissions_bp.route('/<int:id>/assign-role', methods=['PUT'])
 @jwt_required()
@@ -141,8 +141,8 @@ def get_role_permissions(role_id):
     permissions = [perm.name for perm in role.permissions]
     return api_response(data={"role": role.name, "permissions": permissions}, status_code=200)
 
-@role_permissions_bp.route('/me', methods=['GET'])
-@jwt_required()
-def get_current_user():
-    current_user_id = get_jwt_identity()
-    return api_response(data={"user_id": current_user_id}, status_code=200)
+# @role_permissions_bp.route('/me', methods=['GET'])
+# @jwt_required()
+# def get_current_user():
+#     current_user_id = get_jwt_identity()
+#     return api_response(data={"user_id": current_user_id}, status_code=200)

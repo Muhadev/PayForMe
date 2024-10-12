@@ -1,0 +1,19 @@
+<!-- templates/email/project_backed.html -->
+{% extends "email/base_email.html" %}
+
+{% block title %}Thank You for Backing Our Project{% endblock %}
+
+{% block header %}Thank You for Your Support!{% endblock %}
+
+{% block content %}
+<h2>Dear {{ user_name }},</h2>
+<p>Thank you for backing the project "{{ project_title }}" with your generous contribution of ${{ amount }}.</p>
+{% if reward_title %}
+<p>You have selected the following reward: {{ reward_title }}</p>
+{% endif %}
+<p>Your support means a lot to us and helps bring this project to life. We'll keep you updated on the project's progress.</p>
+<p>To view the project details, click the button below:</p>
+<p><a href="{{ project_url }}" class="btn">View Project</a></p>
+<p>Thank you again for your support!</p>
+<p>Best regards,<br>The PayForMe Team</p>
+{% endblock %}

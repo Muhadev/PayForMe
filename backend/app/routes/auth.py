@@ -11,7 +11,7 @@ import logging
 logger = logging.getLogger(__name__)
 # Initialize Limiter
 
-bp = Blueprint('auth', __name__, url_prefix='/auth')
+bp = Blueprint('auth', __name__)
 
 @jwt.token_in_blocklist_loader
 def check_if_token_revoked(jwt_header, jwt_payload):

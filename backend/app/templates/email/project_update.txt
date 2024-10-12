@@ -1,0 +1,16 @@
+Dear {{ user_name }},
+
+We have an exciting update on the project "{{ project_title }}" that you've backed!
+
+{{ update_title }}
+
+{{ update_content }}
+
+To view the full project details and all updates, please visit: {{ project_url }}
+
+Thank you for your continued support!
+
+Best regards,
+The PayForMe Team
+
+© 2024 PayForMe. All rights reserved.

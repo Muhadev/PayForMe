@@ -3,7 +3,6 @@ from authlib.integrations.flask_client import OAuth
 from app import db
 from app.models.user import User
 from app.utils.response import success_response, error_response
-import os
 import secrets
 
 google_auth = Blueprint('google_auth', __name__)
@@ -14,12 +13,8 @@ def init_oauth(app):
         name='google',
         client_id=app.config['GOOGLE_CLIENT_ID'],
         client_secret=app.config['GOOGLE_CLIENT_SECRET'],
-        access_token_url='https://accounts.google.com/o/oauth2/token',
-        access_token_params=None,
-        authorize_url='https://accounts.google.com/o/oauth2/auth',
-        authorize_params=None,
-        client_kwargs={'scope': 'openid profile email'},
         server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+        client_kwargs={'scope': 'openid email profile'}
     )
     return google
 
@@ -37,40 +32,34 @@ def login():
 
 @google_auth.route('/login/google/authorized')
 def authorized():
+    current_app.logger.info("Entered authorized route")
     if request.args.get('state') != session.pop('oauth_state', None):
+        current_app.logger.error("Invalid state parameter")
         return error_response("Invalid state parameter", status_code=403)
 
     try:
+        current_app.logger.info("Attempting to authorize access token")
         token = google.authorize_access_token()
+        current_app.logger.info(f"Token received: {token}")
     except Exception as e:
         current_app.logger.error(f"Failed to authorize access token: {str(e)}")
-        return error_response("Authorization failed", status_code=500)
-
-    if token is None:
-        return error_response(
-            "Access denied",
-            status_code=400,
-            meta={
-                'error_reason': request.args.get('error_reason'),
-                'error_description': request.args.get('error_description')
-            }
-        )
+        return error_response(f"Authorization failed: {str(e)}", status_code=500)
 
     try:
-        user_info = google.parse_id_token(token)
+        current_app.logger.info("Fetching user info")
+        resp = google.get('https://www.googleapis.com/oauth2/v3/userinfo')
+        user_info = resp.json()
+        current_app.logger.info(f"User info received: {user_info}")
     except Exception as e:
-        current_app.logger.error(f"Failed to parse ID token: {str(e)}")
-        return error_response("Failed to fetch user info", status_code=500)
-
-    if not user_info:
-        return error_response("Failed to fetch user info", status_code=500)
+        current_app.logger.error(f"Failed to fetch user info: {str(e)}")
+        return error_response(f"Failed to fetch user info: {str(e)}", status_code=500)
 
     user = User.query.filter_by(email=user_info['email']).first()
     if user is None:
-        user = User(email=user_info['email'], name=user_info['name'])
+        user = User(email=user_info['email'], name=user_info.get('name', ''))
         db.session.add(user)
     else:
-        user.name = user_info['name']
+        user.full_name = user_info.get('name', user.full_name)
     
     db.session.commit()
 
@@ -79,7 +68,7 @@ def authorized():
     return success_response(
         data={
             'email': user_info['email'],
-            'name': user_info['name']
+            'name': user_info.get('name', '')
         },
         message="Successfully authenticated with Google"
     )

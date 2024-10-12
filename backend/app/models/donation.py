@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, Float, DateTime, ForeignKey, Boolean, Enum
 from sqlalchemy.orm import relationship
+from .enums import DonationStatus 
 from app import db
 
 class Donation(db.Model):
@@ -14,8 +15,9 @@ class Donation(db.Model):
     user = db.relationship("User", back_populates="donations")
     project = db.relationship("Project", back_populates="donations")
 
-    # Add these fields to the Donation model
-    status = db.Column(db.Enum('pending', 'completed', 'refunded'), default='pending')
+    # Updated status field
+    status = db.Column(db.Enum(DonationStatus), default=DonationStatus.PENDING)
+    
     
     reward_id = db.Column(db.Integer, db.ForeignKey('rewards.id'))
     reward = db.relationship("Reward", back_populates="donations", foreign_keys=[reward_id])  # Specify the correct foreign key here

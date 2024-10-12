@@ -30,7 +30,7 @@ def uploaded_file(filename):
 def limit_blueprint_requests():
     pass
 
-@projects_bp.route('/projects/drafts', methods=['POST'])
+@projects_bp.route('/drafts', methods=['POST'])
 @jwt_required()
 @permission_required('create_draft')
 def create_draft_project():
@@ -57,7 +57,7 @@ def create_draft_project():
         logger.error(f"Error in create_draft_project: {str(e)}")
         return api_response(message="An unexpected error occurred", status_code=500)
 
-@projects_bp.route('/projects', methods=['POST'])
+@projects_bp.route('/', methods=['POST'])
 @jwt_required()
 @permission_required('create_project')
 @limiter.limit("5 per minute")
@@ -132,7 +132,7 @@ def create_new_project():
         logger.error(f'Error creating project: {str(e)}', exc_info=True)
         return api_response(message=f"An unexpected error occurred: {str(e)}", status_code=500)
         
-@projects_bp.route('/projects/drafts', methods=['GET'])
+@projects_bp.route('/drafts', methods=['GET'])
 @jwt_required()
 @permission_required('view_drafts')
 def get_user_draft_projects():
@@ -144,7 +144,7 @@ def get_user_draft_projects():
         logger.error(f'Error retrieving draft projects: {e}')
         return api_response(message="An unexpected error occurred", status_code=500)
 
-@projects_bp.route('/projects/drafts/<int:draft_id>', methods=['PUT'])
+@projects_bp.route('/drafts/<int:draft_id>', methods=['PUT'])
 @jwt_required()
 @permission_required('edit_draft')
 def update_draft_project(draft_id):
@@ -180,7 +180,7 @@ def update_draft_project(draft_id):
         logger.error(f'Error updating draft project with ID {draft_id}: {e}')
         return api_response(message="An unexpected error occurred", status_code=500)
 
-@projects_bp.route('/projects/<int:project_id>', methods=['PUT'])
+@projects_bp.route('/<int:project_id>', methods=['PUT'])
 @jwt_required()
 @permission_required('edit_project')
 def update_existing_project(project_id):
@@ -234,7 +234,7 @@ def update_existing_project(project_id):
         logger.error(f'Error updating project with ID {project_id}: {e}')
         return api_response(message="An unexpected error occurred", status_code=500)
 
-@projects_bp.route('/projects/<int:project_id>', methods=['DELETE'])
+@projects_bp.route('/<int:project_id>', methods=['DELETE'])
 @jwt_required()
 @permission_required('delete_project')
 def delete_existing_project(project_id):
@@ -247,7 +247,7 @@ def delete_existing_project(project_id):
         logger.error(f'Error soft deleting project with ID {project_id}: {e}')
         return api_response(message="An unexpected error occurred", status_code=500)
 
-@projects_bp.route('/projects', methods=['GET'])
+@projects_bp.route('/', methods=['GET'])
 @jwt_required()
 @permission_required('view_projects')
 def get_projects():

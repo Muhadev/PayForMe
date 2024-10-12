@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 categories_bp = Blueprint('categories', __name__)
 
-@categories_bp.route('/categories', methods=['POST'])
+@categories_bp.route('/', methods=['POST'])
 @jwt_required()
 @permission_required('create_category')
 def create_new_category():
@@ -33,7 +33,7 @@ def create_new_category():
         logger.error(f'Error creating category: {e}')
         return jsonify({'error': str(e)}), 500
 
-@categories_bp.route('/categories/<int:category_id>', methods=['GET'])
+@categories_bp.route('/<int:category_id>', methods=['GET'])
 @jwt_required()
 @permission_required('view_category')
 def get_category(category_id):
@@ -51,7 +51,7 @@ def get_category(category_id):
         logger.error(f'Error retrieving category with ID {category_id}: {e}')
         return jsonify({'error': str(e)}), 500
 
-@categories_bp.route('/categories', methods=['GET'])
+@categories_bp.route('/', methods=['GET'])
 @jwt_required()
 @permission_required('view_categories')
 def get_all_categories_route():
@@ -66,7 +66,7 @@ def get_all_categories_route():
         logger.error(f'Error retrieving all categories: {e}')
         return jsonify({'error': str(e)}), 500
 
-@categories_bp.route('/categories/<int:category_id>', methods=['PUT'])
+@categories_bp.route('/<int:category_id>', methods=['PUT'])
 @jwt_required()
 @permission_required('edit_category')
 def update_existing_category(category_id):
@@ -89,7 +89,7 @@ def update_existing_category(category_id):
         logger.error(f'Error updating category with ID {category_id}: {e}')
         return jsonify({'error': str(e)}), 500
 
-@categories_bp.route('/categories/<int:category_id>', methods=['DELETE'])
+@categories_bp.route('/<int:category_id>', methods=['DELETE'])
 @jwt_required()
 @permission_required('delete_category')
 def delete_existing_category(category_id):

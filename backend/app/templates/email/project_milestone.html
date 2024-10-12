@@ -1,0 +1,19 @@
+{% extends "email/base_email.html" %}
+
+{% block title %}Project Milestone: {{ project_title }}{% endblock %}
+
+{% block header %}Project Milestone Reached!{% endblock %}
+
+{% block content %}
+<h2>Dear {{ user_name }},</h2>
+<p>We're thrilled to announce that the project "{{ project_title }}" you've backed has reached an important milestone!</p>
+<h3>{{ milestone_title }}</h3>
+<div>
+    {{ milestone_description|safe }}
+</div>
+<p>This achievement brings us one step closer to the project's successful completion. Thank you for being a part of this journey!</p>
+<p>To view the full project details and all milestones, click the button below:</p>
+<p><a href="{{ project_url }}" class="btn">View Project</a></p>
+<p>Thank you for your ongoing support!</p>
+<p>Best regards,<br>The PayForMe Team</p>
+{% endblock %}

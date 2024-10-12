@@ -1,0 +1,19 @@
+<!-- templates/email/project_backed.txt -->
+Dear {{ user_name }},
+
+Thank you for backing the project "{{ project_title }}" with your generous contribution of ${{ amount }}.
+
+{% if reward_title %}
+You have selected the following reward: {{ reward_title }}
+{% endif %}
+
+Your support means a lot to us and helps bring this project to life. We'll keep you updated on the project's progress.
+
+To view the project details, please visit: {{ project_url }}
+
+Thank you again for your support!
+
+Best regards,
+The PayForMe Team
+
+© 2024 PayForMe. All rights reserved.

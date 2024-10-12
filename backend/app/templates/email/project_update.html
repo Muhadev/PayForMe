@@ -1,0 +1,19 @@
+<!-- templates/email/project_update.html -->
+{% extends "email/base_email.html" %}
+
+{% block title %}Project Update: {{ project_title }}{% endblock %}
+
+{% block header %}Project Update{% endblock %}
+
+{% block content %}
+<h2>Dear {{ user_name }},</h2>
+<p>We have an exciting update on the project "{{ project_title }}" that you've backed!</p>
+<h3>{{ update_title }}</h3>
+<div>
+    {{ update_content|safe }}
+</div>
+<p>To view the full project details and all updates, click the button below:</p>
+<p><a href="{{ project_url }}" class="btn">View Project</a></p>
+<p>Thank you for your continued support!</p>
+<p>Best regards,<br>The PayForMe Team</p>
+{% endblock %}

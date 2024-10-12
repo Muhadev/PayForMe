@@ -9,7 +9,7 @@ from app.utils.decorators import rate_limit
 
 two_factor_auth_bp = Blueprint('two_factor_auth', __name__)
 
-@two_factor_auth_bp.route('/2fa/initiate-setup', methods=['POST'])
+@two_factor_auth_bp.route('/initiate-setup', methods=['POST'])
 @jwt_required()
 @rate_limit(limit=5, per=60)  # 5 requests per minute
 def initiate_2fa_setup():
@@ -29,7 +29,7 @@ def initiate_2fa_setup():
         current_app.logger.error(f"Error in 2FA setup initiation: {str(e)}")
         return api_response(message="An error occurred during 2FA setup initiation", status_code=500)
 
-@two_factor_auth_bp.route('/2fa/complete-setup', methods=['POST'])
+@two_factor_auth_bp.route('/complete-setup', methods=['POST'])
 @jwt_required()
 @rate_limit(limit=5, per=60)  # 5 requests per minute
 def complete_2fa_setup():
@@ -53,7 +53,7 @@ def complete_2fa_setup():
         current_app.logger.error(f"Error in 2FA setup completion: {str(e)}")
         return api_response(message="An error occurred during 2FA setup completion", status_code=500)
 
-@two_factor_auth_bp.route('/2fa/verify', methods=['POST'])
+@two_factor_auth_bp.route('/verify', methods=['POST'])
 @jwt_required()
 @rate_limit(limit=3, per=60)  # 3 requests per minute
 def verify_2fa():
@@ -77,7 +77,7 @@ def verify_2fa():
         current_app.logger.error(f"Error in 2FA verification: {str(e)}")
         return api_response(message="An error occurred during 2FA verification", status_code=500)
 
-@two_factor_auth_bp.route('/2fa/revoke', methods=['DELETE'])
+@two_factor_auth_bp.route('/revoke', methods=['DELETE'])
 @jwt_required()
 @rate_limit(limit=3, per=60)  # 3 requests per minute
 def revoke_2fa():
