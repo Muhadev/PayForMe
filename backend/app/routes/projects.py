@@ -13,6 +13,7 @@ from app.models.enums import ProjectStatus
 from app.utils.file_utils import handle_file_upload
 from app.utils.project_utils import validate_project_data
 from werkzeug.datastructures import CombinedMultiDict
+from app.utils.decorators import permission_required
 
 
 # logging.basicConfig(level=logging.DEBUG)
@@ -31,6 +32,7 @@ def limit_blueprint_requests():
 
 @projects_bp.route('/projects/drafts', methods=['POST'])
 @jwt_required()
+@permission_required('create_draft')
 def create_draft_project():
     try:
         data = request.json
@@ -57,6 +59,7 @@ def create_draft_project():
 
 @projects_bp.route('/projects', methods=['POST'])
 @jwt_required()
+@permission_required('create_project')
 @limiter.limit("5 per minute")
 def create_new_project():
     try:
@@ -131,6 +134,7 @@ def create_new_project():
         
 @projects_bp.route('/projects/drafts', methods=['GET'])
 @jwt_required()
+@permission_required('view_drafts')
 def get_user_draft_projects():
     try:
         user_id = get_jwt_identity()
@@ -142,6 +146,7 @@ def get_user_draft_projects():
 
 @projects_bp.route('/projects/drafts/<int:draft_id>', methods=['PUT'])
 @jwt_required()
+@permission_required('edit_draft')
 def update_draft_project(draft_id):
     try:
         current_user_id = get_jwt_identity()
@@ -177,6 +182,7 @@ def update_draft_project(draft_id):
 
 @projects_bp.route('/projects/<int:project_id>', methods=['PUT'])
 @jwt_required()
+@permission_required('edit_project')
 def update_existing_project(project_id):
     try:
         if request.is_json:
@@ -230,6 +236,7 @@ def update_existing_project(project_id):
 
 @projects_bp.route('/projects/<int:project_id>', methods=['DELETE'])
 @jwt_required()
+@permission_required('delete_project')
 def delete_existing_project(project_id):
     try:
         delete_project(project_id)
@@ -241,6 +248,8 @@ def delete_existing_project(project_id):
         return api_response(message="An unexpected error occurred", status_code=500)
 
 @projects_bp.route('/projects', methods=['GET'])
+@jwt_required()
+@permission_required('view_projects')
 def get_projects():
     try:
         page = request.args.get('page', 1, type=int)

@@ -61,7 +61,10 @@ def login():
 
     if success:
         logger.info(f"User {data['email']} logged in successfully")
-        access_token = create_access_token(identity=result)
+        
+        # Fetch the user object and generate a token with roles and permissions
+        user = User.query.get(result)  # Assuming result is the user ID
+        access_token = AuthService.create_token_for_user(user)
         refresh_token = create_refresh_token(identity=result)
         return jsonify({
             "msg": "Login successful",

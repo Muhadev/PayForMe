@@ -69,6 +69,10 @@ def create_project(data: Dict[str, Any]) -> Project:
 def update_project(project_id: int, data: Dict[str, Any]) -> Project:
     try:
         project = get_project_by_id(project_id)
+
+        if project.creator_id != current_user_id:
+            raise UnauthorizedError("You do not have permission to update this project")
+
         validate_project_data(data, is_draft=data.get('status') == ProjectStatus.DRAFT.value)
         
         for key, value in data.items():
@@ -103,6 +107,10 @@ def delete_project(project_id: int) -> bool:
     """Soft delete a project."""
     try:
         project = get_project_by_id(project_id)
+
+        if project.creator_id != current_user_id:
+            raise UnauthorizedError("You do not have permission to delete this project")
+        
         project.is_deleted = True
         project.deleted_at = datetime.utcnow()
         db.session.commit()

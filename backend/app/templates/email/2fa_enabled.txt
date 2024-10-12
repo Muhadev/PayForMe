@@ -1,0 +1,8 @@
+Hello {{ user.username }},
+
+Two-Factor Authentication has been successfully enabled for your PayForMe account. Your account is now more secure!
+
+If you did not make this change, please contact our support team immediately.
+
+Best regards,
+The PayForMe Team

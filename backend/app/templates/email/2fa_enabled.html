@@ -1,0 +1,13 @@
+<!-- templates/email/2fa_enabled.html -->
+{% extends "email/base_email.html" %}
+
+{% block title %}2FA Enabled{% endblock %}
+
+{% block header %}2FA Enabled{% endblock %}
+
+{% block content %}
+<p>Hello {{ user.username }},</p>
+<p>Two-Factor Authentication has been successfully enabled for your PayForMe account. Your account is now more secure!</p>
+<p>If you did not make this change, please contact our support team immediately.</p>
+<p>Best regards,<br>The PayForMe Team</p>
+{% endblock %}

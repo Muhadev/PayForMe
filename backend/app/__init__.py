@@ -67,4 +67,7 @@ def create_app():
     from app.routes.categories import categories_bp
     app.register_blueprint(categories_bp)
 
+    from app.routes.two_factor_auth import two_factor_auth_bp
+    app.register_blueprint(two_factor_auth_bp, url_prefix='/users')
+    
     return app

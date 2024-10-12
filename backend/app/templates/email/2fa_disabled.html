@@ -1,0 +1,13 @@
+<!-- templates/email/2fa_disabled.html -->
+{% extends "email/base_email.html" %}
+
+{% block title %}2FA Disabled{% endblock %}
+
+{% block header %}2FA Disabled{% endblock %}
+
+{% block content %}
+<p>Hello {{ user.username }},</p>
+<p>Two-Factor Authentication has been disabled for your PayForMe account. If you did not request this change, please contact our support team immediately.</p>
+<p>We strongly recommend keeping 2FA enabled for enhanced account security.</p>
+<p>Best regards,<br>The PayForMe Team</p>
+{% endblock %}

@@ -3,9 +3,10 @@ import uuid
 from flask import current_app
 from werkzeug.security import generate_password_hash
 from app import db
-from app.models import User, TokenBlocklist
+from app.models import User, TokenBlocklist, Role
 from app.services.email_service import send_templated_email
 from app.utils.validators import validate_password, validate_email
+from flask_jwt_extended import create_access_token
 import logging
 
 # Configure logging
@@ -43,6 +44,11 @@ class AuthService:
 
         logger.debug(f"Generated user ID: {new_user.id}")
         
+        # Assign the "User" role by default
+        user_role = Role.query.filter_by(name="User").first()
+        if user_role:
+            new_user.roles.append(user_role)
+
         # Step 3: Generate the verification token using the now-available new_user.id
         verification_token = new_user.generate_verification_token()
         logger.debug(f"Generated verification token: {verification_token}")
@@ -105,6 +111,21 @@ class AuthService:
         logger.warning(f"Failed login attempt for email: {email}")
         return False, "Invalid email or password"
 
+    @staticmethod
+    def create_token_for_user(user):
+        roles = [role.name for role in user.roles]
+        permissions = set()
+        for role in user.roles:
+            for perm in role.permissions:
+                permissions.add(perm.name)
+        
+        additional_claims = {
+            "roles": roles,
+            "permissions": list(permissions)
+        }
+
+        access_token = create_access_token(identity=user.id, additional_claims=additional_claims)
+        return access_token
     @staticmethod
     def deactivate_user(user_id):
         user = User.query.get(user_id)

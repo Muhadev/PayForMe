@@ -9,10 +9,11 @@ from enum import Enum as PyEnum
 from flask import current_app
 from datetime import datetime
 from app.models.association_tables import user_roles  # Import the association table
+import pyotp
 
-class UserRole(PyEnum):
-    USER = 'user'
-    ADMIN = 'admin'
+# class UserRole(PyEnum):
+#     USER = 'user'
+#     ADMIN = 'admin'
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -39,7 +40,7 @@ class User(db.Model):
     # Add these fields to the User model
     stripe_customer_id = db.Column(db.String(100), unique=True)
     is_verified = db.Column(db.Boolean, default=False)
-    role = db.Column(db.Enum(UserRole), default=UserRole.USER)
+    # role = db.Column(db.Enum(UserRole), default=UserRole.USER)
     last_login = db.Column(db.DateTime)
     
     # Add this relationship
@@ -53,6 +54,12 @@ class User(db.Model):
 
     # Add verification_token column
     verification_token = db.Column(db.String(256), unique=True)
+
+    # 2FA-specific fields
+    two_factor_secret = db.Column(db.String(32))
+    two_factor_enabled = db.Column(db.Boolean, default=False)
+    two_factor_setup_code = db.Column(db.String(6))  # For temporary storage during setup
+
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -91,6 +98,26 @@ class User(db.Model):
 
     def is_account_locked(self):
         return self.failed_login_attempts >= current_app.config['MAX_LOGIN_ATTEMPTS']
+
+    def enable_2fa(self):
+        self.two_factor_secret = pyotp.random_base32()
+        self.two_factor_enabled = True
+
+    def disable_2fa(self):
+        self.two_factor_secret = None
+        self.two_factor_enabled = False
+
+    def verify_2fa(self, token):
+        if not self.two_factor_enabled or not self.two_factor_secret:
+            return False
+        totp = pyotp.TOTP(self.two_factor_secret)
+        return totp.verify(token)
+
+    def get_2fa_uri(self):
+        if not self.two_factor_secret:
+            return None
+        totp = pyotp.TOTP(self.two_factor_secret)
+        return totp.provisioning_uri(name=self.email, issuer_name="PayForMe")
 
     def generate_verification_token(self, expires_in=600):
         token = jwt.encode(
@@ -150,11 +177,12 @@ class User(db.Model):
             'created_at': self.created_at.isoformat(),
             'is_active': self.is_active,
             'is_verified': self.is_verified,
-            'role': self.role.value,
+            'roles': [role.name for role in self.roles],  # List of role names
             'last_login': self.last_login.isoformat() if self.last_login else None,
             'projects_created_count': len(self.projects_created),
             'backed_projects_count': len(self.backed_projects),
             'total_donations': self.get_total_donations(),
+            'two_factor_enabled': self.two_factor_enabled,
         }
 
         if include_private:

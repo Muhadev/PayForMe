@@ -1,0 +1,8 @@
+Hello {{ user.username }},
+
+Two-Factor Authentication has been disabled for your PayForMe account. If you did not request this change, please contact our support team immediately.
+
+We strongly recommend keeping 2FA enabled for enhanced account security.
+
+Best regards,
+The PayForMe Team

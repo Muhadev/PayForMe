@@ -24,6 +24,7 @@ class Config:
     ALLOWED_VIDEO_EXTENSIONS = set(os.getenv('ALLOWED_VIDEO_EXTENSIONS', 'mp4,avi,mov').split(','))
     # Use a relative path for UPLOAD_FOLDER
     # UPLOAD_FOLDER = os.path.join(str(Path.home()), 'payforme_uploads')
+    FIRST_ADMIN_SECRET_KEY = os.environ.get('FIRST_ADMIN_SECRET_KEY')
 
     # Set JWT expiration times
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=5)  # Adjust the time as needed

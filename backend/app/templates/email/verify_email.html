@@ -1,16 +1,14 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Verify Your Email</title>
-</head>
-<body>
-    <p>Hello {{ user.username }},</p>
+<!-- templates/email/verify_email.html -->
+{% extends "email/base_email.html" %}
 
-    <p>Please verify your email address by clicking on the following link:</p>
+{% block title %}Verify Your Email{% endblock %}
 
-    <p><a href="{{ url_for('auth.verify_email', token=token, _external=True) }}">Verify Email</a></p>
+{% block header %}Verify Your Email{% endblock %}
 
-    <p>Thank you,<br>
-    The Team</p>
-</body>
-</html>
+{% block content %}
+<p>Hello {{ user.username }},</p>
+<p>Please verify your email address by clicking on the following link:</p>
+<p><a href="{{ url_for('auth.verify_email', token=token, _external=True) }}">Verify Email</a></p>
+<p>Best regards,<br>The PayForMe Team</p>
+{% endblock %}
+
