@@ -3,9 +3,10 @@
 from app.models.user import User
 from app.models.project import Project
 from app.models.donation import Donation
-from app import db, cache
+from app import db
 from sqlalchemy import func
 from datetime import datetime
+from sqlalchemy.orm import Session
 from app.services.email_service import send_templated_email
 from app.models.enums import DonationStatus, ProjectStatus
 from app.schemas.backer_schemas import BackProjectSchema, ProjectUpdateSchema, ProjectMilestoneSchema
@@ -17,6 +18,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 class BackerService:
+    class BackerService:
     def back_project(self, project_id, user_id, data):
         """
         Handle the process of a user backing a project.
@@ -28,35 +30,39 @@ class BackerService:
             schema = BackProjectSchema()
             validated_data = schema.load(data)
             
-            with db.session.begin():
-                project = self._get_project(project_id)
-                if not project:
-                    return {'error': 'Project not found', 'status_code': 404}
+            with Session(db.engine) as session:
+                with session.begin():
+                    project = self._get_project(project_id, session)
+                    if not project:
+                        return {'error': 'Project not found', 'status_code': 404}
 
-                if project.status != ProjectStatus.ACTIVE:
-                    return {'error': 'Project is not currently accepting donations', 'status_code': 400}
+                    if project.status != ProjectStatus.ACTIVE:
+                        return {'error': 'Project is not currently accepting donations', 'status_code': 400}
 
-                user = self._get_user(user_id)
-                if not user:
-                    return {'error': 'User not found', 'status_code': 404}
+                    user = self._get_user(user_id, session)
+                    if not user:
+                        return {'error': 'User not found', 'status_code': 404}
 
-                donation = self._create_donation(user, project, validated_data)
-                self._update_project_status(project, validated_data['amount'])
-                
-                if user not in project.backers:
-                    project.backers.append(user)
+                    donation = self._create_donation(user, project, validated_data, session)
+                    self._update_project_status(project, validated_data['amount'])
+                    
+                    if user not in project.backers:
+                        project.backers.append(user)
+                    
+                    session.commit()
             
             self._send_confirmation_email(user, project, donation)
+            self.invalidate_backer_stats_cache(project_id)
             
             return self._prepare_backing_result(user, project, donation)
     
         except ValidationError as e:
-            logger.warning(f"Validation error in back_project: {e.messages}")
+            current_app.logger.warning(f"Validation error in back_project: {e.messages}")
             return {'error': e.messages, 'status_code': 400}
         except SQLAlchemyError as e:
-            logger.error(f"Database error in back_project: {str(e)}")
-            db.session.rollback()
+            current_app.logger.error(f"Database error in back_project: {str(e)}")
             return {'error': 'An unexpected error occurred', 'status_code': 500}
+
 
     def get_project_backers(self, project_id, page, per_page):
         """
@@ -181,6 +187,12 @@ class BackerService:
         except SQLAlchemyError as e:
             logger.error(f"Database error in get_backer_stats: {str(e)}")
             return {'error': 'An unexpected error occurred', 'status_code': 500}
+    
+    def invalidate_backer_stats_cache(self, project_id):
+        """
+        Invalidate the cache for backer stats when there's a new donation.
+        """
+        cache.delete_memoized(self.get_backer_stats, self, project_id)
 
     def send_project_update_email(self, project_id, update_title, update_content):
         """
@@ -229,15 +241,15 @@ class BackerService:
             return {'error': 'An unexpected error occurred', 'status_code': 500}
 
     @staticmethod
-    def _get_project(project_id):
-        return Project.query.get(project_id)
+    def _get_project(project_id, session):
+        return session.query(Project).get(project_id)
 
     @staticmethod
-    def _get_user(user_id):
-        return User.query.get(user_id)
+    def _get_user(user_id, session):
+        return session.query(User).get(user_id)
 
     @staticmethod
-    def _create_donation(user, project, validated_data):
+    def _create_donation(user, project, validated_data, session):
         donation = Donation(
             amount=validated_data['amount'],
             created_at=datetime.utcnow(),
@@ -246,7 +258,7 @@ class BackerService:
             status=DonationStatus.PENDING,
             reward_id=validated_data.get('reward_id')
         )
-        db.session.add(donation)
+        session.add(donation)
         return donation
 
     @staticmethod

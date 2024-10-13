@@ -8,6 +8,7 @@ from flask_limiter.util import get_remote_address
 from flask_cors import CORS
 from flask_uploads import configure_uploads, IMAGES, UploadSet
 from config import Config
+from flask_caching import Cache
 import os
 
 db = SQLAlchemy()
@@ -16,6 +17,7 @@ migrate = Migrate()
 limiter = Limiter(key_func=get_remote_address, default_limits=["200 per day", "50 per hour"])
 photos = UploadSet('photos', IMAGES)  # Define an UploadSet for images
 videos = UploadSet('videos', ('mp4', 'avi', 'mov'))
+cache = Cache(config={'CACHE_TYPE': 'simple'})
 
 def configure_logging():
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -48,6 +50,7 @@ def create_app():
     limiter.init_app(app)
     CORS(app)
     configure_logging()
+    cache.init_app(app)
 
     from app.routes.auth import bp as auth_bp
     app.register_blueprint(auth_bp, url_prefix='/api/v1/auth')
