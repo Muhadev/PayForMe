@@ -33,7 +33,19 @@ def setup_permissions_and_roles():
                 ('edit_draft', 'Can edit draft projects'),
                 ('assign_role', 'Can assign roles to users'),
                 ('revoke_role', 'Can revoke roles from users'),
-                ('view_permissions', 'Can view user permissions')
+                ('view_permissions', 'Can view user permissions'),
+                ('initiate_2fa_setup', 'Can initiate 2FA setup'),
+                ('complete_2fa_setup', 'Can complete 2FA setup'),
+                ('verify_2fa', 'Can verify 2FA'),
+                ('revoke_2fa', 'Can revoke 2FA'),
+                ('back_project', 'Can back a project'),
+                ('view_backers', 'Can view backers of a project'),
+                ('view_user_backed_projects', 'Can view the projects a user backed'),
+                ('view_backer_details', 'Can view details of a project backer'),
+                ('view_backer_stats', 'Can view backer statistics of a project'),
+                ('send_project_update', 'Can send project updates to backers'),
+                ('send_project_milestone', 'Can send milestone updates to backers'),
+                ('view_public_profile', 'Can view public profiles')
             ]
 
             for name, description in permissions:
@@ -52,7 +64,12 @@ def setup_permissions_and_roles():
                 ('User', 'Regular user with project management capabilities', [
                     'view_category', 'view_categories', 'view_projects',
                     'create_project', 'edit_own_project', 'delete_own_project',
-                    'create_draft', 'view_drafts', 'edit_draft'
+                    'create_draft', 'view_drafts', 'edit_draft',
+                    'initiate_2fa_setup', 'complete_2fa_setup', 'verify_2fa', 'revoke_2fa',
+                    'back_project', 'view_user_backed_projects', 'view_backers', 'view_backer_details',
+                    'send_project_update', 'send_project_milestone',
+                    # Assign the new permission to regular users if needed
+                    'view_public_profile'
                 ])
             ]
 

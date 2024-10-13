@@ -14,6 +14,7 @@ from app.utils.file_utils import handle_file_upload
 from app.utils.project_utils import validate_project_data
 from werkzeug.datastructures import CombinedMultiDict
 from app.utils.decorators import permission_required
+from app.utils.decorators import rate_limit
 
 
 # logging.basicConfig(level=logging.DEBUG)
@@ -60,7 +61,7 @@ def create_draft_project():
 @projects_bp.route('/', methods=['POST'])
 @jwt_required()
 @permission_required('create_project')
-@limiter.limit("5 per minute")
+@rate_limit(limit=5, per=60)  # 5 requests per minute
 def create_new_project():
     try:
         logger.info(f"Request method: {request.method}")

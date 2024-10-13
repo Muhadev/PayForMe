@@ -6,11 +6,13 @@ from app.models.user import User
 from app.services.two_factor_auth_service import TwoFactorAuthService
 from app.utils.response import api_response
 from app.utils.decorators import rate_limit
+from app.utils.decorators import permission_required
 
 two_factor_auth_bp = Blueprint('two_factor_auth', __name__)
 
 @two_factor_auth_bp.route('/initiate-setup', methods=['POST'])
 @jwt_required()
+@permission_required('initiate_2fa_setup')
 @rate_limit(limit=5, per=60)  # 5 requests per minute
 def initiate_2fa_setup():
     current_user_id = get_jwt_identity()
@@ -31,6 +33,7 @@ def initiate_2fa_setup():
 
 @two_factor_auth_bp.route('/complete-setup', methods=['POST'])
 @jwt_required()
+@permission_required('complete_2fa_setup')
 @rate_limit(limit=5, per=60)  # 5 requests per minute
 def complete_2fa_setup():
     current_user_id = get_jwt_identity()
@@ -55,6 +58,7 @@ def complete_2fa_setup():
 
 @two_factor_auth_bp.route('/verify', methods=['POST'])
 @jwt_required()
+@permission_required('verify_2fa')
 @rate_limit(limit=3, per=60)  # 3 requests per minute
 def verify_2fa():
     current_user_id = get_jwt_identity()
@@ -79,6 +83,7 @@ def verify_2fa():
 
 @two_factor_auth_bp.route('/revoke', methods=['DELETE'])
 @jwt_required()
+@permission_required('revoke_2fa')
 @rate_limit(limit=3, per=60)  # 3 requests per minute
 def revoke_2fa():
     current_user_id = get_jwt_identity()

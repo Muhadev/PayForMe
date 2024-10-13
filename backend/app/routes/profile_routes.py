@@ -2,6 +2,7 @@ from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.services.user_service import UserService  # Update this import
 from app.utils.response import api_response
+from app.utils.decorators import permission_required
 import logging
 
 # Configure logging
@@ -58,6 +59,7 @@ def update_profile():
         )
 
 @profile_bp.route('/profile/<int:user_id>', methods=['GET'])
+@permission_required('view_public_profile')  # Restrict access to users with the 'view_public_profile' permission
 def get_public_profile(user_id):
     user_profile = UserService.get_user_public_profile(user_id)
     if user_profile:
