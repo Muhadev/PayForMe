@@ -40,6 +40,7 @@ def setup_permissions_and_roles():
                 ('verify_2fa', 'Can verify 2FA'),
                 ('revoke_2fa', 'Can revoke 2FA'),
                 ('back_project', 'Can back a project'),
+                ('activate_project', 'Can activate pending projects'),  # Add this line
                 ('view_backers', 'Can view backers of a project'),
                 ('view_user_backed_projects', 'Can view the projects a user backed'),
                 ('view_backer_details', 'Can view details of a project backer'),

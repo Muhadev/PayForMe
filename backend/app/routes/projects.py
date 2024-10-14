@@ -14,6 +14,7 @@ from app.utils.file_utils import handle_file_upload
 from app.utils.project_utils import validate_project_data
 from werkzeug.datastructures import CombinedMultiDict
 from app.utils.decorators import permission_required
+from app.services.notification_service import NotificationService
 from app.utils.rate_limit import rate_limit
 
 
@@ -294,11 +295,17 @@ def activate_project(project_id):
         creator_email = project.creator.email  # Assuming you have a relationship to the creator
         send_templated_email(creator_email, 'project_activated', project=project)
         
+        # Create notification for admin on successful activation
+        NotificationService.create_admin_notification(f"Project '{project.title}' has been activated.")
+
         return api_response(message="Project activated successfully", status_code=200)
+
     except ProjectNotFoundError as e:
         return api_response(message=str(e), status_code=404)
+    except PermissionError as e:
+        return api_response(message="You do not have permission to activate this project", status_code=403)
     except Exception as e:
-        logger.error(f'Error activating project with ID {project_id}: {e}')
+        logger.error(f"Error activating project with ID {project_id}: {e}")
         return api_response(message="An unexpected error occurred", status_code=500)
 
 @projects_bp.route('/admin/pending-projects', methods=['GET'])

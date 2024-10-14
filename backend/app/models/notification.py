@@ -14,11 +14,12 @@ class Notification(db.Model):
     __tablename__ = 'notifications'
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(db.Integer, ForeignKey('users.id'), nullable=False, index=True)
     type = db.Column(db.Enum(NotificationType), nullable=False)
     message = db.Column(db.Text, nullable=False)
-    is_read = db.Column(db.Boolean, default=False)
+    read_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, nullable=False)
+    project_id = db.Column(db.Integer, ForeignKey('projects.id'), nullable=True)
     
     user = db.relationship("User", back_populates="notifications")
 

@@ -7,7 +7,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-role_permissions_bp = Blueprint('notifications', __name__)
+notifications_bp = Blueprint('notifications', __name__)
 @notifications_bp.route('/', methods=['GET'])
 @jwt_required()
 def get_user_notifications():

@@ -84,5 +84,9 @@ def create_app():
 
     from app.routes.backer_routes import backer_bp
     app.register_blueprint(backer_bp, url_prefix='/api/v1/backers')
+
+    # Notification-related routes
+    from app.routes.notifications import notifications_bp  # Import the notifications blueprint
+    app.register_blueprint(notifications_bp, url_prefix='/api/v1/notifications')  # Register the blueprint
     
     return app
