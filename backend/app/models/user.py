@@ -60,6 +60,7 @@ class User(db.Model):
     two_factor_enabled = db.Column(db.Boolean, default=False)
     two_factor_setup_code = db.Column(db.String(6))  # For temporary storage during setup
 
+    last_permission_update = db.Column(db.DateTime, default=datetime.utcnow)
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)

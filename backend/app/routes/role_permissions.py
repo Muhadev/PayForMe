@@ -141,8 +141,21 @@ def get_role_permissions(role_id):
     permissions = [perm.name for perm in role.permissions]
     return api_response(data={"role": role.name, "permissions": permissions}, status_code=200)
 
-# @role_permissions_bp.route('/me', methods=['GET'])
-# @jwt_required()
-# def get_current_user():
-#     current_user_id = get_jwt_identity()
-#     return api_response(data={"user_id": current_user_id}, status_code=200)
+@role_permissions_bp.route('/notifications', methods=['GET'])
+@jwt_required()
+def get_user_notifications():
+    user_id = get_jwt_identity()
+    unread_only = request.args.get('unread_only', 'false').lower() == 'true'
+    notifications = NotificationService.get_user_notifications(user_id, unread_only)
+    return api_response(data={
+        'notifications': [n.to_dict() for n in notifications]
+    }, status_code=200)
+
+@role_permissions_bp.route('/notifications/<int:notification_id>/read', methods=['POST'])
+@jwt_required()
+def mark_notification_as_read(notification_id):
+    success = NotificationService.mark_notification_as_read(notification_id)
+    if success:
+        return api_response(message="Notification marked as read", status_code=200)
+    else:
+        return api_response(message="Failed to mark notification as read", status_code=400)

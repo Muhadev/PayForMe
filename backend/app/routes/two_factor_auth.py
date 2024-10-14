@@ -5,7 +5,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.models.user import User
 from app.services.two_factor_auth_service import TwoFactorAuthService
 from app.utils.response import api_response
-from app.utils.decorators import rate_limit
+from app.utils.rate_limit import rate_limit
 from app.utils.decorators import permission_required
 
 two_factor_auth_bp = Blueprint('two_factor_auth', __name__)

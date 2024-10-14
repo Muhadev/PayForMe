@@ -121,7 +121,8 @@ class AuthService:
         
         additional_claims = {
             "roles": roles,
-            "permissions": list(permissions)
+            "permissions": list(permissions),
+            'last_permission_update': user.last_permission_update.timestamp()
         }
 
         access_token = create_access_token(identity=user.id, additional_claims=additional_claims)

@@ -30,6 +30,15 @@ class Config:
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=5)  # Adjust the time as needed
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
     
+    # Redis configuration
+    REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
+    REDIS_PORT = os.getenv('REDIS_PORT', 6379)
+    REDIS_DB = os.getenv('REDIS_DB', 0)
+    REDIS_URL = os.getenv('REDIS_URL', f'redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}')
+
+    # Configure Flask-Caching with Redis
+    CACHE_TYPE = 'redis'
+    CACHE_REDIS_URL = REDIS_URL  # Use the same URL for caching
     
     # Set specific upload destinations for photos and videos
     UPLOADED_PHOTOS_DEST = os.path.join(UPLOAD_FOLDER, 'photos')

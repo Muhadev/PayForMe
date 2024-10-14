@@ -33,7 +33,8 @@ def send_email(to_email, subject, text_content, html_content):
 
 EMAIL_TEMPLATE_TYPES = [
     'verification', 'reset_password', '2fa_enabled', '2fa_disabled', 
-    '2fa_setup', 'project_backed', 'project_update', 'project_milestone'
+    '2fa_setup', 'project_backed', 'project_update', 'project_milestone',
+    'project_activated'
 ]
 
 def send_templated_email(to_email, email_type, **kwargs):
@@ -59,6 +60,7 @@ def get_email_subject(email_type):
         '2fa_disabled': 'Two-Factor Authentication Disabled',
         'project_backed': 'Thank You for Backing Our Project!',
         'project_update': 'New Update on Your Backed Project',
-        'project_milestone': 'Project Milestone Reached!'
+        'project_milestone': 'Project Milestone Reached!',
+        'project_activated': 'Your Project Has Been Activated!'
     }
     return subjects.get(email_type, 'Notification from PayForMe')

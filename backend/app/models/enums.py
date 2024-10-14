@@ -37,6 +37,7 @@ class ProjectStatus(Enum):
 
     def __hash__(self):
         return hash(self.value)
+
 class DonationStatus(Enum):
     PENDING = 'PENDING'
     COMPLETED = 'COMPLETED'

@@ -1,0 +1,8 @@
+Dear Project Creator,
+
+Congratulations! Your project "{project.title}" has been reviewed and activated on PayForMe.
+
+You can now start receiving backers and funding for your project.
+
+Best regards,
+The PayForMe Team

@@ -2,6 +2,7 @@
 
 import os
 import sys
+from datetime import datetime
 
 # Add the parent directory of 'app' to the Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
@@ -68,7 +69,6 @@ def setup_permissions_and_roles():
                     'initiate_2fa_setup', 'complete_2fa_setup', 'verify_2fa', 'revoke_2fa',
                     'back_project', 'view_user_backed_projects', 'view_backers', 'view_backer_details',
                     'send_project_update', 'send_project_milestone',
-                    # Assign the new permission to regular users if needed
                     'view_public_profile'
                 ])
             ]
@@ -100,6 +100,19 @@ def setup_permissions_and_roles():
                     user.roles.remove(project_manager_role)
                 db.session.delete(project_manager_role)
                 current_app.logger.info("Removed 'Project Manager' role and reassigned users")
+
+            # Update existing users
+            user_role = Role.query.filter_by(name='User').first()
+            if user_role:
+                users = User.query.all()
+                for user in users:
+                    if user_role not in user.roles:
+                        user.roles.append(user_role)
+                current_app.logger.info("Updated existing users with new permissions")
+
+            # Update last_permission_update for all users
+            User.query.update({User.last_permission_update: datetime.utcnow()})
+            current_app.logger.info("Updated last_permission_update for all users")
 
             db.session.commit()
             current_app.logger.info("Permissions and roles setup completed.")

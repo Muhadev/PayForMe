@@ -14,7 +14,7 @@ from app.utils.file_utils import handle_file_upload
 from app.utils.project_utils import validate_project_data
 from werkzeug.datastructures import CombinedMultiDict
 from app.utils.decorators import permission_required
-from app.utils.decorators import rate_limit
+from app.utils.rate_limit import rate_limit
 
 
 # logging.basicConfig(level=logging.DEBUG)
@@ -275,3 +275,44 @@ def get_projects():
     except Exception as e:
         logger.error(f'Error retrieving projects: {e}')
         return api_response(message="An unexpected error occurred", status_code=500)
+
+@projects_bp.route('/<int:project_id>/activate', methods=['POST'])
+@jwt_required()
+@permission_required('activate_project')
+def activate_project(project_id):
+    try:
+        project = get_project_by_id(project_id)
+        
+        if project.status != ProjectStatus.PENDING:
+            return api_response(message="Only pending projects can be activated", status_code=400)
+        
+        # Update project status
+        project.status = ProjectStatus.ACTIVE
+        db.session.commit()
+        
+        # Send email notification to project creator
+        creator_email = project.creator.email  # Assuming you have a relationship to the creator
+        send_templated_email(creator_email, 'project_activated', project=project)
+        
+        return api_response(message="Project activated successfully", status_code=200)
+    except ProjectNotFoundError as e:
+        return api_response(message=str(e), status_code=404)
+    except Exception as e:
+        logger.error(f'Error activating project with ID {project_id}: {e}')
+        return api_response(message="An unexpected error occurred", status_code=500)
+
+@projects_bp.route('/admin/pending-projects', methods=['GET'])
+@jwt_required()
+@permission_required('activate_project')
+def admin_pending_projects():
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    
+    pending_projects = Project.query.filter_by(status=ProjectStatus.PENDING).paginate(page=page, per_page=per_page, error_out=False)
+    
+    return api_response(data={
+        'projects': [project.to_dict() for project in pending_projects.items],
+        'total': pending_projects.total,
+        'pages': pending_projects.pages,
+        'current_page': page
+    }, status_code=200)

@@ -3,7 +3,7 @@
 from app.models.user import User
 from app.models.project import Project
 from app.models.donation import Donation
-from app import db
+from app import db, cache
 from sqlalchemy import func
 from datetime import datetime
 from sqlalchemy.orm import Session
@@ -18,7 +18,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 class BackerService:
-    class BackerService:
     def back_project(self, project_id, user_id, data):
         """
         Handle the process of a user backing a project.
@@ -34,13 +33,17 @@ class BackerService:
                 with session.begin():
                     project = self._get_project(project_id, session)
                     if not project:
+                        logger.error(f"Project {project_id} not found")
                         return {'error': 'Project not found', 'status_code': 404}
 
+                    logger.info(f"Project {project_id} status: {project.status}")
                     if project.status != ProjectStatus.ACTIVE:
+                        logger.error(f"Project {project_id} is not active. Current status: {project.status}")
                         return {'error': 'Project is not currently accepting donations', 'status_code': 400}
 
                     user = self._get_user(user_id, session)
                     if not user:
+                        logger.error(f"User {user_id} not found")
                         return {'error': 'User not found', 'status_code': 404}
 
                     donation = self._create_donation(user, project, validated_data, session)

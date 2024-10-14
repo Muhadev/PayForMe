@@ -1,0 +1,12 @@
+{% extends "email/base_email.html" %}
+
+{% block title %}Your Project Has Been Activated{% endblock %}
+
+{% block header %}Project Activated{% endblock %}
+
+{% block content %}
+    <h2>Congratulations, {{ project.creator.username }}!</h2>
+    <p>Your project "{{ project.title }}" has been reviewed and activated on PayForMe.</p>
+    <p>You can now start receiving backers and funding for your project.</p>
+    <a href="{{ url_for('projects.view_project', project_id=project.id, _external=True) }}" class="btn">View Your Project</a>
+{% endblock %}

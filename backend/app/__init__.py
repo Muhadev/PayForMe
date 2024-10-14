@@ -5,6 +5,7 @@ from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from app.utils.redis_client import get_redis_client
 from flask_cors import CORS
 from flask_uploads import configure_uploads, IMAGES, UploadSet
 from config import Config
@@ -17,7 +18,7 @@ migrate = Migrate()
 limiter = Limiter(key_func=get_remote_address, default_limits=["200 per day", "50 per hour"])
 photos = UploadSet('photos', IMAGES)  # Define an UploadSet for images
 videos = UploadSet('videos', ('mp4', 'avi', 'mov'))
-cache = Cache(config={'CACHE_TYPE': 'simple'})
+cache = Cache()
 
 def configure_logging():
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -44,13 +45,18 @@ def create_app():
     # Configure Flask-Uploads
     configure_uploads(app, (photos, videos))
 
+    # Initialize Redis client within app context
+    with app.app_context():
+        app.redis_client = get_redis_client()
+
+    cache.init_app(app)
+
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
     limiter.init_app(app)
     CORS(app)
     configure_logging()
-    cache.init_app(app)
 
     from app.routes.auth import bp as auth_bp
     app.register_blueprint(auth_bp, url_prefix='/api/v1/auth')

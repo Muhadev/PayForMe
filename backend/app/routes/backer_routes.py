@@ -3,7 +3,8 @@
 from flask import Blueprint, request, current_app
 from app.services.backer_service import BackerService
 from app.utils.response import success_response, error_response
-from app.utils.decorators import permission_required, rate_limit
+from app.utils.decorators import permission_required
+from app.utils.rate_limit import rate_limit
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import ValidationError
 from app.schemas.backer_schemas import (
@@ -20,8 +21,8 @@ logger = logging.getLogger(__name__)
 
 @backer_bp.route('/projects/<int:project_id>/back', methods=['POST'])
 @jwt_required()
-@permission_required('back_project')
 @rate_limit(limit=5, per=60)
+@permission_required('back_project')
 def back_project(project_id):
     """
     Endpoint for backing a project.
@@ -29,6 +30,7 @@ def back_project(project_id):
     This function handles the process of a user backing a project, including
     input validation, calling the service layer, and returning the appropriate response.
     """
+    logger.info(f"Attempting to back project {project_id}")
     schema = BackProjectSchema()
     try:
         sanitized_data = sanitize_input(request.json)
@@ -38,6 +40,7 @@ def back_project(project_id):
         return error_response(message=err.messages, status_code=400)
 
     current_user_id = get_jwt_identity()
+    logger.info(f"User {current_user_id} attempting to back project {project_id}")
     result = backer_service.back_project(project_id, current_user_id, data)
     if 'error' in result:
         logger.error(f"Error in back_project: {result['error']}")
@@ -97,8 +100,8 @@ def get_backer_details(project_id, user_id):
 
 @backer_bp.route('/projects/<int:project_id>/backers/stats', methods=['GET'])
 @jwt_required()
-@permission_required('view_backer_stats')
 @rate_limit(limit=10, per=60)
+@permission_required('view_backer_stats')
 def get_backer_stats(project_id):
     """
     Endpoint for retrieving backer statistics for a project.

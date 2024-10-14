@@ -8,6 +8,7 @@ from app import db
 from sqlalchemy.exc import SQLAlchemyError
 from app.utils.project_utils import validate_project_data
 from app.utils.exceptions import ValidationError, ProjectNotFoundError
+from app.services.notification_service import NotificationService
 import logging
 from sqlalchemy import desc
 
@@ -54,6 +55,11 @@ def create_project(data: Dict[str, Any]) -> Project:
         db.session.commit()
         logger.info(f"Project status after commit: {new_project.status}")
         logger.info(f"Created new project: {new_project.id} with status {new_project.status}")
+
+        # Create notification for admins if the project is pending
+        if new_project.status == ProjectStatus.PENDING:
+            NotificationService.create_admin_notification(f"New project '{new_project.title}' needs review")
+
         return new_project
     except KeyError as e:
         logger.error(f"Missing required field: {e}")
@@ -140,3 +146,21 @@ def get_all_projects(page: int = 1, per_page: int = 10, sort_by: str = 'created_
         query = query.order_by(order)
 
     return query.paginate(page=page, per_page=per_page, error_out=False)
+
+def activate_project(project_id: int) -> Project:
+    try:
+        project = get_project_by_id(project_id)
+        if project.status != ProjectStatus.PENDING:
+            raise ValidationError("Only pending projects can be activated")
+        
+        project.status = ProjectStatus.ACTIVE
+        db.session.commit()
+        logger.info(f"Activated project: {project_id}")
+        return project
+    except (ValidationError, ProjectNotFoundError) as e:
+        logger.warning(f"Error activating project {project_id}: {e}")
+        raise
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        logger.error(f"Error activating project {project_id}: {e}")
+        raise Exception(f"Error activating project: {e}")
