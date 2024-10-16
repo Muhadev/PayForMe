@@ -19,7 +19,7 @@ class Donation(db.Model):
     status = db.Column(db.Enum(DonationStatus), default=DonationStatus.PENDING)
     
     
-    reward_id = db.Column(db.Integer, db.ForeignKey('rewards.id'))
+    reward_id = db.Column(db.Integer, db.ForeignKey('rewards.id'), nullable=True)
     reward = db.relationship("Reward", back_populates="donations", foreign_keys=[reward_id])  # Specify the correct foreign key here
 
     # Add this db.relationship

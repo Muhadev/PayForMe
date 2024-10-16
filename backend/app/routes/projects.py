@@ -11,10 +11,12 @@ from app.utils.exceptions import ProjectNotFoundError, ValidationError
 from app.utils.response import api_response
 from app.models.enums import ProjectStatus
 from app.utils.file_utils import handle_file_upload
+from app import db
 from app.utils.project_utils import validate_project_data
 from werkzeug.datastructures import CombinedMultiDict
 from app.utils.decorators import permission_required
 from app.services.notification_service import NotificationService
+from app.services.email_service import send_templated_email
 from app.utils.rate_limit import rate_limit
 
 

@@ -1,6 +1,7 @@
-from sqlalchemy import Column, Integer, String, Text, Float, DateTime, ForeignKey, Table, Boolean, Enum
+from sqlalchemy import Column, Integer, String, Text, Float, DateTime, ForeignKey, Table, Boolean, Enum, Numeric
 from sqlalchemy.orm import relationship
 from . import db
+from decimal import Decimal
 from datetime import datetime
 from .enums import ProjectStatus
 
@@ -15,8 +16,8 @@ class Project(db.Model):
     id = Column(Integer, primary_key=True)
     title = Column(String(100), nullable=False)
     description = Column(Text, nullable=False)
-    goal_amount = Column(Float, nullable=False)
-    current_amount = Column(Float, default=0)
+    current_amount = Column(Numeric(10, 2))  # 10 digits in total, 2 after decimal point
+    goal_amount = Column(Numeric(10, 2))
     start_date = Column(DateTime, nullable=False)
     end_date = Column(DateTime, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
@@ -44,6 +45,24 @@ class Project(db.Model):
     media = relationship("Media", back_populates="project")
     tags = relationship("Tag", secondary="project_tags", back_populates="projects")
     faqs = relationship("FAQ", back_populates="project")
+
+
+    # Add these properties to convert to/from Decimal
+    @property
+    def current_amount_decimal(self):
+        return Decimal(str(self.current_amount))
+
+    @current_amount_decimal.setter
+    def current_amount_decimal(self, value):
+        self.current_amount = value
+
+    @property
+    def goal_amount_decimal(self):
+        return Decimal(str(self.goal_amount))
+
+    @goal_amount_decimal.setter
+    def goal_amount_decimal(self, value):
+        self.goal_amount = value
 
     def __init__(self, **kwargs):
         super(Project, self).__init__(**kwargs)
