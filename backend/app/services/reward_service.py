@@ -154,11 +154,11 @@ class RewardService:
             logger.error(f"Database error in claim_reward: {str(e)}")
             return {'error': 'An unexpected error occurred', 'status_code': 500}
 
-    # Other methods remain unchanged
-    def get_project_rewards(self, project_id):
-        rewards = Reward.query.filter_by(project_id=project_id).all()
+    def get_project_rewards(self, project_id, page, per_page):
+        rewards = Reward.query.filter_by(project_id=project_id).paginate(page, per_page, error_out=False)
         schema = RewardSchema(many=True)
-        return schema.dump(rewards)
+        return schema.dump(rewards.items)  # Paginated result
+
 
     def get_reward(self, project_id, reward_id):
         reward = Reward.query.filter_by(project_id=project_id, id=reward_id).first()

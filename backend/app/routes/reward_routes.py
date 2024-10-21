@@ -7,6 +7,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import ValidationError
 from app.schemas.reward_schemas import RewardSchema, RewardUpdateSchema
 import logging
+from app import cache
 
 reward_bp = Blueprint('reward_bp', __name__)
 reward_service = RewardService()
@@ -16,7 +17,7 @@ def verify_project_access(project_id, user_id):
     project = Project.query.get(project_id)
     if not project:
         return False
-    return project.creator_id == user_id or user_id in project.collaborators
+    return user_id == project.creator_id or user_id in [c.id for c in project.collaborators]
 
 @reward_bp.route('/projects/<int:project_id>/rewards', methods=['POST'])
 @jwt_required()
