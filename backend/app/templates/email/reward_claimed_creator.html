@@ -1,0 +1,18 @@
+<!-- templates/email/reward_claimed_creator.html -->
+{% extends "email/base_email.html" %}
+
+{% block title %}Reward Claimed - PayForMe{% endblock %}
+
+{% block header %}New Reward Claim{% endblock %}
+
+{% block content %}
+<h2>Reward Claimed!</h2>
+<p>Great news! {{ backer_name }} has claimed a reward for your project "{{ project_title }}":</p>
+<div style="margin: 20px 0; padding: 15px; background-color: #fff; border-radius: 5px;">
+    <h3 style="color: #4CAF50;">{{ reward_title }}</h3>
+</div>
+<p>You can view the backer's details and manage reward fulfillment from your project dashboard.</p>
+<p style="text-align: center;">
+    <a href="{{ project_url }}" class="btn">View Project Dashboard</a>
+</p>
+{% endblock %}

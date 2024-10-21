@@ -1,0 +1,11 @@
+<!-- templates/email/reward_claimed_creator.txt -->
+Reward Claimed!
+
+Great news! {{ backer_name }} has claimed a reward for your project "{{ project_title }}":
+
+{{ reward_title }}
+
+You can view the backer's details and manage reward fulfillment from your project dashboard:
+{{ project_url }}
+
+© 2024 PayForMe. All rights reserved.

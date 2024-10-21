@@ -1,0 +1,28 @@
+<!-- templates/email/reward_updated.html -->
+{% extends "email/base_email.html" %}
+
+{% block title %}Reward Update - PayForMe{% endblock %}
+
+{% block header %}Reward Update{% endblock %}
+
+{% block content %}
+<h2>Reward Update Notification</h2>
+<p>A reward you claimed for "{{ project_title }}" has been updated:</p>
+<div style="margin: 20px 0; padding: 15px; background-color: #fff; border-radius: 5px;">
+    <h3 style="color: #4CAF50;">{{ reward_title }}</h3>
+    <h4>Changes:</h4>
+    <ul style="list-style-type: none; padding: 0;">
+    {% for change in changes %}
+        <li style="margin-bottom: 10px;">
+            <strong>{{ change.field|title }}:</strong><br>
+            Old: {{ change.old }}<br>
+            New: {{ change.new }}
+        </li>
+    {% endfor %}
+    </ul>
+</div>
+<p>If you have any questions about these changes, please contact the project creator.</p>
+<p style="text-align: center;">
+    <a href="{{ project_url }}" class="btn">View Project Details</a>
+</p>
+{% endblock %}

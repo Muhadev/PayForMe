@@ -1,0 +1,20 @@
+<!-- templates/email/reward_created.html -->
+{% extends "email/base_email.html" %}
+
+{% block title %}New Reward Added - PayForMe{% endblock %}
+
+{% block header %}New Reward Added{% endblock %}
+
+{% block content %}
+<h2>New Reward Added to Your Project</h2>
+<p>A new reward has been added to your project "{{ project_title }}":</p>
+<div style="margin: 20px 0; padding: 15px; background-color: #fff; border-radius: 5px;">
+    <h3 style="color: #4CAF50;">{{ reward_title }}</h3>
+    <p>{{ reward_description }}</p>
+    <p><strong>Minimum Amount:</strong> {{ minimum_amount }}</p>
+</div>
+<p>You can review and edit this reward anytime from your project dashboard.</p>
+<p style="text-align: center;">
+    <a href="{{ project_url }}" class="btn">View Project Dashboard</a>
+</p>
+{% endblock %}

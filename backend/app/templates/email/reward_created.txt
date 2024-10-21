@@ -1,0 +1,13 @@
+<!-- templates/email/reward_created.txt -->
+New Reward Added to Your Project
+
+A new reward has been added to your project "{{ project_title }}":
+
+{{ reward_title }}
+{{ reward_description }}
+Minimum Amount: {{ minimum_amount }}
+
+You can review and edit this reward anytime from your project dashboard:
+{{ project_url }}
+
+© 2024 PayForMe. All rights reserved.

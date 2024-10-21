@@ -34,7 +34,8 @@ def send_email(to_email, subject, text_content, html_content):
 EMAIL_TEMPLATE_TYPES = [
     'verification', 'reset_password', '2fa_enabled', '2fa_disabled', 
     '2fa_setup', 'project_backed', 'project_update', 'project_milestone',
-    'project_activated'
+    'project_activated', 'reward_created', 'reward_updated', 'reward_claimed_backer',
+    'reward_claimed_creator'
 ]
 
 def send_templated_email(to_email, email_type, **kwargs):
@@ -61,6 +62,10 @@ def get_email_subject(email_type):
         'project_backed': 'Thank You for Backing Our Project!',
         'project_update': 'New Update on Your Backed Project',
         'project_milestone': 'Project Milestone Reached!',
-        'project_activated': 'Your Project Has Been Activated!'
+        'project_activated': 'Your Project Has Been Activated!',
+        'reward_created': 'A New Reward Has Been Created!',
+        'reward_updated': 'Reward Details Updated!',
+        'reward_claimed_backer': 'You’ve Successfully Claimed Your Reward!',
+        'reward_claimed_creator': 'A Backer Claimed Your Reward!',
     }
     return subjects.get(email_type, 'Notification from PayForMe')

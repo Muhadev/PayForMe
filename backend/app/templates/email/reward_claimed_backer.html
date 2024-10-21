@@ -1,0 +1,24 @@
+<!-- templates/email/reward_claimed_backer.html -->
+{% extends "email/base_email.html" %}
+
+{% block title %}Reward Claimed - PayForMe{% endblock %}
+
+{% block header %}Thank You for Your Support{% endblock %}
+
+{% block content %}
+<h2>Thank You for Claiming Your Reward!</h2>
+<p>You have successfully claimed a reward for the project "{{ project_title }}":</p>
+<div style="margin: 20px 0; padding: 15px; background-color: #fff; border-radius: 5px;">
+    <h3 style="color: #4CAF50;">{{ reward_title }}</h3>
+    {% if estimated_delivery %}
+    <p><strong>Estimated Delivery:</strong> {{ estimated_delivery }}</p>
+    {% endif %}
+    {% if shipping_type != 'none' %}
+    <p><strong>Shipping Type:</strong> {{ shipping_type }}</p>
+    {% endif %}
+</div>
+<p>We'll keep you updated on the project's progress and notify you when your reward is ready.</p>
+<p style="text-align: center;">
+    <a href="{{ project_url }}" class="btn">View Project Details</a>
+</p>
+{% endblock %}

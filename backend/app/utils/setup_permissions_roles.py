@@ -47,7 +47,11 @@ def setup_permissions_and_roles():
                 ('view_backer_stats', 'Can view backer statistics of a project'),
                 ('send_project_update', 'Can send project updates to backers'),
                 ('send_project_milestone', 'Can send milestone updates to backers'),
-                ('view_public_profile', 'Can view public profiles')
+                ('view_public_profile', 'Can view public profiles'),
+                ('create_reward', 'Can create rewards for a project'),
+                ('view_rewards', 'Can view rewards for a project'),
+                ('edit_reward', 'Can edit rewards for a project'),
+                ('delete_reward', 'Can delete rewards for a project')
             ]
 
             for name, description in permissions:
@@ -70,7 +74,7 @@ def setup_permissions_and_roles():
                     'initiate_2fa_setup', 'complete_2fa_setup', 'verify_2fa', 'revoke_2fa',
                     'back_project', 'view_user_backed_projects', 'view_backers', 'view_backer_details',
                     'send_project_update', 'send_project_milestone',
-                    'view_public_profile'
+                    'view_public_profile','create_reward', 'view_rewards', 'edit_reward', 'delete_reward',
                 ])
             ]
 

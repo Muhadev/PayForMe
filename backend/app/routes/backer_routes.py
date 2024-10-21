@@ -77,10 +77,16 @@ def list_user_backed_projects(user_id):
     """
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 20, type=int)
+
+    current_user_id = get_jwt_identity()
+    logger.info(f"User {current_user_id} requesting backed projects for user {user_id}")
+
     result = backer_service.get_user_backed_projects(user_id, page, per_page)
     if 'error' in result:
         logger.error(f"Error in list_user_backed_projects: {result['error']}")
         return error_response(message=result['error'], status_code=result.get('status_code', 404))
+
+    logger.info(f"Successfully retrieved backed projects for user {user_id}")
     return success_response(data=result['projects'], meta=result['meta'])
 
 @backer_bp.route('/projects/<int:project_id>/backers/<int:user_id>', methods=['GET'])
@@ -92,10 +98,15 @@ def get_backer_details(project_id, user_id):
     
     This function gets detailed information about a user's backing of a specific project.
     """
+    current_user_id = get_jwt_identity()
+    logger.info(f"User {current_user_id} requesting backer details for user {user_id} on project {project_id}")
+    
     result = backer_service.get_backer_details(project_id, user_id)
     if 'error' in result:
         logger.error(f"Error in get_backer_details: {result['error']}")
         return error_response(message=result['error'], status_code=result.get('status_code', 404))
+
+    logger.info(f"Successfully retrieved backer details for user {user_id} on project {project_id}")
     return success_response(data=result)
 
 @backer_bp.route('/projects/<int:project_id>/backers/stats', methods=['GET'])

@@ -88,5 +88,9 @@ def create_app():
     # Notification-related routes
     from app.routes.notifications import notifications_bp  # Import the notifications blueprint
     app.register_blueprint(notifications_bp, url_prefix='/api/v1/notifications')  # Register the blueprint
+
+    #Reward-related routes
+    from app.routes.reward_routes import reward_bp
+    app.register_blueprint(reward_bp, url_prefix='/api/v1/rewards')
     
     return app

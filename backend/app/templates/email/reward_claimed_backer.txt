@@ -1,0 +1,19 @@
+<!-- templates/email/reward_claimed_backer.txt -->
+Thank You for Claiming Your Reward!
+
+You have successfully claimed a reward for the project "{{ project_title }}":
+
+{{ reward_title }}
+{% if estimated_delivery %}
+Estimated Delivery: {{ estimated_delivery }}
+{% endif %}
+{% if shipping_type != 'none' %}
+Shipping Type: {{ shipping_type }}
+{% endif %}
+
+We'll keep you updated on the project's progress and notify you when your reward is ready.
+
+View project details at:
+{{ project_url }}
+
+© 2024 PayForMe. All rights reserved.

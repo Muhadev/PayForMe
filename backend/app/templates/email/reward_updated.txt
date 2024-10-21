@@ -1,0 +1,20 @@
+<!-- templates/email/reward_updated.txt -->
+Reward Update Notification
+
+A reward you claimed for "{{ project_title }}" has been updated:
+
+{{ reward_title }}
+
+Changes:
+{% for change in changes %}
+{{ change.field|title }}:
+Old: {{ change.old }}
+New: {{ change.new }}
+{% endfor %}
+
+If you have any questions about these changes, please contact the project creator.
+
+View project details at:
+{{ project_url }}
+
+© 2024 PayForMe. All rights reserved.
