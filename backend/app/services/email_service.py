@@ -6,9 +6,12 @@ from sendgrid.helpers.mail import Mail
 from flask import current_app, render_template
 import logging
 from python_http_client.exceptions import HTTPError
+from tenacity import retry, stop_after_attempt, wait_exponential
+
 
 logger = logging.getLogger(__name__)
 
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
 def send_email(to_email, subject, text_content, html_content):
     message = Mail(
         from_email=current_app.config['SENDGRID_DEFAULT_FROM'],

@@ -6,8 +6,10 @@ from app.utils.rate_limit import rate_limit
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import ValidationError
 from app.schemas.reward_schemas import RewardSchema, RewardUpdateSchema
+from app.models.project import Project
+from app.models.reward import Reward
 import logging
-from app import cache
+from app import db, cache
 
 reward_bp = Blueprint('reward_bp', __name__)
 reward_service = RewardService()

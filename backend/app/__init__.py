@@ -58,9 +58,11 @@ def create_app():
     CORS(app)
     configure_logging()
 
+    # auth-related routes
     from app.routes.auth import bp as auth_bp
     app.register_blueprint(auth_bp, url_prefix='/api/v1/auth')
 
+    # auth/google-related routes
     from app.routes.google_auth import google_auth
     app.register_blueprint(google_auth, url_prefix='/api/v1/auth/google')
 
@@ -68,6 +70,7 @@ def create_app():
     from app.routes.profile_routes import profile_bp
     app.register_blueprint(profile_bp, url_prefix='/api/v1/profile')
 
+    # 2fa-related routes
     from app.routes.two_factor_auth import two_factor_auth_bp
     app.register_blueprint(two_factor_auth_bp, url_prefix='/api/v1/auth/2fa')
 
@@ -79,9 +82,11 @@ def create_app():
     from app.routes.projects import projects_bp
     app.register_blueprint(projects_bp, url_prefix='/api/v1/projects')
 
+    # Categories-related routes
     from app.routes.categories import categories_bp
     app.register_blueprint(categories_bp, url_prefix='/api/v1/categories')
 
+    # Backers-related routes
     from app.routes.backer_routes import backer_bp
     app.register_blueprint(backer_bp, url_prefix='/api/v1/backers')
 

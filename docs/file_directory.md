@@ -53,8 +53,9 @@ frontend/
 │   │   │   ├── project_service.py
 │   │   │   └── donation_service.py
 │   │   └── utils/
-│   │       ├── __init__.py
-│   │       └── validator.py
+│   │   |     ├── __init__.py
+│   │   |     └── validator.py
+|   |   |__ scripts/
 │   ├── config.py
 │   ├── requirements.txt
 │   └── run.py
