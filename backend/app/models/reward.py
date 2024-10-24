@@ -16,6 +16,7 @@ class Reward(db.Model):
     project_id = db.Column(db.Integer, ForeignKey('projects.id'), nullable=False)
     title = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=False)
+    minimum_amount = db.Column(db.Float, nullable=False)
     estimated_delivery_date = db.Column(db.DateTime)  # Changed from estimated_delivery to match schema
     shipping_type = db.Column(db.String(20))  # Add this field to match schema
     quantity_available = db.Column(db.Integer)

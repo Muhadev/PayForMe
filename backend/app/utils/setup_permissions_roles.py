@@ -50,8 +50,11 @@ def setup_permissions_and_roles():
                 ('view_public_profile', 'Can view public profiles'),
                 ('create_reward', 'Can create rewards for a project'),
                 ('view_rewards', 'Can view rewards for a project'),
-                ('edit_reward', 'Can edit rewards for a project'),
-                ('delete_reward', 'Can delete rewards for a project')
+                ('list_rewards', 'Can list all rewards for a project'),
+                ('get_reward', 'Can view a specific reward'),
+                ('update_reward', 'Can update rewards for a project'),  # Fixed capitalization
+                ('delete_reward', 'Can delete rewards for a project'),
+                ('claim_reward', 'Can claim a reward')
             ]
 
             for name, description in permissions:
@@ -74,7 +77,13 @@ def setup_permissions_and_roles():
                     'initiate_2fa_setup', 'complete_2fa_setup', 'verify_2fa', 'revoke_2fa',
                     'back_project', 'view_user_backed_projects', 'view_backers', 'view_backer_details',
                     'send_project_update', 'send_project_milestone',
-                    'view_public_profile','create_reward', 'view_rewards', 'edit_reward', 'delete_reward',
+                    'view_public_profile','create_reward',
+                    'view_rewards',
+                    'list_rewards',
+                    'get_reward',
+                    'update_reward',
+                    'claim_reward',
+                    'delete_reward'
                 ])
             ]
 
