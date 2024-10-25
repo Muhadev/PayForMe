@@ -7,7 +7,7 @@ from flask import current_app, render_template
 import logging
 from python_http_client.exceptions import HTTPError
 from tenacity import retry, stop_after_attempt, wait_exponential
-
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -42,11 +42,21 @@ EMAIL_TEMPLATE_TYPES = [
 ]
 
 def send_templated_email(to_email, email_type, **kwargs):
+    if not to_email:
+        logger.error("No recipient email provided")
+        return False
+        
     if email_type not in EMAIL_TEMPLATE_TYPES:
         logger.error(f"Unknown email type: {email_type}")
         return False
     
+    required_kwargs = get_required_template_kwargs(email_type)
+    missing_kwargs = [k for k in required_kwargs if k not in kwargs]
+    if missing_kwargs:
+        logger.error(f"Missing required template variables: {missing_kwargs}")
+        return False
     try:
+        kwargs['current_year'] = datetime.now().year
         subject = get_email_subject(email_type)
         text_content = render_template(f'email/{email_type}.txt', **kwargs)
         html_content = render_template(f'email/{email_type}.html', **kwargs)
@@ -55,6 +65,15 @@ def send_templated_email(to_email, email_type, **kwargs):
         return False
     
     return send_email(to_email, subject, text_content, html_content)
+
+def get_required_template_kwargs(email_type):
+    """Return required kwargs for each template type"""
+    template_requirements = {
+        'reward_updated': ['reward_title', 'project_title', 'changes'],
+        'reward_created': ['project_title', 'reward_title', 'reward_description'],
+        # Add requirements for other templates
+    }
+    return template_requirements.get(email_type, [])
 
 def get_email_subject(email_type):
     subjects = {

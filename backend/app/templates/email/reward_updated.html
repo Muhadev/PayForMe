@@ -1,28 +1,236 @@
-<!-- templates/email/reward_updated.html -->
 {% extends "email/base_email.html" %}
 
-{% block title %}Reward Update - PayForMe{% endblock %}
+{% block title %}Important Reward Update - {{ project_title }}{% endblock %}
 
 {% block header %}Reward Update{% endblock %}
 
 {% block content %}
-<h2>Reward Update Notification</h2>
-<p>A reward you claimed for "{{ project_title }}" has been updated:</p>
-<div style="margin: 20px 0; padding: 15px; background-color: #fff; border-radius: 5px;">
-    <h3 style="color: #4CAF50;">{{ reward_title }}</h3>
-    <h4>Changes:</h4>
-    <ul style="list-style-type: none; padding: 0;">
-    {% for change in changes %}
-        <li style="margin-bottom: 10px;">
-            <strong>{{ change.field|title }}:</strong><br>
-            Old: {{ change.old }}<br>
-            New: {{ change.new }}
-        </li>
-    {% endfor %}
-    </ul>
+<style>
+    .banner {
+        background: linear-gradient(to right, #f8f9fa, #ffffff);
+        border-left: 4px solid #28a745;
+        padding: 20px;
+        margin-bottom: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(40, 167, 69, 0.1);
+    }
+
+    .project-info {
+        margin-bottom: 35px;
+        padding: 25px;
+        background-color: #ffffff;
+        border: 1px solid #e9ecef;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .changes-grid {
+        display: grid;
+        gap: 25px;
+        margin: 30px 0;
+    }
+
+    .change-card {
+        background: #ffffff;
+        border: 1px solid #e9ecef;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        transition: transform 0.2s ease;
+    }
+
+    .change-card:hover {
+        transform: translateY(-2px);
+    }
+
+    .change-header {
+        background: linear-gradient(to right, #f8f9fa, #ffffff);
+        padding: 15px 20px;
+        border-bottom: 1px solid #e9ecef;
+        border-radius: 12px 12px 0 0;
+    }
+
+    .change-header h3 {
+        margin: 0;
+        color: #2d3748;
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: -0.3px;
+    }
+
+    .change-content {
+        padding: 20px;
+    }
+
+    .value-comparison {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    .value-box {
+        padding: 15px;
+        border-radius: 8px;
+        transition: transform 0.2s ease;
+    }
+
+    .value-box:hover {
+        transform: scale(1.02);
+    }
+
+    .previous-value {
+        background-color: #fff5f5;
+        color: #dc3545;
+        border: 1px solid #fdd;
+    }
+
+    .new-value {
+        background-color: #f0fff4;
+        color: #28a745;
+        border: 1px solid #dfd;
+    }
+
+    .value-label {
+        font-size: 13px;
+        font-weight: 700;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .value-text {
+        font-size: 15px;
+        line-height: 1.5;
+        font-weight: 500;
+    }
+
+    .important-notice {
+        background: linear-gradient(to right, #fff8e6, #fffdf7);
+        border: 1px solid #ffeeba;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 30px 0;
+        box-shadow: 0 2px 4px rgba(255, 193, 7, 0.1);
+    }
+
+    .important-notice h4 {
+        color: #856404;
+        font-size: 16px;
+        font-weight: 700;
+        margin: 0 0 12px 0;
+    }
+
+    .action-buttons {
+        text-align: center;
+        margin-top: 35px;
+    }
+
+    .primary-button {
+        display: inline-block;
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: #ffffff;
+        text-decoration: none;
+        padding: 14px 28px;
+        border-radius: 8px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
+    }
+
+    .primary-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(40, 167, 69, 0.3);
+    }
+
+    .support-info {
+        margin-top: 35px;
+        padding-top: 25px;
+        border-top: 1px solid #e9ecef;
+        font-size: 14px;
+        color: #718096;
+        line-height: 1.6;
+    }
+
+    @media (max-width: 600px) {
+        .value-comparison {
+            grid-template-columns: 1fr;
+        }
+        
+        .banner, .project-info, .change-card, .important-notice {
+            margin-left: -15px;
+            margin-right: -15px;
+            border-radius: 0;
+        }
+    }
+</style>
+
+<div class="banner">
+    <h2 style="margin: 0; color: #28a745; font-size: 20px; font-weight: 700;">Important Update to Your Backed Reward</h2>
 </div>
-<p>If you have any questions about these changes, please contact the project creator.</p>
-<p style="text-align: center;">
-    <a href="{{ project_url }}" class="btn">View Project Details</a>
-</p>
+
+<div class="project-info">
+    <h3 style="margin: 0 0 12px 0; color: #2d3748; font-size: 22px; font-weight: 700;">{{ project_title }}</h3>
+    <p style="margin: 0; color: #4a5568; font-size: 16px; font-weight: 500;">Reward: {{ reward_title }}</p>
+</div>
+
+{% if is_creator %}
+<p style="font-size: 16px; color: #2d3748; font-weight: 500;">You have successfully updated the reward details for your project. Here's a summary of the changes:</p>
+{% else %}
+<p style="font-size: 16px; color: #2d3748; font-weight: 500;">The creator has made some changes to the reward you've backed. Here are the details:</p>
+{% endif %}
+
+<div class="changes-grid">
+    {% for change in changes %}
+    <div class="change-card">
+        <div class="change-header">
+            <h3>{{ change.field }}</h3>
+        </div>
+        <div class="change-content">
+            <div class="value-comparison">
+                <div class="value-box previous-value">
+                    <div class="value-label">Previous Value</div>
+                    <div class="value-text">{{ change.old if change.old else 'Not specified' }}</div>
+                </div>
+                <div class="value-box new-value">
+                    <div class="value-label">Updated Value</div>
+                    <div class="value-text">{{ change.new if change.new else 'Not specified' }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if delivery_impact %}
+<div class="important-notice">
+    <h4>Important Notice About Delivery</h4>
+    <p style="margin: 0; color: #856404; font-weight: 500;">{{ delivery_impact }}</p>
+</div>
+{% endif %}
+
+{% if is_creator %}
+<div class="important-notice">
+    <p style="margin: 0; font-weight: 500;">All backers who have claimed this reward will be automatically notified of these changes.</p>
+</div>
+{% endif %}
+
+{% if not is_creator %}
+<div class="important-notice">
+    <h4>What This Means for You</h4>
+    <p style="margin: 0; font-weight: 500;">These changes apply to your claimed reward. If you have any concerns about these updates, please contact the project creator directly through the project page.</p>
+</div>
+{% endif %}
+
+<div class="action-buttons">
+    <a href="{{ project_url }}" class="primary-button">View Project Details</a>
+</div>
+
+<div class="support-info">
+    {% if is_creator %}
+    <p style="font-weight: 500;">If you need to make additional changes or have questions about managing your project, our creator support team is here to help.</p>
+    {% else %}
+    <p style="font-weight: 500;">If you have any questions about these changes or need assistance, our support team is available 24/7. You can also message the creator directly through the project page.</p>
+    {% endif %}
+    <p style="margin-top: 15px; font-size: 13px; color: #a0aec0;">Reference ID: {{ reward_id }} - {{ update_timestamp }}</p>
+</div>
 {% endblock %}

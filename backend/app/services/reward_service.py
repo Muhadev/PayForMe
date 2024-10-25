@@ -1,7 +1,7 @@
 from app.models.reward import Reward
 from app.models.project import Project
 from typing import Optional, Dict, Any, List
-from datetime import datetime
+from datetime import date, datetime
 from app.models.user import User
 from app import db
 from sqlalchemy.exc import SQLAlchemyError
@@ -89,6 +89,12 @@ class RewardService:
                 status_code=500
             )
 
+    def _standardize_date(self, date_value):
+        """Standardize date values to datetime objects"""
+        if isinstance(date_value, date):
+            return datetime.combine(date_value, datetime.min.time())
+        return date_value
+
     def update_reward(self, project_id: int, reward_id: int, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Update a reward and notify backers of changes
@@ -119,10 +125,26 @@ class RewardService:
             schema = RewardUpdateSchema()
             update_data = schema.load(data)
             
+            # Standardize date handling
+            if 'estimated_delivery_date' in update_data:
+                if isinstance(update_data['estimated_delivery_date'], str):
+                    update_data['estimated_delivery_date'] = datetime.strptime(
+                        update_data['estimated_delivery_date'], 
+                        '%Y-%m-%d'
+                    )
+                update_data['estimated_delivery_date'] = self._standardize_date(
+                    update_data['estimated_delivery_date']
+                )
+            
             # Track changes for email notification
             changes = []
             for key, new_value in update_data.items():
                 old_value = getattr(reward, key)
+
+                if key == 'estimated_delivery_date':
+                    old_value = self._standardize_date(old_value)
+                    new_value = self._standardize_date(new_value)
+
                 if old_value != new_value:
                     changes.append({
                         'field': key,
@@ -163,14 +185,17 @@ class RewardService:
                 ).scalar_one()
 
                 if not reward:
-                    return {'error': 'Reward not found', 'status_code': 404}
+                    return ServiceResponse(error='Reward not found', status_code=404)
 
                 user = User.query.get(user_id)
                 if not user:
                     return {'error': 'User not found', 'status_code': 404}
 
                 if reward.quantity_available is not None and reward.quantity_claimed >= reward.quantity_available:
-                    return {'error': 'Reward is no longer available', 'status_code': 400}
+                    return ServiceResponse(
+                        error='Reward is no longer available',
+                        status_code=400
+                    )
 
                 reward.quantity_claimed += 1
                 user.claimed_rewards.append(reward)

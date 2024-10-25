@@ -1,5 +1,5 @@
 from typing import List, Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, date
 import logging
 from dataclasses import dataclass
 from app.services.email_service import send_templated_email
@@ -21,26 +21,59 @@ class RewardEmailService:
         """Format various types of values for email display"""
         if isinstance(value, datetime):
             return value.strftime('%Y-%m-%d')
+        if isinstance(value, date):
+            return value.strftime('%Y-%m-%d')
         if value is None:
             return "Not specified"
+        if isinstance(value, float):
+            return f"${value:,.2f}"
         return str(value)
 
-    def format_changes(self, changes: List[Dict[str, Any]]) -> str:
+    def format_changes(self, changes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Format changes for email notification"""
         formatted_changes = []
+        field_labels = {
+            'title': 'Title',
+            'description': 'Description',
+            'minimum_amount': 'Minimum Amount',
+            'quantity_available': 'Quantity Available',
+            'estimated_delivery_date': 'Estimated Delivery Date',
+            'shipping_type': 'Shipping Type'
+        }
+        
         for change in changes:
-            old_value = self.format_value(change['old'])
-            new_value = self.format_value(change['new'])
-            formatted_changes.append(
-                f"{change['field']}: {old_value} → {new_value}"
-            )
-        return "\n".join(formatted_changes)
+            field = change['field']
+            formatted_changes.append({
+                'field': field_labels.get(field, field.replace('_', ' ').title()),
+                'old': self.format_value(change['old']),
+                'new': self.format_value(change['new'])
+            })
+        return formatted_changes
 
     def _get_user_display_name(self, user: 'User') -> str:
         """Get the best available display name for a user"""
         if user.full_name:
             return user.full_name
         return user.username
+
+    def _check_delivery_impact(self, changes: List[Dict[str, Any]]) -> Optional[str]:
+        """Check if changes affect delivery and return appropriate message"""
+        for change in changes:
+            if change['field'] == 'estimated_delivery_date':
+                old_date = datetime.strptime(change['old'], '%Y-%m-%d') if change['old'] != "Not specified" else None
+                new_date = datetime.strptime(change['new'], '%Y-%m-%d') if change['new'] != "Not specified" else None
+                
+                if old_date and new_date:
+                    if new_date > old_date:
+                        days_diff = (new_date - old_date).days
+                        return f"The estimated delivery date has been delayed by {days_diff} days. We apologize for any inconvenience."
+                    elif new_date < old_date:
+                        days_diff = (old_date - new_date).days
+                        return f"Good news! The estimated delivery date has been moved up by {days_diff} days."
+            elif change['field'] == 'shipping_type':
+                return f"The shipping method has been updated from {change['old']} to {change['new']}. This may affect delivery timing."
+        
+        return None
 
     def _send_safe(self, email_context: EmailContext, recipient_email: str, recipient_name: Optional[str] = None) -> bool:
         """
@@ -121,28 +154,42 @@ class RewardEmailService:
                 self.logger.error(f"Error in follower notifications for project {project.id}: {str(e)}")
 
     def notify_reward_update(self, project: 'Project', reward: 'Reward', changes: List[Dict[str, Any]]) -> None:
-        """Send reward update notifications to all relevant users"""
+        """Send reward update notifications to all relevant users with enhanced context"""
         if not changes:
             self.logger.info("No changes to notify about")
             return
 
         formatted_changes = self.format_changes(changes)
+        delivery_impact = self._check_delivery_impact(changes)
+        update_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
-        # Always notify project creator
+        # Base context that's common for all recipients
+        base_context = {
+            'project_title': project.title,
+            'reward_title': reward.title,
+            'changes': formatted_changes,
+            'project_url': f"/projects/{project.id}",  # Adjust based on your URL structure
+            'reward_id': str(reward.id),
+            'update_timestamp': update_timestamp,
+            'current_year': datetime.now().year
+        }
+
+        if delivery_impact:
+            base_context['delivery_impact'] = delivery_impact
+
+        # Notify project creator
         creator_name = self._get_user_display_name(project.creator)
         creator_context = EmailContext(
             template_type='reward_updated',
             context={
+                **base_context,
                 'user_name': creator_name,
-                'project_title': project.title,
-                'reward_title': reward.title,
-                'changes': formatted_changes,
                 'is_creator': True
             }
         )
         self._send_safe(creator_context, project.creator.email, creator_name)
         
-        # Notify claimed users if any
+        # Notify claimed users
         claimed_users = getattr(reward, 'claimed_by', [])
         if claimed_users:
             for user in claimed_users:
@@ -150,10 +197,8 @@ class RewardEmailService:
                 user_context = EmailContext(
                     template_type='reward_updated',
                     context={
+                        **base_context,
                         'user_name': user_name,
-                        'project_title': project.title,
-                        'reward_title': reward.title,
-                        'changes': formatted_changes,
                         'is_creator': False
                     }
                 )
@@ -161,7 +206,7 @@ class RewardEmailService:
         else:
             self.logger.debug(f"No claimed users found for reward {reward.id}")
 
-        # Optionally notify project followers
+        # Notify project followers
         followers = getattr(project, 'followers', [])
         if followers:
             for follower in followers:
@@ -174,10 +219,9 @@ class RewardEmailService:
                 follower_context = EmailContext(
                     template_type='reward_updated',
                     context={
+                        **base_context,
                         'user_name': follower_name,
-                        'project_title': project.title,
-                        'reward_title': reward.title,
-                        'changes': formatted_changes,
+                        'is_creator': False,
                         'is_follower': True
                     }
                 )

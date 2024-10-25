@@ -6,12 +6,13 @@ class RewardSchema(Schema):
     id = fields.Int(dump_only=True)
     title = fields.Str(required=True, validate=[
         validate.Length(min=1, max=100),
-        validate.Regexp(r'^[\w\s-]+$', error='Title contains invalid characters')
+        validate.Regexp(r'^[\w\s-]+$', error='Title contains invalid characters'),
+        validate.NoneOf(['', ' '], error='Title cannot be empty or whitespace')
     ])
     description = fields.Str(required=True, validate=validate.Length(min=1, max=500))
     minimum_amount = fields.Float(required=True, validate=[
-        validate.Range(min=0),
-        validate.Range(max=1000000)
+        validate.Range(min=0, error="Amount must be positive"),
+        validate.Range(max=1000000, error="Amount exceeds maximum allowed")
     ])
     quantity_available = fields.Int(allow_none=True, validate=validate.Range(min=1))
     estimated_delivery_date = fields.Date(allow_none=True)
@@ -19,6 +20,13 @@ class RewardSchema(Schema):
     project_id = fields.Int(dump_only=True)
     quantity_claimed = fields.Int(dump_only=True)
 
+    # Add nested validation
+    @validates_schema
+    def validate_quantities(self, data, **kwargs):
+        if (data.get('quantity_claimed', 0) > 
+            data.get('quantity_available', float('inf'))):
+            raise ValidationError('Claimed quantity cannot exceed available quantity')
+            
     @validates_schema
     def validate_dates(self, data, **kwargs):
         if 'estimated_delivery_date' in data and data['estimated_delivery_date']:
