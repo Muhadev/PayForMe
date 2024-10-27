@@ -2,17 +2,19 @@ from datetime import datetime
 from app import db
 from app.models import Payment, PaymentStatus, PaymentMethod
 from app.services.stripe_payment_service import StripePaymentService
-from app.schemas.donation_schemas import PaymentDetailsSchema, RefundSchema
+from app.schemas.donation_schemas import DonationSchema
+from app.schemas.payment_schemas import PaymentDetailsSchema, RefundSchema
 from app.config import StripeConfig
 from app.utils.redis_client import get_redis_client
 import logging
+from marshmallow import ValidationError
 
-# Set up logging
 logger = logging.getLogger(__name__)
 
 class PaymentService:
     def __init__(self):
         self.stripe_service = StripePaymentService()
+        self.donation_schema = DonationSchema()
         self.payment_details_schema = PaymentDetailsSchema()
         self.refund_schema = RefundSchema()
         self.redis_client = get_redis_client()
@@ -22,20 +24,24 @@ class PaymentService:
         if currency not in StripeConfig.SUPPORTED_CURRENCIES:
             raise ValueError(f"Unsupported currency: {currency}")
         
-        min_amount = StripeConfig.MINIMUM_AMOUNT.get(currency, 0.5)  # Default min amount if not specified
+        min_amount = StripeConfig.MINIMUM_AMOUNT.get(currency, 0.5)
         if amount < min_amount:
             raise ValueError(f"Amount below minimum for {currency}: {min_amount}")
 
     async def create_payment(self, user_id, donation_id, amount, currency, payment_method, ip_address=None):
         """Create a new payment with validation and rate limiting."""
         try:
-            await self.validate_payment_request(amount, currency)
+            validated_data = self.donation_schema.load({
+                "user_id": user_id, "donation_id": donation_id, "amount": amount, "currency": currency, "payment_method": payment_method
+            })
+
+            await self.validate_payment_request(validated_data['amount'], validated_data['currency'])
             
-            # Rate limiting check
+            # Rate limiting
             key = f"payment_attempts:{user_id}"
-            attempts = self.redis_client.incr(key)
+            attempts = await self.redis_client.incr(key)
             if attempts == 1:
-                self.redis_client.expire(key, 3600)  # 1 hour window
+                await self.redis_client.expire(key, 3600)  # 1-hour window
             if attempts > 10:
                 raise ValueError("Too many payment attempts. Please try again later.")
 
@@ -51,12 +57,16 @@ class PaymentService:
                 updated_at=datetime.utcnow()
             )
             
-            payment.calculate_fees()  # Ensuring any fee calculation logic is implemented within `calculate_fees()`
+            payment.calculate_fees()
             db.session.add(payment)
             db.session.commit()
+            logger.info(f"Payment created: {payment.id} for user {user_id}")
             
             return payment
 
+        except ValidationError as ve:
+            logger.error(f"Validation failed: {ve.messages}")
+            raise ValueError(f"Validation failed: {ve.messages}")
         except Exception as e:
             db.session.rollback()
             logger.error(f"Payment creation failed: {str(e)}", exc_info=True)
@@ -65,14 +75,9 @@ class PaymentService:
     async def process_payment(self, payment_id, payment_details):
         """Process payment through Stripe"""
         try:
-            # Validate payment details
             validated_data = self.payment_details_schema.load(payment_details)
-            
-            payment = Payment.query.get(payment_id)
-            if not payment:
-                raise ValueError("Payment not found")
+            payment = self._get_payment_or_raise(payment_id)
 
-            # Create Stripe PaymentIntent
             intent = await self.stripe_service.create_payment_intent(
                 amount=payment.amount,
                 currency=payment.currency,
@@ -84,8 +89,7 @@ class PaymentService:
                 }
             )
 
-            # Update payment record
-            payment.status = self._map_stripe_status(intent.status)
+            payment.status = self.stripe_service.map_stripe_status(intent.status)
             payment.transaction_id = intent.id
             payment.payment_metadata = {
                 'stripe_intent_id': intent.id,
@@ -95,6 +99,7 @@ class PaymentService:
             payment.updated_at = datetime.utcnow()
             
             db.session.commit()
+            logger.info(f"Payment processed successfully for Payment ID {payment_id}")
             return payment
 
         except Exception as e:
@@ -108,22 +113,17 @@ class PaymentService:
         """Process refund through Stripe"""
         try:
             validated_data = self.refund_schema.load(refund_data) if refund_data else {}
-
-            payment = Payment.query.get(payment_id)
-            if not payment:
-                raise ValueError("Payment not found")
+            payment = self._get_payment_or_raise(payment_id)
 
             if not payment.can_be_refunded():
                 raise ValueError("Payment cannot be refunded")
 
-            # Process refund through Stripe
             refund = await self.stripe_service.process_refund(
                 payment_intent_id=payment.transaction_id,
                 amount=validated_data.get('refund_amount'),
                 reason=validated_data.get('reason')
             )
 
-            # Update payment record with refund details
             payment.status = PaymentStatus.REFUNDED
             payment.updated_at = datetime.utcnow()
             payment.payment_metadata = {
@@ -141,14 +141,9 @@ class PaymentService:
             logger.error(f"Refund failed for Payment ID {payment_id}: {str(e)}", exc_info=True)
             raise e
 
-    def _map_stripe_status(self, stripe_status):
-        """Map Stripe payment status to internal payment status"""
-        status_mapping = {
-            'succeeded': PaymentStatus.COMPLETED,
-            'processing': PaymentStatus.PROCESSING,
-            'requires_payment_method': PaymentStatus.FAILED,
-            'requires_confirmation': PaymentStatus.PENDING,
-            'requires_action': PaymentStatus.PENDING,
-            'canceled': PaymentStatus.CANCELLED
-        }
-        return status_mapping.get(stripe_status, PaymentStatus.FAILED)
+    def _get_payment_or_raise(self, payment_id):
+        """Helper to retrieve a payment or raise an error if not found"""
+        payment = Payment.query.get(payment_id)
+        if not payment:
+            raise ValueError(f"Payment with ID {payment_id} not found.")
+        return payment

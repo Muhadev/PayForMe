@@ -103,7 +103,7 @@ def create_app():
     app.register_blueprint(donation_bp, url_prefix='/api/v1/donations')
 
     from app.routes.payment_routes import payment_bp
-    app.register_blueprint(payment_bp, url_prefix='/api/v1/payments')
+    app.register_blueprint(payment_bp, url_prefix='/api/v1/payments/donations')
 
     from app.routes.webhooks.stripe_webhook import stripe_webhook_bp
     app.register_blueprint(stripe_webhook_bp, url_prefix='/api/v1/webhooks/stripe')

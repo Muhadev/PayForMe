@@ -4,6 +4,7 @@ from app import db
 from app.models import Payment, PaymentStatus
 from app.config import StripeConfig
 from some_module import ConfigurationError
+import logging  # Improved error logging
 
 class StripePaymentService:
     def __init__(self):
@@ -32,6 +33,8 @@ class StripePaymentService:
         """Confirm a PaymentIntent to finalize the payment"""
         try:
             intent = stripe.PaymentIntent.confirm(payment_intent_id)
+            # Log and update the payment status in the database upon successful confirmation
+            self._update_payment_status(payment_intent_id, PaymentStatus.COMPLETED)
             return intent
         except stripe.error.StripeError as e:
             raise self._handle_stripe_error(e)
@@ -47,6 +50,7 @@ class StripePaymentService:
                 refund_params['amount'] = int(amount * 100)  # Convert to cents
 
             refund = stripe.Refund.create(**refund_params)
+            self._update_payment_status(payment_intent_id, PaymentStatus.REFUNDED)  # Update DB status
             return refund
         except stripe.error.StripeError as e:
             raise self._handle_stripe_error(e)
@@ -74,15 +78,35 @@ class StripePaymentService:
         
         error_class = type(error)
         message, code = error_map.get(error_class, ('Unknown error', 'unknown'))
-        
-        # Log error for traceability (e.g., for security and debugging purposes)
-        print(f"Stripe error: {message} - {str(error)}")
 
+        # Improved logging with details for debugging
+        logging.error(f"Stripe error occurred: {message} - Details: {str(error)}")
+        
         return PaymentError(
             message=f"{message}: {str(error)}",
             code=code,
             raw_error=error
         )
+
+    def _update_payment_status(self, payment_intent_id: str, new_status: PaymentStatus):
+        """Update the status of a Payment in the database."""
+        payment = Payment.query.filter_by(transaction_id=payment_intent_id).first()
+        if payment:
+            payment.status = new_status
+            payment.updated_at = datetime.utcnow()
+            db.session.commit()
+
+    def _map_stripe_status(self, stripe_status):
+        """Map Stripe payment status to internal payment status"""
+        status_mapping = {
+            'succeeded': PaymentStatus.COMPLETED,
+            'processing': PaymentStatus.PROCESSING,
+            'requires_payment_method': PaymentStatus.FAILED,
+            'requires_confirmation': PaymentStatus.PENDING,
+            'requires_action': PaymentStatus.PENDING,
+            'canceled': PaymentStatus.CANCELLED
+        }
+        return status_mapping.get(stripe_status, PaymentStatus.FAILED)
 
 class PaymentError(Exception):
     """Custom error class for handling payment-related issues"""

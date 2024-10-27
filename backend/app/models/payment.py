@@ -6,45 +6,44 @@ from app import db
 from sqlalchemy.sql import func
 from .enums import PaymentStatus, PaymentMethod, PaymentProvider
 from app.config import StripeConfig
+from datetime import datetime
 
 class Payment(db.Model):
     __tablename__ = 'payments'
 
-    id = db.Column(db.Integer, primary_key=True)
-    amount = db.Column(db.Float, nullable=False)
-    currency = db.Column(db.String(3), nullable=False)  # e.g., 'USD', 'EUR'
-    status = db.Column(db.Enum(PaymentStatus), nullable=False, default=PaymentStatus.PENDING)
-    method = db.Column(db.Enum(PaymentMethod), nullable=False, default=PaymentMethod.CREDIT_CARD)
-    provider = db.Column(db.Enum(PaymentProvider), nullable=False, default=PaymentProvider.STRIPE)
-    transaction_id = db.Column(db.String(100), unique=True)
-    created_at = db.Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = db.Column(DateTime(timezone=True), onupdate=func.now())
-    error_message = db.Column(db.String(500))
-    payment_metadata = db.Column(db.JSON)
+    id = Column(Integer, primary_key=True)
+    amount = Column(Float, nullable=False)
+    currency = Column(String(3), nullable=False)  # e.g., 'USD', 'EUR'
+    status = Column(Enum(PaymentStatus), nullable=False, default=PaymentStatus.PENDING)
+    method = Column(Enum(PaymentMethod), nullable=False, default=PaymentMethod.CREDIT_CARD)
+    provider = Column(Enum(PaymentProvider), nullable=False, default=PaymentProvider.STRIPE)
+    transaction_id = Column(String(100), unique=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    error_message = Column(String(500))
+    payment_metadata = Column(db.JSON)
     
-    user_id = db.Column(db.Integer, ForeignKey('users.id'), nullable=False)
-    donation_id = db.Column(db.Integer, ForeignKey('donations.id'), nullable=False)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    donation_id = Column(Integer, ForeignKey('donations.id'), nullable=False)
 
-    user = db.relationship("User", back_populates="payments")
-    donation = db.relationship("Donation", back_populates="payment")
+    user = relationship("User", back_populates="payments")
+    donation = relationship("Donation", back_populates="payment")
 
-    ip_address = db.Column(db.String(45))  # Store IP for fraud detection
-    billing_address = db.Column(db.JSON)    # Store billing details
-    fee_amount = db.Column(db.Float)        # Platform/processing fee
-    net_amount = db.Column(db.Float)        # Amount after fees
-    refund_reason = db.Column(db.String(200))
-    # Add missing indexes
+    ip_address = Column(String(45))  # Store IP for fraud detection
+    billing_address = Column(db.JSON)    # Store billing details
+    fee_amount = Column(Float)        # Platform/processing fee
+    net_amount = Column(Float)        # Amount after fees
+    refund_reason = Column(String(200))
+
     __table_args__ = (
         db.Index('idx_user_id', 'user_id'),
         db.Index('idx_donation_id', 'donation_id'),
         db.Index('idx_status_created_at', 'status', 'created_at'),
     )
+
+    updated_by = Column(Integer, ForeignKey('users.id'))
+    ip_country = Column(String(2))  # Country code for fraud detection
     
-    # Add audit fields
-    updated_by = db.Column(db.Integer, ForeignKey('users.id'))
-    ip_country = db.Column(db.String(2))  # Country code for fraud detection
-    
-    # Add payment verification
     def verify_amount(self, expected_amount):
         return abs(self.amount - expected_amount) < 0.01
     
@@ -54,7 +53,6 @@ class Payment(db.Model):
         platform_fee = self.amount * StripeConfig.PLATFORM_FEE_PERCENT
         self.fee_amount = stripe_fee + platform_fee
         self.net_amount = self.amount - self.fee_amount
-
 
     def to_dict(self):
         """Convert payment to dictionary for API responses"""
@@ -69,9 +67,6 @@ class Payment(db.Model):
             'net_amount': self.net_amount,
             'fee_amount': self.fee_amount
         }
-
-    def __repr__(self):
-        return f'<Payment {self.id} - {self.amount} {self.currency} - {self.status.value}>'
 
     def update_status(self, new_status, error_message=None):
         """Update payment status with optional error message"""
