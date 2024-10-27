@@ -1,0 +1,30 @@
+<!-- app/templates/email/donation_failed.html -->
+{% extends "email/base.html" %}
+
+{% block title %}Donation Payment Failed{% endblock %}
+
+{% block header %}Payment Failed{% endblock %}
+
+{% block content %}
+<p>Dear {{ donor_name }},</p>
+
+<div style="background-color: #fef2f2; border-radius: 8px; padding: 20px; margin: 25px 0; border: 1px solid #fee2e2;">
+    <p style="margin: 0; color: #dc2626; font-weight: 500;">
+        We were unable to process your donation of ${{ amount }}.
+    </p>
+</div>
+
+<p>This could have happened for several reasons:</p>
+<ul style="color: #4b5563; margin: 20px 0; padding-left: 20px;">
+    <li>Insufficient funds</li>
+    <li>Expired card</li>
+    <li>Incorrect payment information</li>
+    <li>Bank security measures</li>
+</ul>
+
+<p>Please try again with a different payment method or contact your bank if the issue persists.</p>
+
+<p style="margin-top: 25px; font-size: 14px; color: #718096;">
+    Need help? Contact our support team for assistance.
+</p>
+{% endblock %}

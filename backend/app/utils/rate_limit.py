@@ -10,26 +10,23 @@ from redis.exceptions import RedisError
 logger = logging.getLogger(__name__)
 
 def rate_limit(limit, per):
+    """Rate limit decorator to control request frequency."""
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             with current_app.app_context():
                 try:
                     now = time.time()
-                    redis_client = get_redis_client()  # Call the function to get the Redis client
+                    redis_client = get_redis_client()
 
-                    # Try to verify JWT, fall back to IP if not available
+                    # Verify JWT, fall back to IP if JWT is unavailable
                     try:
                         verify_jwt_in_request(optional=True)
-                        identity = get_jwt_identity()
+                        identity = get_jwt_identity() or request.headers.get('X-Forwarded-For', request.remote_addr)
                     except Exception:
-                        identity = None
-
-                    if identity is None:
                         identity = request.headers.get('X-Forwarded-For', request.remote_addr)
 
                     key = f"rate_limit:{identity}:{f.__name__}"
-
                     reset_key = f"rl_reset:{key}"
                     count_key = f"rl_count:{key}"
 

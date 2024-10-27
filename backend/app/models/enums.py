@@ -1,4 +1,7 @@
 from enum import Enum
+import logging
+
+logger = logging.getLogger(__name__)
 
 class ProjectStatus(Enum):
     DRAFT = 'DRAFT'
@@ -10,8 +13,7 @@ class ProjectStatus(Enum):
 
     @classmethod
     def _missing_(cls, value):
-        if isinstance(value, str):
-            value = value.upper()
+        value = str(value).upper()
         for member in cls:
             if member.value == value:
                 return member
@@ -19,24 +21,15 @@ class ProjectStatus(Enum):
 
     @classmethod
     def from_string(cls, value):
-        if value is None:
-            return cls.DRAFT
         try:
-            return cls[value.upper()]
-        except ValueError:
+            return cls[value.upper()] if value else cls.DRAFT
+        except KeyError:
             logger.warning(f"Invalid status value: {value}. Defaulting to DRAFT.")
             return cls.DRAFT
 
     def __str__(self):
         return self.value
 
-    def __eq__(self, other):
-        if isinstance(other, str):
-            return self.value.lower() == other.lower()
-        return super().__eq__(other)
-
-    def __hash__(self):
-        return hash(self.value)
 
 class DonationStatus(Enum):
     PENDING = 'PENDING'
@@ -45,31 +38,52 @@ class DonationStatus(Enum):
     FAILED = 'FAILED'
 
     @classmethod
-    def _missing_(cls, value):
-        if isinstance(value, str):
-            value = value.upper()
-        for member in cls:
-            if member.value == value:
-                return member
-        return None
+    def from_string(cls, value):
+        return cls._from_str(value, default=cls.PENDING)
+
+
+class PaymentStatus(Enum):
+    PENDING = 'PENDING'
+    COMPLETED = 'COMPLETED'
+    FAILED = 'FAILED'
+    REFUNDED = 'REFUNDED'
+    PROCESSING = 'PROCESSING'
+    CANCELLED = 'CANCELLED'
+    DECLINED = 'DECLINED'
+    DISPUTED = 'DISPUTED'
 
     @classmethod
     def from_string(cls, value):
-        if value is None:
-            return cls.PENDING
-        try:
-            return cls[value.upper()]
-        except ValueError:
-            logger.warning(f"Invalid donation status value: {value}. Defaulting to PENDING.")
-            return cls.PENDING
+        return cls._from_str(value, default=cls.PENDING)
 
-    def __str__(self):
-        return self.value
+    @classmethod
+    def _from_str(cls, value, default=None):
+        """Centralized method for handling string input for enums"""
+        value = str(value).upper()
+        return cls[value] if value in cls.__members__ else default
 
-    def __eq__(self, other):
-        if isinstance(other, str):
-            return self.value.lower() == other.lower()
-        return super().__eq__(other)
 
-    def __hash__(self):
-        return hash(self.value)
+class PaymentMethod(Enum):
+    CREDIT_CARD = 'CREDIT_CARD'
+    DEBIT_CARD = 'DEBIT_CARD'
+    PAYPAL = 'PAYPAL'
+    BANK_TRANSFER = 'BANK_TRANSFER'
+    CRYPTO = 'CRYPTO'
+    MOBILE_PAYMENT = 'MOBILE_PAYMENT'
+    WALLET = 'WALLET'
+
+    @classmethod
+    def from_string(cls, value):
+        return cls._from_str(value, default=cls.CREDIT_CARD)
+
+
+class PaymentProvider(Enum):
+    STRIPE = 'STRIPE'
+    PAYPAL = 'PAYPAL'
+    SQUARE = 'SQUARE'
+    RAZORPAY = 'RAZORPAY'
+    FLUTTERWAVE = 'FLUTTERWAVE'
+
+    @classmethod
+    def from_string(cls, value):
+        return cls._from_str(value, default=cls.STRIPE)

@@ -1,0 +1,30 @@
+<!-- app/templates/email/donation_refund.html -->
+{% extends "email/base.html" %}
+
+{% block title %}Donation Refunded{% endblock %}
+
+{% block header %}Donation Refund Processed{% endblock %}
+
+{% block content %}
+<p>Dear {{ donor_name }},</p>
+
+<div style="background-color: #f8fafc; border-radius: 8px; padding: 20px; margin: 25px 0;">
+    <p style="margin: 0; font-size: 14px;">
+        <strong>Refund Details:</strong><br>
+        Amount: ${{ amount }}<br>
+        Donation ID: {{ donation_id }}
+    </p>
+</div>
+
+<p>Your donation has been successfully refunded. The refund amount will be credited back to your original payment method within 5-10 business days, depending on your bank's processing time.</p>
+
+<p style="color: #4b5563;">If you don't see the refund in your account after 10 business days, please:</p>
+<ol style="color: #4b5563; margin: 20px 0; padding-left: 20px;">
+    <li>Check with your bank</li>
+    <li>Contact our support team with your donation ID</li>
+</ol>
+
+<p style="margin-top: 25px; font-size: 14px; color: #718096;">
+    Thank you for your understanding. We hope you'll consider supporting other projects in the future.
+</p>
+{% endblock %}

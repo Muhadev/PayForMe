@@ -176,48 +176,93 @@ class RewardService:
             return {'error': str(e), 'status_code': 500}
 
     def claim_reward(self, project_id, reward_id, user_id):
+        """
+        Claim a reward for a user
+        
+        Args:
+            project_id: ID of the project
+            reward_id: ID of the reward
+            user_id: ID of the user claiming the reward
+            
+        Returns:
+            Dictionary containing claimed reward data or error message
+        """
         try:
-            with db.session.begin():
-                reward = db.session.execute(
-                    select(Reward)
-                    .where(and_(Reward.project_id == project_id, Reward.id == reward_id))
-                    .with_for_update()
-                ).scalar_one()
+            # First check if the reward and user exist
+            reward = Reward.query.filter_by(
+                project_id=project_id, 
+                id=reward_id
+            ).with_for_update().first()
+            
+            if not reward:
+                return ServiceResponse(
+                    error='Reward not found',
+                    status_code=404
+                ).data
 
-                if not reward:
-                    return ServiceResponse(error='Reward not found', status_code=404)
+            user = User.query.get(user_id)
+            if not user:
+                return {
+                    'error': 'User not found',
+                    'status_code': 404
+                }
 
-                user = User.query.get(user_id)
-                if not user:
-                    return {'error': 'User not found', 'status_code': 404}
+            # Check if the reward is still available
+            if (reward.quantity_available is not None and 
+                reward.quantity_claimed >= reward.quantity_available):
+                return ServiceResponse(
+                    error='Reward is no longer available',
+                    status_code=400
+                ).data
 
-                if reward.quantity_available is not None and reward.quantity_claimed >= reward.quantity_available:
-                    return ServiceResponse(
-                        error='Reward is no longer available',
-                        status_code=400
-                    )
-
-                reward.quantity_claimed += 1
-                user.claimed_rewards.append(reward)
+            # Increment claimed quantity and associate with user
+            reward.quantity_claimed += 1
+            user.claimed_rewards.append(reward)
+            
+            try:
                 db.session.commit()
+            except SQLAlchemyError as e:
+                db.session.rollback()
+                logger.error(f"Failed to commit claim reward transaction: {str(e)}")
+                return {
+                    'error': 'Failed to claim reward',
+                    'status_code': 500
+                }
 
-                # Send email notifications
+            # After successful commit, send email notification
+            try:
                 project = Project.query.get(project_id)
                 reward_email_service.notify_reward_claimed(user, project, reward)
+            except Exception as e:
+                logger.error(f"Failed to send reward claim notification: {str(e)}")
+                # Don't return error here as the claim was successful
 
-                schema = RewardSchema()
-                return schema.dump(reward)
+            schema = RewardSchema()
+            return schema.dump(reward)
 
         except SQLAlchemyError as e:
             db.session.rollback()
             logger.error(f"Database error in claim_reward: {str(e)}")
-            return {'error': 'An unexpected error occurred', 'status_code': 500}
+            return {
+                'error': 'An unexpected error occurred',
+                'status_code': 500
+            }
+        except Exception as e:
+            logger.error(f"Unexpected error in claim_reward: {str(e)}")
+            return {
+                'error': 'An unexpected error occurred',
+                'status_code': 500
+            }
 
     def get_project_rewards(self, project_id, page, per_page):
-        rewards = Reward.query.filter_by(project_id=project_id).paginate(page, per_page, error_out=False)
+        """Get paginated rewards for a project"""
+        pagination = Reward.query.filter_by(project_id=project_id).paginate(
+            page=page,
+            per_page=per_page,
+            error_out=False
+        )
         schema = RewardSchema(many=True)
-        return schema.dump(rewards.items)  # Paginated result
-
+        return schema.dump(pagination.items)
 
     def get_reward(self, project_id, reward_id):
         reward = Reward.query.filter_by(project_id=project_id, id=reward_id).first()

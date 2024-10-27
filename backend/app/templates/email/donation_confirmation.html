@@ -1,0 +1,31 @@
+<!-- app/templates/email/donation_confirmation.html -->
+{% extends "email/base.html" %}
+
+{% block title %}Donation Confirmation{% endblock %}
+
+{% block header %}Thank You for Your Donation!{% endblock %}
+
+{% block content %}
+<div style="text-align: center; margin-bottom: 30px;">
+    <span style="font-size: 36px; font-weight: bold; color: #28a745;">${{ amount }}</span>
+</div>
+
+<p>Dear {{ donor_name }},</p>
+
+<p>Thank you for your generous donation to <strong>{{ project_title }}</strong>. Your support means a lot to us!</p>
+
+<div style="background-color: #f8fafc; border-radius: 8px; padding: 20px; margin: 25px 0;">
+    <p style="margin: 0; font-size: 14px;">
+        <strong>Donation Details:</strong><br>
+        Donation ID: {{ donation_id }}<br>
+        Amount: ${{ amount }}<br>
+        Project: {{ project_title }}
+    </p>
+</div>
+
+<p>We'll process your payment and send you a confirmation email shortly.</p>
+
+<p style="color: #718096; font-size: 14px;">
+    If you have any questions about your donation, please contact our support team.
+</p>
+{% endblock %}

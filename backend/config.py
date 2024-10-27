@@ -44,6 +44,11 @@ class Config:
     UPLOADED_PHOTOS_DEST = os.path.join(UPLOAD_FOLDER, 'photos')
     UPLOADED_VIDEOS_DEST = os.path.join(UPLOAD_FOLDER, 'videos')
 
+class StripeConfig:
+    SECRET_KEY = 'your_stripe_secret_key'
+    WEBHOOK_SECRET = 'your_webhook_secret'
+    PAYMENT_RETURN_URL = 'https://your-domain.com/payment/return'
+    WEBHOOK_TOLERANCE = 300  # 5 minutes
 class DevelopmentConfig(Config):
     DEBUG = True
 
