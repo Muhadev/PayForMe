@@ -20,6 +20,10 @@ class StripeConfig:
         'AUD': 0.50
     }
 
+    # Rate limit settings
+    RATE_LIMIT_ATTEMPTS: int = int(os.getenv('RATE_LIMIT_ATTEMPTS', 10))  # Default to 10 attempts
+    RATE_LIMIT_WINDOW: int = int(os.getenv('RATE_LIMIT_WINDOW', 3600))    # Default to 1 hour in seconds
+    
     # Check required configurations
     @classmethod
     def validate_config(cls):

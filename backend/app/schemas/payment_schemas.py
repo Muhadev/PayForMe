@@ -22,6 +22,13 @@ class PaymentSchema(Schema):
     user_agent = fields.String(required=False)
     status = fields.String(dump_only=True, default=PaymentStatus.PENDING.value)
 
+     # New fields for fee, net amount, and refund details
+    fee_amount = fields.Float(dump_only=True)
+    net_amount = fields.Float(dump_only=True)
+    ip_address = fields.String(dump_only=True)
+    billing_address = fields.Dict(dump_only=True)
+    refund_reason = fields.String(dump_only=True)
+
     @validates('billing_details')
     def validate_billing_details(self, value):
         required_fields = ['name', 'email', 'address_line1', 'city', 'country', 'postal_code']

@@ -1,6 +1,6 @@
 from flask import Blueprint, request
 from app.services.donation_service import DonationService
-from app.utils.auth import login_required
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.utils.response import success_response, error_response
 from app.schemas.donation_schemas import DonationSchema  # Import your schema
 import logging
@@ -10,7 +10,7 @@ donation_service = DonationService()
 logger = logging.getLogger(__name__)
 
 @donation_bp.route('/create', methods=['POST'])
-@login_required
+@jwt_required()
 async def create_donation():
     """Create a new donation."""
     try:

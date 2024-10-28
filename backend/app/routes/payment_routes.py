@@ -11,6 +11,7 @@ donation_service = DonationService()
 logger = logging.getLogger(__name__)
 
 @payment_bp.route('/<int:donation_id>/process', methods=['POST'])
+@jwt_required()
 async def process_donation_payment(donation_id):
     try:
         data = request.get_json()
@@ -30,7 +31,7 @@ async def process_donation_payment(donation_id):
         logger.error(f"Error processing donation payment: {str(e)}")
         return error_response(str(e))
 
-@payment_bp.route('/donations/<int:donation_id>/refund', methods=['POST'])
+@payment_bp.route('/<int:donation_id>/refund', methods=['POST'])
 async def refund_donation(donation_id):
     """Refund a donation."""
     try:

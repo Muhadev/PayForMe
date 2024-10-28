@@ -11,6 +11,7 @@ from decimal import Decimal
 from sqlalchemy.orm import Session
 from app.services.email_service import send_templated_email
 from app.models.enums import DonationStatus, ProjectStatus
+from app.services.donation_service import DonationService
 from app.schemas.backer_schemas import BackProjectSchema, ProjectUpdateSchema, ProjectMilestoneSchema
 from marshmallow import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
@@ -21,6 +22,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 class BackerService:
+    def __init__(self):
+        self.donation_service = DonationService()
     def _validate_reward(self, project, amount, reward_id, session):
         """
         Validate reward selection for a project backing.
@@ -102,24 +105,35 @@ class BackerService:
                                     return {'error': 'This reward is no longer available', 'status_code': 400}
                                 reward.quantity_claimed += 1
 
-                        # 4. Create donation and update project
-                        donation = self._create_donation(user, project, validated_data, session)
-                        self._update_project_status(project, validated_data['amount'])
+                            # Use DonationService to create the donation
+                            donation = self.donation_service.create_donation(
+                                user_id=user_id,
+                                project_id=project_id,
+                                amount=validated_data['amount'],
+                                reward_id=reward_id,
+                                payment_method=validated_data.get('payment_method'),
+                                currency=validated_data.get('currency', 'USD')
+                            )
+                            
+                            if donation is None:
+                                return {'error': 'Failed to process donation', 'status_code': 500}
                         
-                        # 5. Add user to project backers if not already there
-                        if user not in project.backers:
-                            project.backers.append(user)
-                        
-                        # Prepare the result before committing
-                        result = self._prepare_backing_result(user, project, donation)
-                        
-                        # The session.commit() is automatically called at the end of the 'with' block
+                            # Update project status if necessary
+                            self._update_project_status(project, validated_data['amount'])
+                            # 5. Add user to project backers if not already there
+                            if user not in project.backers:
+                                project.backers.append(user)
+                            
+                            # Prepare the result before committing
+                            result = self._prepare_backing_result(user, project, donation)
+                            
+                            # The session.commit() is automatically called at the end of the 'with' block
 
-                    # Perform operations that don't require an active transaction
-                    self._send_confirmation_email(user, project, donation)
-                    self.invalidate_backer_stats_cache(project_id)
+                            # Perform operations that don't require an active transaction
+                            self._send_confirmation_email(user, project, donation)
+                            self.invalidate_backer_stats_cache(project_id)
 
-                    return result
+                            return result
 
                 except SQLAlchemyError as e:
                     logger.error(f"Database error while creating donation: {str(e)}")
@@ -142,18 +156,6 @@ class BackerService:
             amount=donation.amount,
             reward_title=donation.reward.title if donation.reward else None
         )
-
-    def _create_donation(self, user, project, validated_data, session):
-        donation = Donation(
-            amount=validated_data['amount'],
-            created_at=datetime.utcnow(),
-            user_id=user.id,
-            project_id=project.id,
-            status=DonationStatus.PENDING,
-            reward_id=validated_data.get('reward_id', None)
-        )
-        session.add(donation)
-        return donation
 
     def get_project_backers(self, project_id, page, per_page):
         """

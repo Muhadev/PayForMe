@@ -8,6 +8,7 @@ from app.config import StripeConfig
 from app.utils.redis_client import get_redis_client
 import logging
 from marshmallow import ValidationError
+from typing import Optional, Union
 
 logger = logging.getLogger(__name__)
 
@@ -20,31 +21,48 @@ class PaymentService:
         self.redis_client = get_redis_client()
 
     async def validate_payment_request(self, amount: float, currency: str) -> None:
-        """Validate payment amount and currency"""
-        if currency not in StripeConfig.SUPPORTED_CURRENCIES:
-            raise ValueError(f"Unsupported currency: {currency}")
-        
-        min_amount = StripeConfig.MINIMUM_AMOUNT.get(currency, 0.5)
-        if amount < min_amount:
-            raise ValueError(f"Amount below minimum for {currency}: {min_amount}")
+        """Validate payment amount and currency, with detailed logging."""
+        try:
+            if currency not in StripeConfig.SUPPORTED_CURRENCIES:
+                logger.error(f"Unsupported currency: {currency}")
+                raise ValueError(f"Unsupported currency: {currency}")
+            
+            min_amount = StripeConfig.MINIMUM_AMOUNT.get(currency, 0.5)
+            if amount < min_amount:
+                logger.error(f"Amount {amount} is below minimum for {currency}: {min_amount}")
+                raise ValueError(f"Amount below minimum for {currency}: {min_amount}")
 
-    async def create_payment(self, user_id, donation_id, amount, currency, payment_method, ip_address=None):
+            if not isinstance(amount, (float, int)) or amount <= 0:
+                logger.error("Invalid amount format")
+                raise ValueError("Invalid amount format")
+
+        except ValueError as e:
+            logger.error(f"Validation failed: {str(e)}")
+            raise
+
+    async def create_payment(self, user_id: int, donation_id: int, amount: float, currency: str, payment_method: str, ip_address: Optional[str] = None) -> Payment:
         """Create a new payment with validation and rate limiting."""
         try:
+            # Validate donation data
             validated_data = self.donation_schema.load({
-                "user_id": user_id, "donation_id": donation_id, "amount": amount, "currency": currency, "payment_method": payment_method
+                "user_id": user_id, 
+                "donation_id": donation_id, 
+                "amount": amount, 
+                "currency": currency, 
+                "payment_method": payment_method
             })
 
             await self.validate_payment_request(validated_data['amount'], validated_data['currency'])
             
-            # Rate limiting
-            key = f"payment_attempts:{user_id}"
-            attempts = await self.redis_client.incr(key)
-            if attempts == 1:
-                await self.redis_client.expire(key, 3600)  # 1-hour window
-            if attempts > 10:
+            # Rate limiting logic
+            key = f"rate_limit:payment_attempts:{user_id}"
+            attempts = await self.redis_client.get(key)
+            if attempts and int(attempts) >= StripeConfig.RATE_LIMIT_ATTEMPTS:
                 raise ValueError("Too many payment attempts. Please try again later.")
+            await self.redis_client.incr(key)
+            await self.redis_client.expire(key, StripeConfig.RATE_LIMIT_WINDOW)  # Expiration set in config
 
+            # Payment model creation
             payment = Payment(
                 user_id=user_id,
                 donation_id=donation_id,
@@ -58,9 +76,9 @@ class PaymentService:
             )
             
             payment.calculate_fees()
-            db.session.add(payment)
-            db.session.commit()
-            logger.info(f"Payment created: {payment.id} for user {user_id}")
+            with db.session.begin():
+                db.session.add(payment)
+                logger.info(f"Payment created: {payment.id} for user {user_id}")
             
             return payment
 
@@ -68,11 +86,10 @@ class PaymentService:
             logger.error(f"Validation failed: {ve.messages}")
             raise ValueError(f"Validation failed: {ve.messages}")
         except Exception as e:
-            db.session.rollback()
             logger.error(f"Payment creation failed: {str(e)}", exc_info=True)
             raise
 
-    async def process_payment(self, payment_id, payment_details):
+    async def process_payment(self, payment_id: int, payment_details: dict) -> Payment:
         """Process payment through Stripe"""
         try:
             validated_data = self.payment_details_schema.load(payment_details)
@@ -88,28 +105,23 @@ class PaymentService:
                     'user_id': payment.user_id
                 }
             )
-
-            payment.status = self.stripe_service.map_stripe_status(intent.status)
-            payment.transaction_id = intent.id
-            payment.payment_metadata = {
-                'stripe_intent_id': intent.id,
-                'stripe_client_secret': intent.client_secret,
-                'last_payment_error': intent.last_payment_error
-            }
-            payment.updated_at = datetime.utcnow()
             
-            db.session.commit()
-            logger.info(f"Payment processed successfully for Payment ID {payment_id}")
+            # Use consistent status update logic for each status change
+            new_status = self.stripe_service._map_stripe_status(intent.status)
+            if payment.status != new_status:
+                with db.session.begin():
+                    payment.status = new_status
+                    payment.transaction_id = intent.id
+                    payment.updated_at = datetime.utcnow()
+                    logger.info(f"Payment status updated to {new_status} for Payment ID {payment_id}")
             return payment
 
         except Exception as e:
-            db.session.rollback()
-            payment.update_status(PaymentStatus.FAILED, str(e))
-            db.session.commit()
+            db.session.rollback()  # Single rollback within the error handling block
             logger.error(f"Payment processing failed for Payment ID {payment_id}: {str(e)}", exc_info=True)
             raise e
 
-    async def process_refund(self, payment_id, refund_data=None):
+    async def process_refund(self, payment_id: int, refund_data: Optional[dict] = None) -> bool:
         """Process refund through Stripe"""
         try:
             validated_data = self.refund_schema.load(refund_data) if refund_data else {}
@@ -124,16 +136,15 @@ class PaymentService:
                 reason=validated_data.get('reason')
             )
 
-            payment.status = PaymentStatus.REFUNDED
-            payment.updated_at = datetime.utcnow()
-            payment.payment_metadata = {
-                **payment.payment_metadata,
-                'refund_id': refund.id,
-                'refund_status': refund.status
-            }
+            with db.session.begin():
+                payment.status = PaymentStatus.REFUNDED
+                payment.updated_at = datetime.utcnow()
+                payment.payment_metadata.update({
+                    'refund_id': refund.id,
+                    'refund_status': refund.status
+                })
+                logger.info(f"Refund successful for Payment ID {payment_id} - Refund ID: {refund.id}")
             
-            db.session.commit()
-            logger.info(f"Refund successful for Payment ID {payment_id} - Refund ID: {refund.id}")
             return True
 
         except Exception as e:
@@ -141,7 +152,7 @@ class PaymentService:
             logger.error(f"Refund failed for Payment ID {payment_id}: {str(e)}", exc_info=True)
             raise e
 
-    def _get_payment_or_raise(self, payment_id):
+    def _get_payment_or_raise(self, payment_id: int) -> Payment:
         """Helper to retrieve a payment or raise an error if not found"""
         payment = Payment.query.get(payment_id)
         if not payment:

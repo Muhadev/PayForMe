@@ -6,12 +6,13 @@ from app.utils.redis_client import get_redis_client
 import logging
 from functools import wraps
 from redis.exceptions import RedisError
+from typing import Callable
 
 logger = logging.getLogger(__name__)
 
-def rate_limit(limit, per):
+def rate_limit(limit: int, per: int) -> Callable:
     """Rate limit decorator to control request frequency."""
-    def decorator(f):
+    def decorator(f: Callable) -> Callable:
         @wraps(f)
         def decorated_function(*args, **kwargs):
             with current_app.app_context():
@@ -42,11 +43,11 @@ def rate_limit(limit, per):
                         redis_client.set(count_key, count, ex=per)
 
                     if count > limit:
-                        time_to_reset = per - (now - float(last_reset))
+                        retry_after = round(per - (now - float(last_reset)), 2)
                         return error_response(
                             message="Rate limit exceeded. Please try again later.",
                             status_code=429,
-                            meta={"retry_after": round(time_to_reset, 2)}
+                            meta={"retry_after": retry_after}
                         )
                 except RedisError as e:
                     logger.error(f"Redis error in rate limiting: {str(e)}")
