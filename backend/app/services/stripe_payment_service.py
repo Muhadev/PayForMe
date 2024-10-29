@@ -2,7 +2,7 @@ import stripe
 from datetime import datetime
 from app import db
 from app.models import Payment, PaymentStatus
-from app.config import StripeConfig
+from app.config.stripe_config import StripeConfig
 from app.utils.some_module import ConfigurationError, PaymentError  # Updated to import both errors
 import logging
 import asyncio
@@ -248,7 +248,7 @@ class StripePaymentService:
             logger.error(f"Refund failed for payment {payment_intent_id}: {str(e)}")
             raise self._handle_stripe_error(e, payment_intent_id)
 
-    def verify_webhook(self, payload: str, sig_header: str) -> Dict:
+    async def verify_webhook(self, payload: str, sig_header: str) -> Dict:
         """
         Verify and process Stripe webhooks with additional security checks.
         """
@@ -458,6 +458,6 @@ class StripePaymentService:
                 message="Failed to update payment status",
                 code="update_failed"
             )
-     def _map_stripe_status(self, stripe_status: str) -> PaymentStatus:
+    def _map_stripe_status(self, stripe_status: str) -> PaymentStatus:
         """Map Stripe payment status to internal payment status"""
         return self.STATUS_MAPPING.get(stripe_status, PaymentStatus.FAILED)

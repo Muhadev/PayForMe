@@ -1,7 +1,7 @@
 from datetime import datetime
 from app import db
 from app.models import Donation, Payment, User, Project
-from app.utils.email_service import send_templated_email
+from app.services.email_service import send_templated_email
 from app.services.payment_service import PaymentService
 from app.utils.redis_client import RedisClient
 from typing import Optional, Dict

@@ -4,7 +4,7 @@ from app.models import Payment, PaymentStatus, PaymentMethod
 from app.services.stripe_payment_service import StripePaymentService
 from app.schemas.donation_schemas import DonationSchema
 from app.schemas.payment_schemas import PaymentDetailsSchema, RefundSchema
-from app.config import StripeConfig
+from app.config.stripe_config import StripeConfig
 from app.utils.redis_client import get_redis_client
 import logging
 from marshmallow import ValidationError

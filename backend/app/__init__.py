@@ -10,6 +10,7 @@ from flask_cors import CORS
 from flask_uploads import configure_uploads, IMAGES, UploadSet
 from config import Config
 from flask_caching import Cache
+from .tasks import make_celery
 import os
 
 db = SQLAlchemy()

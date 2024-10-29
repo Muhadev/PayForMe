@@ -5,7 +5,7 @@ from sqlalchemy.orm import relationship
 from app import db
 from sqlalchemy.sql import func
 from .enums import PaymentStatus, PaymentMethod, PaymentProvider
-from app.config import StripeConfig
+from app.config.stripe_config import StripeConfig
 from datetime import datetime
 
 class Payment(db.Model):
