@@ -54,13 +54,7 @@ class PaymentService:
 
             await self.validate_payment_request(validated_data['amount'], validated_data['currency'])
             
-            # Rate limiting logic
-            key = f"rate_limit:payment_attempts:{user_id}"
-            attempts = await self.redis_client.get(key)
-            if attempts and int(attempts) >= StripeConfig.RATE_LIMIT_ATTEMPTS:
-                raise ValueError("Too many payment attempts. Please try again later.")
-            await self.redis_client.incr(key)
-            await self.redis_client.expire(key, StripeConfig.RATE_LIMIT_WINDOW)  # Expiration set in config
+            await self._apply_rate_limit(user_id)  # New helper for rate-limiting
 
             # Payment model creation
             payment = Payment(
@@ -88,6 +82,15 @@ class PaymentService:
         except Exception as e:
             logger.error(f"Payment creation failed: {str(e)}", exc_info=True)
             raise
+
+    async def _apply_rate_limit(self, user_id: int):
+        """Helper function for rate-limiting payment attempts."""
+        key = f"rate_limit:payment_attempts:{user_id}"
+        attempts = await self.redis_client.get(key)
+        if attempts and int(attempts) >= StripeConfig.RATE_LIMIT_ATTEMPTS:
+            raise ValueError("Too many payment attempts. Please try again later.")
+        await self.redis_client.incr(key)
+        await self.redis_client.expire(key, StripeConfig.RATE_LIMIT_WINDOW)
 
     async def process_payment(self, payment_id: int, payment_details: dict) -> Payment:
         """Process payment through Stripe"""
@@ -136,7 +139,7 @@ class PaymentService:
                 reason=validated_data.get('reason')
             )
 
-            with db.session.begin():
+            async with db.session.begin():
                 payment.status = PaymentStatus.REFUNDED
                 payment.updated_at = datetime.utcnow()
                 payment.payment_metadata.update({
@@ -148,13 +151,12 @@ class PaymentService:
             return True
 
         except Exception as e:
-            db.session.rollback()
-            logger.error(f"Refund failed for Payment ID {payment_id}: {str(e)}", exc_info=True)
+            await db.session.rollback()
+            logger.error(f"Payment processing failed for Payment ID {payment_id}: {str(e)}", exc_info=True)
             raise e
 
-    def _get_payment_or_raise(self, payment_id: int) -> Payment:
-        """Helper to retrieve a payment or raise an error if not found"""
-        payment = Payment.query.get(payment_id)
+    async def _get_payment_or_raise(self, payment_id: int) -> Payment:
+        payment = await Payment.query.get(payment_id)
         if not payment:
             raise ValueError(f"Payment with ID {payment_id} not found.")
         return payment

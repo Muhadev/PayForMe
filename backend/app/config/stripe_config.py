@@ -23,7 +23,10 @@ class StripeConfig:
     # Rate limit settings
     RATE_LIMIT_ATTEMPTS: int = int(os.getenv('RATE_LIMIT_ATTEMPTS', 10))  # Default to 10 attempts
     RATE_LIMIT_WINDOW: int = int(os.getenv('RATE_LIMIT_WINDOW', 3600))    # Default to 1 hour in seconds
-    
+    MAX_METADATA_LENGTH = 500  # Stripe's limit per metadata field
+    MAX_RETRIES = 3
+    RATE_LIMIT_PERIOD = 10  # seconds
+    RATE_LIMIT_COUNT = 5
     # Check required configurations
     @classmethod
     def validate_config(cls):

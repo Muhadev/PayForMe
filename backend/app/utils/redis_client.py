@@ -1,6 +1,6 @@
 from redis import Redis
 from flask import current_app
-from some_module import ConfigurationError
+from app.utils.some_module import ConfigurationError
 
 # Recommended
 def get_redis_client():
