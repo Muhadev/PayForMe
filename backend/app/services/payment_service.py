@@ -3,12 +3,13 @@ from app import db
 from app.models import Payment, PaymentStatus, PaymentMethod
 from app.services.stripe_payment_service import StripePaymentService
 from app.schemas.donation_schemas import DonationSchema
-from app.schemas.payment_schemas import PaymentDetailsSchema, RefundSchema
+from app.schemas.payment_schemas import PaymentSchema, RefundSchema
 from app.config.stripe_config import StripeConfig
 from app.utils.redis_client import get_redis_client
 import logging
 from marshmallow import ValidationError
 from typing import Optional, Union
+from app.utils.rate_limit import rate_limit
 
 logger = logging.getLogger(__name__)
 
@@ -16,9 +17,16 @@ class PaymentService:
     def __init__(self):
         self.stripe_service = StripePaymentService()
         self.donation_schema = DonationSchema()
-        self.payment_details_schema = PaymentDetailsSchema()
+        self.payment_details_schema = PaymentSchema()
         self.refund_schema = RefundSchema()
-        self.redis_client = get_redis_client()
+        self._redis_client = None  # Lazy-initialize later
+
+    @property
+    def redis_client(self):
+        if self._redis_client is None:
+            # Only initialize redis client here, ensuring app context is available
+            self._redis_client = get_redis_client()
+        return self._redis_client
 
     async def validate_payment_request(self, amount: float, currency: str) -> None:
         """Validate payment amount and currency, with detailed logging."""
@@ -40,6 +48,7 @@ class PaymentService:
             logger.error(f"Validation failed: {str(e)}")
             raise
 
+    @rate_limit(limit=3, per=300)
     async def create_payment(self, user_id: int, donation_id: int, amount: float, currency: str, payment_method: str, ip_address: Optional[str] = None) -> Payment:
         """Create a new payment with validation and rate limiting."""
         try:
@@ -70,10 +79,9 @@ class PaymentService:
             )
             
             payment.calculate_fees()
-            with db.session.begin():
-                db.session.add(payment)
-                logger.info(f"Payment created: {payment.id} for user {user_id}")
-            
+            db.session.add(payment)
+            db.session.commit()
+            logger.info(f"Payment created: {payment.id} for user {user_id}")
             return payment
 
         except ValidationError as ve:

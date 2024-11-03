@@ -3,17 +3,25 @@ from app import db
 from app.models import Donation, Payment, User, Project
 from app.services.email_service import send_templated_email
 from app.services.payment_service import PaymentService
-from app.utils.redis_client import RedisClient
+from app.utils.redis_client import get_redis_client
 from typing import Optional, Dict
 import logging
+from app.utils.rate_limit import rate_limit
 
 logger = logging.getLogger(__name__)
 
 class DonationService:
     def __init__(self):
         self.payment_service = PaymentService()
-        self.cache = RedisClient()
+        self._redis_client = None  # Lazy initialization
 
+    @property
+    def redis_client(self):
+        if self._redis_client is None:
+            self._redis_client = get_redis_client()
+        return self._redis_client
+
+    @rate_limit(limit=5, per=60)
     async def create_donation(self, user_id: int, project_id: int, amount: float, 
                               reward_id: Optional[int] = None, payment_method: Optional[str] = None,
                               currency: str = 'USD') -> Optional[Donation]:

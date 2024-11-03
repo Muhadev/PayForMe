@@ -2,10 +2,10 @@
 
 from marshmallow import Schema, fields, validates, ValidationError, validates_schema, EXCLUDE
 from datetime import datetime
-from .enums import PaymentMethod, DonationStatus
-from app.config import StripeConfig
+from app.models.enums import PaymentMethod, DonationStatus
+from app.config.stripe_config import StripeConfig
 from app.models import Project, Reward
-from .enums import ProjectStatus
+from app.models.enums import ProjectStatus
 
 class DonationSchema(Schema):
     """Schema for validating donation requests"""
@@ -41,15 +41,15 @@ class DonationSchema(Schema):
         if value not in StripeConfig.SUPPORTED_CURRENCIES:
             raise ValidationError(f"Currency must be one of: {', '.join(StripeConfig.SUPPORTED_CURRENCIES)}")
 
-     @validates("amount")
-        def validate_amount(self, value):
-            if value <= 0:
-                raise ValidationError("Donation amount must be greater than zero.")
-            
-            currency = self.context.get("currency", "USD")
-            min_amount = StripeConfig.MINIMUM_AMOUNT.get(currency, 1.00)
-            if value < min_amount:
-                raise ValidationError(f"Minimum donation amount for {currency} is {min_amount}.")
+    @validates("amount")
+    def validate_amount(self, value):
+        if value <= 0:
+            raise ValidationError("Donation amount must be greater than zero.")
+        
+        currency = self.context.get("currency", "USD")
+        min_amount = StripeConfig.MINIMUM_AMOUNT.get(currency, 1.00)
+        if value < min_amount:
+            raise ValidationError(f"Minimum donation amount for {currency} is {min_amount}.")
 
     @validates_schema
     def validate_donation(self, data, **kwargs):

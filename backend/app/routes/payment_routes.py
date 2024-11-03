@@ -2,7 +2,8 @@
 from flask import Blueprint, request
 from app.services.donation_service import DonationService
 from app.utils.response import success_response, error_response
-from app.config import StripeConfig
+from app.config.stripe_config import StripeConfig
+from flask_jwt_extended import jwt_required, get_jwt_identity
 import stripe
 import logging
 

@@ -9,12 +9,19 @@ import asyncio
 import time
 from typing import Optional, Dict, Union
 from concurrent.futures import ThreadPoolExecutor
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from app.utils.rate_limit import rate_limit
 from app.utils.redis_client import get_redis_client
+from decimal import Decimal
 # Import the payment handlers
 from app.utils.payment_handlers import (
     handle_payment_succeeded,
     handle_payment_failed,
+    handle_payment_processing,
+    handle_payment_canceled,
+    handle_charge_succeeded,
+    handle_charge_failed,
     handle_refund_processed,
     handle_dispute_created
 )
@@ -86,6 +93,7 @@ class StripePaymentService:
             )
         self.executor = ThreadPoolExecutor(max_workers=5)
         stripe.api_key = StripeConfig.SECRET_KEY
+        self.webhook_secret = StripeConfig.WEBHOOK_SECRET
 
     def _validate_metadata(self, metadata: Optional[Dict]) -> Dict:
         """
@@ -125,12 +133,12 @@ class StripePaymentService:
         amount: Decimal,
         currency: str,
         payment_method_id: str,
-        metadata: Optional[Dict] = None,
+        metadata: Optional[Dict[str, str]] = None,
         capture_method: str = 'automatic',  # Added for crowdfunding flexibility
         statement_descriptor: Optional[str] = None,
         setup_future_usage: Optional[str] = 'off_session',
         idempotency_key: Optional[str] = None
-    ) -> Dict:
+    ) -> PaymentIntentResponse:
         """
         Create a Stripe PaymentIntent with crowdfunding-specific configurations.
         
@@ -218,7 +226,7 @@ class StripePaymentService:
         payment_intent_id: str,
         amount: Optional[Decimal] = None,
         reason: str = 'requested_by_customer'
-    ) -> Dict:
+    ) -> PaymentIntentResponse:
         """
         Process a refund with improved validation and error handling.
         """
@@ -261,19 +269,24 @@ class StripePaymentService:
             )
             
             event_handlers = {
-                'payment_intent.succeeded': self.handle_payment_succeeded,
-                'payment_intent.payment_failed': self.handle_payment_failed,
-                'charge.refunded': self.handle_refund_processed,
-                'charge.dispute.created': self.handle_dispute_created
+                'payment_intent.succeeded': handle_payment_succeeded,
+                'payment_intent.payment_failed': handle_payment_failed,
+                'payment_intent.processing': handle_payment_processing,
+                'payment_intent.canceled': handle_payment_canceled,
+                'charge.succeeded': handle_charge_succeeded,
+                'charge.failed': handle_charge_failed,
+                'charge.refunded': handle_refund_processed,
+                'charge.dispute.created': handle_dispute_created
             }
 
-            handler = event_handlers.get(event.type)
+            handler = event_handlers.get(event['type'])
             if handler:
-                await handler(event.data.object)
+                logger.info(f"Processing event type: {event['type']}")
+                await handler(event['data']['object'])
             else:
-                logger.info(f"Unhandled event type: {event.type}")
+                logger.info(f"Unhandled event type: {event['type']}")
 
-            return event
+            return success_response({'status': 'success', 'event_type': event['type']})
 
         except stripe.error.SignatureVerificationError:
             logger.warning("Invalid webhook signature", exc_info=True)
@@ -284,20 +297,21 @@ class StripePaymentService:
 
     async def _create_payment_record(self, payment_intent: Dict) -> None:
         """Create a new payment record in the database."""
-        try:
-            payment = Payment(
-                transaction_id=payment_intent['id'],
-                amount=Decimal(payment_intent['amount']) / 100,
-                currency=payment_intent['currency'],
-                status=self._map_stripe_status(payment_intent['status']),
-                metadata=payment_intent['metadata']
-            )
-            db.session.add(payment)
-            await db.session.commit()
-        except Exception as e:
-            await db.session.rollback()
-            logger.error(f"Failed to create payment record: {str(e)}")
-            raise
+        async with AsyncSession(db.engine) as session:
+            try:
+                payment = Payment(
+                    transaction_id=payment_intent['id'],
+                    amount=Decimal(payment_intent['amount']) / 100,
+                    currency=payment_intent['currency'],
+                    status=self._map_stripe_status(payment_intent['status']),
+                    metadata=payment_intent['metadata']
+                )
+                session.add(payment)
+                await session.commit()
+            except Exception as e:
+                await session.rollback()
+                logger.error(f"Failed to create payment record: {str(e)}")
+                raise
 
     def _handle_stripe_error(self, error: stripe.error.StripeError, payment_intent_id: Optional[str] = None) -> PaymentError:
         """Handle Stripe errors by mapping them to application-specific errors."""
@@ -325,139 +339,53 @@ class StripePaymentService:
             raw_error=error
         )
 
-    async def _update_payment_status(
-        self, 
-        payment_intent_id: str, 
-        new_status: PaymentStatus,
-        max_retries: int = 3,
-        rate_limit_key: str = "payment_status_update"
-    ) -> None:
+    async def _update_payment_status(self, payment_intent_id: str, new_status: PaymentStatus, max_retries: int = 3) -> None:
         """
-        Update payment status with rate limiting and retry mechanism.
-        
+        Update payment status with retry mechanism.
+
         Args:
-            payment_intent_id: Stripe payment intent ID
-            new_status: New payment status to set
-            max_retries: Maximum number of retry attempts
-            rate_limit_key: Key for rate limiting specific operations
+            payment_intent_id: Stripe payment intent ID.
+            new_status: New payment status to set.
+            max_retries: Maximum number of retry attempts.
         """
         retry_count = 0
         redis_client = get_redis_client()
-        
-        while retry_count < max_retries:
-            try:
-                # Apply rate limiting
-                now = time.time()
-                limit_key = f"rate_limit:payment_update:{payment_intent_id}"
-                reset_key = f"rl_reset:{limit_key}"
-                count_key = f"rl_count:{limit_key}"
-                
-                # Rate limit: 5 updates per 10 seconds per payment
-                RATE_LIMIT = 5
-                RATE_PERIOD = 10
-                
+        lock_key = f"payment_lock:{payment_intent_id}"
+
+        async with redis_client.lock(lock_key, timeout=5) as lock:
+            while retry_count < max_retries:
                 try:
-                    last_reset = redis_client.get(reset_key)
-                    count = redis_client.get(count_key)
+                    async with AsyncSession(db.engine) as session:
+                        async with session.begin():
+                            payment = await session.execute(
+                                select(Payment).filter_by(transaction_id=payment_intent_id).with_for_update(skip_locked=True)
+                            ).scalar_one_or_none()
 
-                    if not last_reset or now - float(last_reset) > RATE_PERIOD:
-                        redis_client.set(reset_key, now, ex=RATE_PERIOD)
-                        redis_client.set(count_key, 1, ex=RATE_PERIOD)
-                        count = 1
-                    else:
-                        count = int(count or 0) + 1
-                        if count > RATE_LIMIT:
-                            retry_after = round(RATE_PERIOD - (now - float(last_reset)), 2)
-                            logger.warning(
-                                f"Rate limit exceeded for payment {payment_intent_id}. "
-                                f"Retry after {retry_after}s"
-                            )
-                            await asyncio.sleep(retry_after)
-                            retry_count += 1
-                            continue
-                        redis_client.set(count_key, count, ex=RATE_PERIOD)
+                            if not payment:
+                                logger.error(f"Payment not found for intent {payment_intent_id}")
+                                return
 
-                except RedisError as e:
-                    logger.error(f"Redis error in rate limiting: {str(e)}")
-                    # Continue without rate limiting if Redis is unavailable
-                    pass
-
-                # Acquire a distributed lock for this payment
-                lock_key = f"payment_lock:{payment_intent_id}"
-                lock_acquired = False
-                
-                try:
-                    # Try to acquire a lock with 5-second timeout
-                    lock_acquired = redis_client.set(
-                        lock_key, 
-                        'locked', 
-                        ex=5, 
-                        nx=True
-                    )
-                    
-                    if not lock_acquired:
-                        logger.warning(f"Lock acquisition failed for payment {payment_intent_id}")
-                        await asyncio.sleep(0.5 * (retry_count + 1))
-                        retry_count += 1
-                        continue
-
-                    # Get payment with SELECT FOR UPDATE
-                    async with db.session.begin():
-                        payment = await db.session.execute(
-                            select(Payment)
-                            .filter_by(transaction_id=payment_intent_id)
-                            .with_for_update(skip_locked=True)
-                        ).scalar_one_or_none()
-
-                        if not payment:
-                            logger.error(f"Payment not found for intent {payment_intent_id}")
+                            if payment.status != new_status:
+                                payment.status = new_status
+                                payment.updated_at = datetime.utcnow()
+                                await session.commit()
+                                logger.info(f"Updated payment {payment.id} to status {new_status}")
+                            else:
+                                logger.info(f"Payment {payment.id} already has status {new_status}")
                             return
 
-                        if payment.status != new_status:
-                            payment.status = new_status
-                            payment.updated_at = datetime.utcnow()
-                            await db.session.commit()
-                            logger.info(
-                                f"Updated payment {payment.id} to status {new_status}"
-                            )
-                        else:
-                            logger.info(
-                                f"Payment {payment.id} already has status {new_status}"
-                            )
-                        return  # Success, exit the retry loop
-
                 except SQLAlchemyError as e:
-                    await db.session.rollback()
+                    await session.rollback()
                     logger.error(f"Database error updating payment status: {str(e)}")
-                    retry_count += 1
-                    
                 except Exception as e:
                     logger.error(f"Unexpected error updating payment status: {str(e)}")
-                    retry_count += 1
-
                 finally:
-                    if lock_acquired:
-                        try:
-                            redis_client.delete(lock_key)
-                        except RedisError:
-                            logger.error(f"Failed to release lock for payment {payment_intent_id}")
+                    retry_count += 1
+                    if retry_count >= max_retries:
+                        logger.error(f"Failed to update payment status after {max_retries} attempts")
+                        raise PaymentError(message="Failed to update payment status", code="update_failed")
+                    await asyncio.sleep(0.5 * (2 ** retry_count))  # Exponential backoff
 
-            except Exception as e:
-                logger.error(f"Error in update attempt {retry_count + 1}: {str(e)}")
-                retry_count += 1
-                
-            # Exponential backoff between retries
-            if retry_count < max_retries:
-                await asyncio.sleep(0.5 * (2 ** retry_count))
-        
-        if retry_count >= max_retries:
-            logger.error(
-                f"Failed to update payment status after {max_retries} attempts"
-            )
-            raise PaymentError(
-                message="Failed to update payment status",
-                code="update_failed"
-            )
     def _map_stripe_status(self, stripe_status: str) -> PaymentStatus:
-        """Map Stripe payment status to internal payment status"""
+        """Map Stripe payment status to internal payment status with default fallback."""
         return self.STATUS_MAPPING.get(stripe_status, PaymentStatus.FAILED)

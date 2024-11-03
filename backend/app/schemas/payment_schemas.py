@@ -1,8 +1,8 @@
 # app/schemas/payment_schemas.py
 
 from marshmallow import Schema, fields, validates, ValidationError, validates_schema, EXCLUDE
-from app.config import StripeConfig
-from .enums import PaymentStatus, PaymentMethod
+from app.config.stripe_config import StripeConfig
+from app.models.enums import PaymentStatus, PaymentMethod
 from uuid import UUID
 import re
 
