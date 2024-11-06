@@ -8,8 +8,15 @@ from app.config.stripe_config import StripeConfig
 from app.utils.redis_client import get_redis_client
 import logging
 from marshmallow import ValidationError
-from typing import Optional, Union
+from typing import Optional, Union, Dict, Any
 from app.utils.rate_limit import rate_limit
+from sqlalchemy.exc import SQLAlchemyError
+from app.utils.payment_helpers import (
+    get_payment_metadata,
+    validate_payment_request,
+    apply_rate_limit,
+    check_idempotency
+)
 
 logger = logging.getLogger(__name__)
 
@@ -28,93 +35,85 @@ class PaymentService:
             self._redis_client = get_redis_client()
         return self._redis_client
 
-    async def validate_payment_request(self, amount: float, currency: str) -> None:
-        """Validate payment amount and currency, with detailed logging."""
-        try:
-            if currency not in StripeConfig.SUPPORTED_CURRENCIES:
-                logger.error(f"Unsupported currency: {currency}")
-                raise ValueError(f"Unsupported currency: {currency}")
-            
-            min_amount = StripeConfig.MINIMUM_AMOUNT.get(currency, 0.5)
-            if amount < min_amount:
-                logger.error(f"Amount {amount} is below minimum for {currency}: {min_amount}")
-                raise ValueError(f"Amount below minimum for {currency}: {min_amount}")
-
-            if not isinstance(amount, (float, int)) or amount <= 0:
-                logger.error("Invalid amount format")
-                raise ValueError("Invalid amount format")
-
-        except ValueError as e:
-            logger.error(f"Validation failed: {str(e)}")
-            raise
+    async def get_payment_by_transaction_id(self, transaction_id: str) -> Optional[Payment]:
+        """Retrieve payment by Stripe transaction ID."""
+        return await Payment.query.filter_by(transaction_id=transaction_id).first()
 
     @rate_limit(limit=3, per=300)
-    async def create_payment(self, user_id: int, donation_id: int, amount: float, currency: str, payment_method: str, ip_address: Optional[str] = None) -> Payment:
+    async def create_payment(self, user_id: int, donation_id: int, amount: float,
+                             currency: str, metadata: Optional[Dict[str, str]] = None,
+                             return_url: Optional[str] = None, client_ip: Optional[str] = None,
+                             user_agent: Optional[str] = None) -> Optional[Payment]:
         """Create a new payment with validation and rate limiting."""
-        try:
-            # Validate donation data
-            validated_data = self.donation_schema.load({
-                "user_id": user_id, 
-                "donation_id": donation_id, 
-                "amount": amount, 
-                "currency": currency, 
-                "payment_method": payment_method
-            })
+        async with db.session.begin():
+            try:
+                # Check if payment with the same idempotency_key already exists
+                if idempotency_key := kwargs.get('idempotency_key'):
+                    existing_payment = await check_idempotency(
+                        self.redis_client, idempotency_key, {'user_id': user_id, 'donation_id': donation_id}
+                    )
+                    if existing_payment:
+                        logger.info(f"Payment with idempotency key {idempotency_key} already exists")
+                        return existing_payment
 
-            await self.validate_payment_request(validated_data['amount'], validated_data['currency'])
-            
-            await self._apply_rate_limit(user_id)  # New helper for rate-limiting
+                # Generate metadata if not provided
+                metadata = metadata or get_payment_metadata(idempotency_key=idempotency_key)
 
-            # Payment model creation
-            payment = Payment(
-                user_id=user_id,
-                donation_id=donation_id,
-                amount=amount,
-                currency=currency,
-                status=PaymentStatus.PENDING,
-                method=PaymentMethod[payment_method.upper()],
-                ip_address=ip_address,
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow()
-            )
-            
-            payment.calculate_fees()
-            db.session.add(payment)
-            db.session.commit()
-            logger.info(f"Payment created: {payment.id} for user {user_id}")
-            return payment
+                # Proceed with creating a new payment
+                payment_data = {
+                    'amount': amount,
+                    'currency': currency,
+                    'metadata': metadata
+                }
 
-        except ValidationError as ve:
-            logger.error(f"Validation failed: {ve.messages}")
-            raise ValueError(f"Validation failed: {ve.messages}")
-        except Exception as e:
-            logger.error(f"Payment creation failed: {str(e)}", exc_info=True)
-            raise
+                validated_data = await validate_payment_request(payment_data, self.payment_details_schema)
 
-    async def _apply_rate_limit(self, user_id: int):
-        """Helper function for rate-limiting payment attempts."""
-        key = f"rate_limit:payment_attempts:{user_id}"
-        attempts = await self.redis_client.get(key)
-        if attempts and int(attempts) >= StripeConfig.RATE_LIMIT_ATTEMPTS:
-            raise ValueError("Too many payment attempts. Please try again later.")
-        await self.redis_client.incr(key)
-        await self.redis_client.expire(key, StripeConfig.RATE_LIMIT_WINDOW)
+                # Apply rate limit
+                await apply_rate_limit(self.redis_client, user_id)
+
+                # Create payment
+                payment = Payment(
+                    user_id=user_id,
+                    donation_id=donation_id,
+                    **validated_data,
+                    status=PaymentStatus.PENDING,
+                    metadata=metadata or {},
+                    created_at=datetime.utcnow(),
+                    updated_at=datetime.utcnow()
+                )
+                
+                payment.calculate_fees()
+                db.session.add(payment)
+                db.session.commit()
+                logger.info(f"Payment created: {payment.id} for user {user_id} with project_id {project_id}")
+                return payment
+
+            except ValidationError as ve:
+                logger.error(f"Validation failed: {ve.messages}")
+                raise ValueError(f"Validation failed: {ve.messages}")
+            except Exception as e:
+                logger.error(f"Payment creation failed: {str(e)}", exc_info=True)
+                raise
 
     async def process_payment(self, payment_id: int, payment_details: dict) -> Payment:
         """Process payment through Stripe"""
         try:
-            validated_data = self.payment_details_schema.load(payment_details)
+            validated_data = await validate_payment_request(payment_details, self.payment_details_schema)
             payment = self._get_payment_or_raise(payment_id)
 
+            # Generate payment metadata
+            metadata = await get_payment_metadata(
+                billing_details=validated_data.get("billing_details"),
+                payment_method=validated_data["payment_method"],
+                idempotency_key=validated_data.get("idempotency_key")
+            )
+
+            # Create the payment intent asynchronously with metadata
             intent = await self.stripe_service.create_payment_intent(
                 amount=payment.amount,
                 currency=payment.currency,
                 payment_method_id=validated_data['payment_method_id'],
-                metadata={
-                    'payment_id': payment_id,
-                    'donation_id': payment.donation_id,
-                    'user_id': payment.user_id
-                }
+                metadata=metadata
             )
             
             # Use consistent status update logic for each status change
@@ -126,6 +125,11 @@ class PaymentService:
                     payment.updated_at = datetime.utcnow()
                     logger.info(f"Payment status updated to {new_status} for Payment ID {payment_id}")
             return payment
+
+        except SQLAlchemyError as db_error:
+            db.session.rollback()
+            logger.error(f"Database error during payment processing for Payment ID {payment_id}: {str(db_error)}")
+            raise db_error
 
         except Exception as e:
             db.session.rollback()  # Single rollback within the error handling block

@@ -44,8 +44,8 @@ class User(db.Model):
     last_login = db.Column(db.DateTime)
     
     # Add this relationship
-    payments = db.relationship("Payment", back_populates="user", cascade="all, delete-orphan")
-
+    payments = relationship('Payment', foreign_keys='Payment.user_id', back_populates='user')
+    updated_payments = relationship('Payment', foreign_keys='Payment.updated_by', overlaps="updated_user,updater")
     
     # Add these relationships
     notifications = db.relationship("Notification", back_populates="user", cascade="all, delete-orphan")

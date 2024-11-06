@@ -2,7 +2,9 @@
 
 from marshmallow import Schema, fields, validates, ValidationError, validates_schema, EXCLUDE
 from app.config.stripe_config import StripeConfig
+from marshmallow.validate import Length
 from app.models.enums import PaymentStatus, PaymentMethod
+from sqlalchemy import UniqueConstraint
 from uuid import UUID
 import re
 
@@ -11,11 +13,14 @@ class PaymentSchema(Schema):
     class Meta:
         unknown = EXCLUDE
 
+    user_id = fields.Integer(required=True)  # Include user_id
+    donation_id = fields.Integer(required=True)  # Include donation_id
+    project_id = fields.Integer(required=True)
     amount = fields.Float(required=True)
     currency = fields.String(required=True)
     payment_method = fields.String(required=True)
     payment_method_id = fields.String(required=True)
-    idempotency_key = fields.UUID(required=True)
+    idempotency_key = fields.String(validate=Length(max=64), allow_none=True)
     billing_details = fields.Dict(keys=fields.String(), values=fields.String(), required=True)
     return_url = fields.URL(required=True)
     client_ip = fields.String(required=False)

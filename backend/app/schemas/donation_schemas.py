@@ -2,13 +2,17 @@
 
 from marshmallow import Schema, fields, validates, ValidationError, validates_schema, EXCLUDE
 from datetime import datetime
+from marshmallow.validate import Length
 from app.models.enums import PaymentMethod, DonationStatus
 from app.config.stripe_config import StripeConfig
+
 from app.models import Project, Reward
 from app.models.enums import ProjectStatus
 
 class DonationSchema(Schema):
     """Schema for validating donation requests"""
+    class Meta:
+        unknown = EXCLUDE
     project_id = fields.Integer(required=True)
     amount = fields.Float(required=True)
     currency = fields.String(required=True, default='USD')
@@ -20,6 +24,8 @@ class DonationSchema(Schema):
     id = fields.Integer(dump_only=True)
     created_at = fields.DateTime(dump_only=True)
     status = fields.String(dump_only=True, default=DonationStatus.PENDING.value)
+    idempotency_key = fields.String(validate=Length(max=64), allow_none=True)
+
 
     @validates('project_id')
     def validate_project(self, value):
@@ -31,9 +37,10 @@ class DonationSchema(Schema):
 
     @validates('reward_id')
     def validate_reward(self, value):
-        if value is not None:
+        project_id = self.context.get("project_id")
+        if value is not None and project_id is not None:
             reward = Reward.query.get(value)
-            if not reward or reward.project_id != self.project_id:
+            if not reward or reward.project_id != project_id:
                 raise ValidationError('Invalid reward or reward not associated with the selected project.')
 
     @validates("currency")

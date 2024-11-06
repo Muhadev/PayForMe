@@ -7,6 +7,7 @@ from sqlalchemy.sql import func
 from .enums import PaymentStatus, PaymentMethod, PaymentProvider
 from app.config.stripe_config import StripeConfig
 from datetime import datetime
+from sqlalchemy import UniqueConstraint
 
 class Payment(db.Model):
     __tablename__ = 'payments'
@@ -22,12 +23,23 @@ class Payment(db.Model):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     error_message = Column(String(500))
     payment_metadata = Column(db.JSON)
-    
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-    donation_id = Column(Integer, ForeignKey('donations.id'), nullable=False)
 
-    user = relationship("User", back_populates="payments")
+    idempotency_key = db.Column(db.String(64), nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint('user_id', 'donation_id', 'amount', 'idempotency_key', name='uq_payment_idempotency'),
+    )
+    
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    donation_id = Column(Integer, ForeignKey('donations.id'), nullable=False)
+    updated_by = Column(Integer, ForeignKey('users.id'))  # Define this before using in relationship
+
+    user = relationship('User', foreign_keys=[user_id], back_populates='payments')
+    # Use a unique backref name to avoid conflicts
+    updated_user = relationship('User', foreign_keys=[updated_by], backref='payments_updated_by_user', overlaps="updated_payments,updater")
     donation = relationship("Donation", back_populates="payment")
+
+    ip_country = Column(String(2))  # Country code for fraud detection
 
     ip_address = Column(String(45))  # Store IP for fraud detection
     billing_address = Column(db.JSON)    # Store billing details
@@ -40,9 +52,6 @@ class Payment(db.Model):
         db.Index('idx_donation_id', 'donation_id'),
         db.Index('idx_status_created_at', 'status', 'created_at'),
     )
-
-    updated_by = Column(Integer, ForeignKey('users.id'))
-    ip_country = Column(String(2))  # Country code for fraud detection
     
     def verify_amount(self, expected_amount):
         return abs(self.amount - expected_amount) < 0.01
