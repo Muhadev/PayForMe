@@ -18,7 +18,7 @@ from .media import Media, MediaType
 
 # Financial models
 from .donation import Donation
-from .payment import Payment, PaymentStatus, PaymentMethod
+# from .payment import Payment, PaymentStatus, PaymentMethod
 from .reward import Reward
 from .token_blocklist import TokenBlocklist
 

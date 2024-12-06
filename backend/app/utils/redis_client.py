@@ -2,6 +2,10 @@ from redis import Redis
 from flask import current_app
 from app.utils.some_module import ConfigurationError
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 # Recommended
 def get_redis_client():
     redis_url = current_app.config.get('REDIS_URL')

@@ -2,6 +2,8 @@
 
 from app.models.user import User
 from app.models.project import Project
+# import asyncio
+from threading import Thread
 from app.models.donation import Donation
 from app.models import Reward
 from app import db, cache
@@ -63,6 +65,9 @@ class BackerService:
         Handle the process of a user backing a project.
         """
         try:
+            # Add detailed logging
+            logger.info(f"Backing project: project_id={project_id}, user_id={user_id}, data={data}")
+
             schema = BackProjectSchema()
             validated_data = schema.load(data)
             
@@ -71,6 +76,7 @@ class BackerService:
                     with session.begin():
                         # 1. First check if project exists and is active
                         project = self._get_project(project_id, session)
+                        logger.info(f"Retrieved project: {project}")
                         if not project:
                             logger.error(f"Project {project_id} not found")
                             return {'error': 'Project not found', 'status_code': 404}
@@ -81,9 +87,17 @@ class BackerService:
 
                         # 2. Check if user exists
                         user = self._get_user(user_id, session)
+                        logger.info(f"Retrieved user: {user}")
                         if not user:
                             logger.error(f"User {user_id} not found")
                             return {'error': 'User not found', 'status_code': 404}
+
+                        # Extract necessary information before committing the session
+                        user_email = user.email
+                        user_username = user.username
+
+                        # project = Project.query.get(project_id)
+                        project_title = project.title
 
                         # 3. Validate reward if provided
                         reward_id = validated_data.get('reward_id')
@@ -114,6 +128,8 @@ class BackerService:
                                 payment_method=validated_data.get('payment_method'),
                                 currency=validated_data.get('currency', 'USD')
                             )
+
+                            # session.add(donation)
                             
                             if donation is None:
                                 return {'error': 'Failed to process donation', 'status_code': 500}
@@ -126,11 +142,23 @@ class BackerService:
                             
                             # Prepare the result before committing
                             result = self._prepare_backing_result(user, project, donation)
-                            
+                            # result = {
+                            #     'status': 'success',
+                            #     'donation': {
+                            #         'id': donation.id,
+                            #         'amount': str(donation.amount),
+                            #         'currency': donation.currency,
+                            #         'status': donation.status.value
+                            #     }
+                            # }
                             # The session.commit() is automatically called at the end of the 'with' block
 
-                            # Perform operations that don't require an active transaction
-                            self._send_confirmation_email(user, project, donation)
+                            session.commit()
+
+                            # Schedule the confirmation email asynchronously
+                            # Schedule the confirmation email asynchronously with app context
+                            app = current_app._get_current_object()  # Retrieve the actual app instance
+                            Thread(target=self._send_confirmation_email_with_context, args=(app, user_email, user_username, project_title, donation)).start()
                             self.invalidate_backer_stats_cache(project_id)
 
                             return result
@@ -147,15 +175,69 @@ class BackerService:
             logger.error(f"Unexpected error in back_project: {str(e)}")
             return {'error': 'An unexpected error occurred', 'status_code': 500}
 
-    def _send_confirmation_email(self, user, project, donation):
-        send_templated_email(
-            to_email=user.email,
-            email_type='project_backed',
-            user_name=user.username,
-            project_title=project.title,
-            amount=donation.amount,
-            reward_title=donation.reward.title if donation.reward else None
-        )
+    def _send_confirmation_email_with_context(self, app, user_email, user_username, project_title, donation):
+        """
+        Wrapper to send confirmation email, ensuring application context in the thread.
+        """
+        try:
+            with app.app_context():
+                self._send_confirmation_email(user_email, user_username, project_title, donation)
+        except Exception as e:
+            logger.error(f"Failed to send confirmation email in thread: {str(e)}")
+
+    def _send_confirmation_email(self, user_email, user_username, project_title, donation):
+        """
+        Send confirmation email within application context.
+        """
+        try:
+            with current_app.app_context():  # Use current_app instead of importing app
+                email_kwargs = {
+                    'user_name': user_username,
+                    'project_title': project_title,
+                    'amount': float(donation.amount),  # Ensure it's a float
+                }
+
+                # Add reward title if a reward exists
+                if donation.reward:
+                    email_kwargs['reward_title'] = donation.reward.title
+
+                send_templated_email(
+                    to_email=user_email,
+                    email_type='project_backed',
+                    **email_kwargs
+                )
+        except Exception as e:
+            logger.error(f"Failed to send confirmation email: {str(e)}")
+
+    @staticmethod
+    def _prepare_backing_result(user, project, donation):
+        return {
+            'donation': {
+                'id': donation.id,
+                'amount': str(donation.amount),  # Convert to string for JSON serialization
+                'currency': donation.currency,
+                'status': donation.status.value
+            },
+            'user_id': user.id,
+            'project_id': project.id,
+            'created_at': donation.created_at.isoformat(),  # Convert datetime to ISO format string
+            'donation_status': donation.status.value,
+            'project_status': project.status.value,
+            'reward_id': donation.reward_id
+        }
+    @staticmethod
+    def _get_user(user_id, session):
+        user = session.query(User).get(user_id)
+        if user is None:
+            logger.warning(f"User with id {user_id} not found in the database")
+        return user
+
+    @staticmethod
+    def _get_project(project_id, session):
+        project = session.query(Project).get(project_id)
+        if project is None:
+            logger.warning(f"Project with id {project_id} not found in the database")
+        return project
 
     def get_project_backers(self, project_id, page, per_page):
         """
@@ -279,14 +361,6 @@ class BackerService:
         except SQLAlchemyError as e:
             logger.error(f"Database error in get_user_backed_projects for user {user_id}: {str(e)}")
             return {'error': 'An unexpected error occurred', 'status_code': 500}
-
-    @staticmethod
-    def _get_user(user_id, session):
-        user = session.query(User).get(user_id)
-        if user is None:
-            logger.warning(f"User with id {user_id} not found in the database")
-        return user
-
 
     def get_backer_details(self, project_id, user_id):
         """
@@ -414,26 +488,7 @@ class BackerService:
             return {'error': 'An unexpected error occurred', 'status_code': 500}
 
     @staticmethod
-    def _get_project(project_id, session):
-        project = session.query(Project).get(project_id)
-        if project is None:
-            logger.warning(f"Project with id {project_id} not found in the database")
-        return project
-
-    @staticmethod
     def _update_project_status(project, amount):
         project.current_amount_decimal += Decimal(str(amount))
         if project.current_amount_decimal >= project.goal_amount_decimal:
             project.status = ProjectStatus.FUNDED
-
-    @staticmethod
-    def _prepare_backing_result(user, project, donation):
-        return {
-            'user_id': user.id,
-            'project_id': project.id,
-            'amount': donation.amount,
-            'created_at': donation.created_at,
-            'donation_status': donation.status.value,
-            'project_status': project.status.value,
-            'reward_id': donation.reward_id
-        }

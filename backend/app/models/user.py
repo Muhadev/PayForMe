@@ -38,14 +38,9 @@ class User(db.Model):
     roles = db.relationship('Role', secondary='user_roles', back_populates='users')
     
     # Add these fields to the User model
-    stripe_customer_id = db.Column(db.String(100), unique=True)
     is_verified = db.Column(db.Boolean, default=False)
     # role = db.Column(db.Enum(UserRole), default=UserRole.USER)
     last_login = db.Column(db.DateTime)
-    
-    # Add this relationship
-    payments = relationship('Payment', foreign_keys='Payment.user_id', back_populates='user')
-    updated_payments = relationship('Payment', foreign_keys='Payment.updated_by', overlaps="updated_user,updater")
     
     # Add these relationships
     notifications = db.relationship("Notification", back_populates="user", cascade="all, delete-orphan")

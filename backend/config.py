@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 from pathlib import Path
 from datetime import timedelta
+import stripe
 
 
 load_dotenv()
@@ -44,24 +45,29 @@ class Config:
     UPLOADED_PHOTOS_DEST = os.path.join(UPLOAD_FOLDER, 'photos')
     UPLOADED_VIDEOS_DEST = os.path.join(UPLOAD_FOLDER, 'videos')
 
-class StripeConfig:
-    SECRET_KEY = 'your_stripe_secret_key'
-    WEBHOOK_SECRET = 'your_webhook_secret'
-    PAYMENT_RETURN_URL = 'https://your-domain.com/payment/return'
-    WEBHOOK_TOLERANCE = 300  # 5 minutes
-class DevelopmentConfig(Config):
-    DEBUG = True
+    # SECRET_KEY = os.getenv('SECRET_KEY')
+    STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
+    STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
+    STRIPE_LOGGING = os.getenv('STRIPE_LOGGING', False)
 
-class ProductionConfig(Config):
-    DEBUG = False
+# class StripeConfig:
+#     SECRET_KEY = 'your_stripe_secret_key'
+#     WEBHOOK_SECRET = 'your_webhook_secret'
+#     PAYMENT_RETURN_URL = 'https://your-domain.com/payment/return'
+#     WEBHOOK_TOLERANCE = 300  # 5 minutes
+# class DevelopmentConfig(Config):
+#     DEBUG = True
 
-# You can add more configurations as needed, like TestingConfig
+# class ProductionConfig(Config):
+#     DEBUG = False
 
-config = {
-    'development': DevelopmentConfig,
-    'production': ProductionConfig,
-    'default': DevelopmentConfig
-}
+# # You can add more configurations as needed, like TestingConfig
 
-def get_config():
-    return config[os.environ.get('FLASK_ENV') or 'default']
+# config = {
+#     'development': DevelopmentConfig,
+#     'production': ProductionConfig,
+#     'default': DevelopmentConfig
+# }
+
+# def get_config():
+#     return config[os.environ.get('FLASK_ENV') or 'default']

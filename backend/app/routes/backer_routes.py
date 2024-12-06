@@ -1,6 +1,6 @@
 # app/routes/backer_routes.py
 
-from flask import Blueprint, request, current_app
+from flask import Blueprint, request, current_app, url_for
 from app.services.backer_service import BackerService
 from app.utils.response import success_response, error_response
 from app.utils.decorators import permission_required
@@ -31,23 +31,96 @@ def back_project(project_id):
     input validation, calling the service layer, and returning the appropriate response.
     """
     logger.info(f"Attempting to back project {project_id}")
-    schema = BackProjectSchema()
+    
     try:
+        schema = BackProjectSchema()
         sanitized_data = sanitize_input(request.json)
         data = schema.load(sanitized_data)
+        
+        current_user_id = get_jwt_identity()
+        
+        # Log the payload and user ID
+        logger.info(f"Payload: {sanitized_data}")
+        logger.info(f"Current User ID: {current_user_id}")
+        
+        # Create initial donation record
+        result = backer_service.back_project(project_id, current_user_id, data)
+        
+        if 'error' in result:
+            return error_response(message=result['error'], 
+                                status_code=result.get('status_code', 400))
+
+        if 'donation' not in result:
+            return error_response(message="Failed to create donation", 
+                                status_code=500)
+        
+        # Create Stripe checkout session
+        donation_id = result['donation']['id']
+        success_url = url_for('backer_bp.payment_success', 
+                            donation_id=donation_id, _external=True)
+        cancel_url = url_for('backer_bp.payment_cancel', 
+                           donation_id=donation_id, _external=True)
+        
+        checkout_session = backer_service.donation_service.create_checkout_session(
+            donation_id=donation_id,
+            success_url=success_url,
+            cancel_url=cancel_url
+        )
+        
+        if not checkout_session:
+            return error_response(message="Failed to create payment session", 
+                                status_code=500)
+        
+        return success_response(data={
+            'checkout_url': checkout_session.url,
+            'session_id': checkout_session.id
+        })
+        
     except ValidationError as err:
         logger.warning(f"Validation error in back_project: {err.messages}")
         return error_response(message=err.messages, status_code=400)
+    except Exception as e:
+        logger.error(f"Unexpected error in back_project: {str(e)}")
+        return error_response(message="An unexpected error occurred", 
+                            status_code=500)
 
-    current_user_id = get_jwt_identity()
-    logger.info(f"User {current_user_id} attempting to back project {project_id}")
-    result = backer_service.back_project(project_id, current_user_id, data)
-    if 'error' in result:
-        logger.error(f"Error in back_project: {result['error']}")
-        return error_response(message=result['error'], status_code=result.get('status_code', 400))
+@backer_bp.route('/webhook', methods=['POST'])
+def stripe_webhook():
+    """
+    Handle Stripe webhooks for payment events.
+    """
+    logger.info("Received Stripe webhook")
+    payload = request.get_data()
+    sig_header = request.headers.get('Stripe-Signature')
+
+    if not sig_header:
+        logger.error("Missing Stripe-Signature header")
+        return error_response(message="No signature header", status_code=400)
+
+    success = backer_service.donation_service.handle_webhook(payload, sig_header)
     
-    logger.info(f"User {current_user_id} successfully backed project {project_id}")
-    return success_response(data=result, message="Project backed successfully")
+    if not success:
+        return error_response(message="Invalid webhook", status_code=400)
+        
+    return success_response(message="Webhook processed successfully")
+
+@backer_bp.route('/donations/<int:donation_id>/success')
+@jwt_required()
+def payment_success(donation_id):
+    """
+    Handle successful payment redirect.
+    """
+    # You can add additional logic here if needed
+    return success_response(message="Payment processed successfully")
+
+@backer_bp.route('/donations/<int:donation_id>/cancel')
+@jwt_required()
+def payment_cancel(donation_id):
+    """
+    Handle cancelled payment.
+    """
+    # You can add logic to handle cancelled payments
+    return error_response(message="Payment was cancelled", status_code=400)
 
 @backer_bp.route('/projects/<int:project_id>/backers', methods=['GET'])
 @jwt_required()

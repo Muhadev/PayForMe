@@ -39,8 +39,7 @@ EMAIL_TEMPLATE_TYPES = [
     'verification', 'reset_password', '2fa_enabled', '2fa_disabled', 
     '2fa_setup', 'project_backed', 'project_update', 'project_milestone',
     'project_activated', 'reward_created', 'reward_updated', 'reward_claimed_backer',
-    'reward_claimed_creator', 'donation_confirmation', 'donation_success', 
-    'donation_failed', 'donation_refund'
+    'reward_claimed_creator'
 ]
 
 def send_templated_email(to_email, email_type, **kwargs):
@@ -73,11 +72,6 @@ def get_required_template_kwargs(email_type):
     template_requirements = {
         'reward_updated': ['reward_title', 'project_title', 'changes'],
         'reward_created': ['project_title', 'reward_title', 'reward_description'],
-        # Add requirements for other templates
-        'donation_confirmation': ['donor_name', 'amount', 'project_title', 'donation_id'],
-        'donation_success': ['donor_name', 'amount', 'project_title', 'donation_id'],
-        'donation_failed': ['donor_name', 'amount'],
-        'donation_refund': ['donor_name', 'amount', 'donation_id']
     }
     return template_requirements.get(email_type, [])
 
@@ -95,9 +89,9 @@ def get_email_subject(email_type):
         'reward_updated': 'Reward Details Updated!',
         'reward_claimed_backer': 'You’ve Successfully Claimed Your Reward!',
         'reward_claimed_creator': 'A Backer Claimed Your Reward!',
-        'donation_confirmation': 'Thank You for Your Donation!',
-        'donation_success': 'Your Donation Was Successful',
-        'donation_failed': 'Donation Payment Failed',
-        'donation_refund': 'Your Donation Has Been Refunded'
+        # 'donation_confirmation': 'Thank You for Your Donation!',
+        # 'donation_success': 'Your Donation Was Successful',
+        # 'donation_failed': 'Donation Payment Failed',
+        # 'donation_refund': 'Your Donation Has Been Refunded'
     }
     return subjects.get(email_type, 'Notification from PayForMe')
