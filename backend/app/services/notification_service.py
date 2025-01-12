@@ -3,13 +3,16 @@
 from app.models import Notification, User, Role
 from app import db
 from typing import List
+from enum import Enum
+from datetime import datetime
 import logging
+from app.models.enums import NotificationType
 
 logger = logging.getLogger(__name__)
 
 class NotificationService:
     @staticmethod
-    def create_admin_notification(message: str) -> List[Notification]:
+    def create_admin_notification(message: str, project_id: int = None) -> List[Notification]:
         try:
             admin_role = Role.query.filter_by(name='Admin').first()
             if not admin_role:
@@ -22,7 +25,10 @@ class NotificationService:
             for admin in admin_users:
                 notification = Notification(
                     message=message,
-                    user_id=admin.id
+                    user_id=admin.id,
+                    type=NotificationType.ADMIN_REVIEW,  # Add the type
+                    created_at=datetime.utcnow(),  # Add creation timestamp
+                    project_id=project_id  # Add project_id reference
                 )
                 db.session.add(notification)
                 notifications.append(notification)
@@ -33,7 +39,7 @@ class NotificationService:
         except Exception as e:
             db.session.rollback()
             logger.error(f"Error creating admin notifications: {e}")
-            return []
+            raise  # Re-raise the exception to handle it in the calling function
 
     @staticmethod
     def get_user_notifications(user_id: int, unread_only: bool = False) -> List[Notification]:

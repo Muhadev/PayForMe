@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request, current_app, url_for
+from flask import Blueprint, jsonify, request, current_app, url_for, redirect
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt
 from app.models import User
 from app import jwt, limiter
@@ -20,33 +20,46 @@ def check_if_token_revoked(jwt_header, jwt_payload):
 
 @bp.route('/verify/<token>', methods=['GET'])
 def verify_email(token):
+    """
+    Verify email endpoint with frontend redirection.
+    """
     success, message = AuthService.verify_email(token)
-    if success:
-        logger.info(f"Email verification successful for token: {token}")
-        return jsonify({"msg": message}), 200
-    return jsonify({"msg": message}), 400
+    
+    # Construct frontend URL for success or failure
+    status = "success" if success else "error"
+    frontend_url = f"{current_app.config['FRONTEND_URL']}/verify-email?status={status}&message={message}"
+    
+    return redirect(frontend_url)
 
 @bp.route('/register', methods=['POST'])
 def register():
-    data = request.get_json()
+    """
+    Synchronous registration endpoint with proper error handling
+    """
+    try:
+        data = request.get_json()
 
-    if not all(k in data for k in ("username", "email", "password")):
-        logger.warning("Registration attempt with missing fields")
-        return jsonify({"msg": "Missing required fields"}), 400
+        if not data:
+            return jsonify({"msg": "No input data provided"}), 400
 
-    success, message = AuthService.register_user(
-        data['username'],
-        data['email'],
-        data['password'],
-        data.get('full_name')
-    )
+        required_fields = ["username", "email", "password"]
+        if not all(field in data for field in required_fields):
+            return jsonify({"msg": "Missing required fields"}), 400
 
-    if success:
-        logger.info(f"New user registered: {data['username']}")
-        return jsonify({"msg": message}), 201
-    else:
-        logger.warning(f"Failed registration attempt for username: {data['username']}")
+        success, message = AuthService.register_user(
+            data['username'],
+            data['email'],
+            data['password'],
+            data.get('full_name')
+        )
+
+        if success:
+            return jsonify({"msg": message}), 201
         return jsonify({"msg": message}), 400
+
+    except Exception as e:
+        logger.error(f"Registration endpoint error: {str(e)}")
+        return jsonify({"msg": "Server error occurred"}), 500
 
 @bp.route('/login', methods=['POST'])
 @limiter.limit("5 per minute")  # Custom rate limit for login

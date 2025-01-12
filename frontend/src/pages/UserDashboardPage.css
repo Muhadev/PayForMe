@@ -1,9 +1,60 @@
-/* body {
-  padding-top: 70px; 
-} */
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background-color: #f8f9fa;
+}
 
 .dashboard-container {
-  padding-top: 70px;
-  padding-bottom: 50px;
-  min-height: calc(100vh - 70px);
+  display: flex;
+  flex-direction: row;
+  height: calc(100vh - 70px); /* Full viewport height minus navbar height */
+  margin-top: 70px; /* Push content below the fixed navbar */
+  overflow: hidden; /* Prevent horizontal overflow */
+}
+
+.sidebar {
+  flex: 0 0 250px; /* Fixed width for sidebar */
+  height: calc(100vh - 70px); /* Full viewport height minus navbar height */
+  overflow-y: auto; /* Sidebar content scrolls independently */
+  padding: 20px 10px; /* Add space inside the sidebar */
+  background-color: #ffffff;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar .text-center {
+  padding-left: 10px; /* Add a bit of space on the left for better alignment */
+}
+
+.sidebar img {
+  border: 3px solid #dee2e6; /* Optional border for profile image */
+}
+
+.sidebar h4 {
+  margin-top: 10px; /* Add some space below the image */
+}
+
+.sidebar nav .nav-link {
+  font-size: 1rem; /* Standardize font size */
+  padding: 10px 15px; /* Add consistent padding */
+  margin-bottom: 5px; /* Space between links */
+  border-radius: 5px; /* Rounded corners for links */
+  color: #003366; /* Consistent deep blue color for links */
+  transition: background-color 0.2s, color 0.2s; /* Smooth hover effect */
+}
+
+.sidebar nav .nav-link.active {
+  background-color: #003366; /* Highlight active link */
+  color: #ffffff; /* White text for active link */
+}
+
+.sidebar nav .nav-link:hover {
+  background-color: #f0f0f0; /* Subtle hover background */
+  color: #003366; /* Maintain color consistency */
+}
+
+.main-content {
+  flex: 1;
+  overflow-y: auto; /* Main content scrolls independently */
+  padding: 20px;
+  background-color: #f8f9fa;
 }

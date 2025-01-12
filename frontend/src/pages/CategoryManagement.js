@@ -13,12 +13,12 @@ function CategoryManagement() {
   }, []);
 
   const fetchCategories = async () => {
-    const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/categories`);
+    const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/v1/categories`);
     setCategories(response.data);
   };
 
   const handleAddCategory = async () => {
-    await axios.post(`${process.env.REACT_APP_BACKEND_URL}/categories`, { name: newCategory });
+    await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/v1/categories`, { name: newCategory });
     setNewCategory('');
     setShowModal(false);
     fetchCategories();

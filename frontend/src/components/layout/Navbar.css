@@ -1,34 +1,117 @@
 /* Navbar.css */
 
-/* Ensure the navbar is sticky and has a white background */
 .navbar {
   background-color: white !important;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  height: 70px; /* Adjust this value as needed */
-  padding-left: 15px;
-  padding-right: 15px;
-  position: fixed; /* Keep navbar fixed */
-  top: 0; /* Position it at the top */
-  width: 100%; /* Full width */
-  z-index: 1000; /* Ensure it sits above other content */
+  height: 70px;
+  padding: 0 10px !important;
 }
 
-/* Update the height and alignment for Navbar items */
-.navbar-nav .nav-link {
-  padding-left: 10px;
-  padding-right: 10px;
-  line-height: 70px; /* Match this with the height of the navbar */
-}
-
-/* Style the brand logo with deep blue color */
-.brand-logo {
-  color: #003366; /* Deep blue color */
-  font-size: 1.5rem; /* Adjust the font size as needed */
-}
-
-/* Ensure the brand is vertically centered */
+/* Brand/Logo styling */
 .navbar-brand {
   display: flex;
   align-items: center;
-  height: 100%;
+  gap: 6px;
+  padding: 0;
+}
+
+.brand-logo {
+  color: #003366;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+/* Search bar container */
+.navbar .form-control {
+  width: 200px;
+  border-radius: 20px;
+  padding: 8px 10px;
+  border: 1px solid #e0e0e0;
+  margin-right: 16px;
+}
+
+/* Navigation items */
+.navbar-nav {
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-link {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  color: #4a4a4a !important;
+  padding: 4px 8px !important;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.nav-link:hover {
+  color: #003366 !important;
+}
+
+/* Categories dropdown */
+.dropdown-toggle::after {
+  margin-left: 6px;
+}
+
+.dropdown-menu {
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: none;
+  padding: 8px 0;
+}
+
+.dropdown-item {
+  padding: 8px 16px;
+}
+
+/* Start a Project button */
+.btn-primary.start-project-btn {
+  background-color: #003366;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 20px;
+  font-weight: 500;
+  margin-left: 10px;
+  margin-right: 10px;
+}
+
+/* Sign In button */
+.nav-link.sign-in {
+  border: 1px solid #e0e0e0;
+  border-radius: 20px;
+  padding: 6px 10px !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 991.98px) {
+  .navbar {
+    height: auto;
+    padding: 16px 24px !important;
+  }
+
+  .navbar .form-control {
+    width: 100%;
+    margin: 16px 0;
+  }
+
+  .navbar-nav {
+    gap: 16px;
+  }
+
+  .nav-link {
+    padding: 8px 0 !important;
+  }
+
+  .btn-primary.start-project-btn {
+    width: 100%;
+    margin: 8px 0;
+  }
+
+  .nav-link.sign-in {
+    width: 100%;
+    text-align: center;
+    margin: 8px 0;
+  }
 }

@@ -22,7 +22,8 @@ function CreateProjectForm() {
       imageType: "file",
       video: null,
       videoUrl: "",
-      videoType: "file"
+      videoType: "file",
+      featured: false // Default value for the featured field
     },
     mode: 'onBlur'
   });
@@ -44,7 +45,14 @@ function CreateProjectForm() {
 
   const fetchCategories = async () => {
     try {
-      const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/categories`);
+      const response = await axios.get(
+        `${process.env.REACT_APP_BACKEND_URL}/api/v1/categories`, 
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
       setCategories(response.data);
     } catch (error) {
       toast.error('Failed to fetch categories');
@@ -59,6 +67,9 @@ function CreateProjectForm() {
 
     // Append status (either draft or pending)
     formData.append('status', isDraft ? 'draft' : 'pending');
+
+    // Append the featured field
+    formData.append("featured", data.featured);
 
     // Only append other fields if it's not a draft
     if (!isDraft) {
@@ -85,7 +96,7 @@ function CreateProjectForm() {
     }
 
     try {
-      const endpoint = isDraft ? 'projects/drafts' : 'projects';
+      const endpoint = isDraft ? '/api/v1/projects/drafts' : 'projects';
       const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/${endpoint}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -94,7 +105,7 @@ function CreateProjectForm() {
       });
 
       toast.success(isDraft ? 'Project saved as draft' : 'Project submitted successfully!');
-      navigate(isDraft ? `/projects/drafts/${response.data.project.id}` : `/projects/${response.data.project.id}`);
+      navigate(isDraft ? `/api/v1/projects/drafts/${response.data.project.id}` : `/api/v1/projects/${response.data.project.id}`);
     } catch (error) {
       toast.error(error.response?.data?.error || 'An error occurred while processing the project');
     } finally {
@@ -365,6 +376,16 @@ function CreateProjectForm() {
           {errors.videoUrl && <span className="text-danger">{errors.videoUrl.message}</span>}
         </Form.Group>
 
+        <Form.Group className="mb-3">
+          <Form.Check 
+            type="checkbox"
+            label="Feature this project (admin will review)"
+            {...register("featured")}
+          />
+          <Form.Text className="text-muted">
+            If selected, this project will be highlighted for users. 
+          </Form.Text>
+        </Form.Group>
 
         <Button variant="secondary" className="me-2" onClick={() => {
           setIsDraft(true);

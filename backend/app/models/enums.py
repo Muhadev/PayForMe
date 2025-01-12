@@ -76,6 +76,16 @@ class PaymentMethod(Enum):
     def from_string(cls, value):
         return cls._from_str(value, default=cls.CREDIT_CARD)
 
+class NotificationType(Enum):
+    PROJECT_UPDATE = 'PROJECT_UPDATE'
+    NEW_BACKER = 'NEW_BACKER'
+    FUNDING_GOAL_REACHED = 'FUNDING_GOAL_REACHED'
+    COMMENT_RECEIVED = 'COMMENT_RECEIVED'
+    REWARD_SHIPPED = 'REWARD_SHIPPED'
+    ADMIN_REVIEW = 'ADMIN_REVIEW'  # Add your new type here
+    USER_UPDATE = 'USER_UPDATE'
+    SYSTEM = 'SYSTEM'
+
 
 class PaymentProvider(Enum):
     STRIPE = 'STRIPE'

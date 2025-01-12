@@ -16,53 +16,72 @@ logger = logging.getLogger(__name__)
 class AuthService:
     @staticmethod
     def register_user(username, email, password, full_name=None):
-        if User.query.filter_by(username=username).first():
-            logger.warning(f"Registration failed: Username {username} already exists")
-            return False, "Username already exists"
-        if User.query.filter_by(email=email).first():
-            logger.warning(f"Registration failed: Email {email} already exists")
-            return False, "Email already exists"
-
-        if not validate_email(email):
-            logger.warning(f"Registration failed: Invalid email format for {email}")
-            return False, "Invalid email format"
-        if not validate_password(password):
-            logger.warning(f"Registration failed: Password does not meet requirements for user {username}")
-            return False, "Password does not meet requirements"
-
-        new_user = User(
-            username=username,
-            email=email,
-            full_name=full_name,
-            created_at=datetime.utcnow()
-        )
-        new_user.set_password(password)
-
-        # Step 2: Add the user to the session to generate the ID
-        db.session.add(new_user)
-        db.session.flush()  # Ensure that the ID is generated
-
-        logger.debug(f"Generated user ID: {new_user.id}")
-        
-        # Assign the "User" role by default
-        user_role = Role.query.filter_by(name="User").first()
-        if user_role:
-            new_user.roles.append(user_role)
-
-        # Step 3: Generate the verification token using the now-available new_user.id
-        verification_token = new_user.generate_verification_token()
-        logger.debug(f"Generated verification token: {verification_token}")
-
+        """
+        Enhanced user registration service with proper error handling
+        """
         try:
-            send_templated_email(new_user.email, 'verification', new_user)
-            db.session.commit()
+            # Validate user doesn't exist first
+            if User.query.filter_by(username=username).first():
+                logger.warning(f"Registration failed: Username {username} already exists")
+                return False, "Username already exists"
+
+            if User.query.filter_by(email=email).first():
+                logger.warning(f"Registration failed: Email {email} already exists")
+                return False, "Email already exists"
+
+            # Validate input
+            if not validate_email(email):
+                logger.warning(f"Registration failed: Invalid email format for {email}")
+                return False, "Invalid email format"
+            if not validate_password(password):
+                logger.warning(f"Registration failed: Password does not meet requirements for user {username}")
+                return False, "Password does not meet requirements"
+
+            new_user = User(
+                username=username,
+                email=email,
+                full_name=full_name,
+                created_at=datetime.utcnow()
+            )
+            new_user.set_password(password)
+
+            # Step 2: Add the user to the session to generate the ID
+            db.session.add(new_user)
+            db.session.flush()  # Ensure that the ID is generated
+
+            logger.debug(f"Generated user ID: {new_user.id}")
+            
+            # Assign the "User" role by default
+            user_role = Role.query.filter_by(name="User").first()
+            if user_role:
+                new_user.roles.append(user_role)
+
+            # Step 3: Generate the verification token using the now-available new_user.id
+            verification_token = new_user.generate_verification_token()
+            try:
+                # Attempt to send verification email
+                send_templated_email(
+                    new_user.email,
+                    'verify_email',
+                    user=new_user,
+                    token=verification_token
+                )
+
+                # If email sends successfully, commit the transaction
+                db.session.commit()
+                logger.info(f"User {username} registered successfully")
+                return True, "User created successfully. Please check your email to verify your account."
+
+            except EmailServiceError as e:
+                # If email fails, roll back and return appropriate error
+                db.session.rollback()
+                logger.error(f"Registration failed: Email service error for {email} - {str(e)}")
+                return False, "Registration successful but verification email could not be sent. Please contact support."
+        
         except Exception as e:
             db.session.rollback()
-            logger.error(f"Registration failed: Error sending verification email to {email} - {str(e)}")
-            return False, "An error occurred during registration. Please try again."
-
-        logger.info(f"User {username} registered successfully")
-        return True, "User created successfully. Please check your email to verify your account."
+            logger.error(f"Registration failed: Unexpected error - {str(e)}")
+            return False, "An unexpected error occurred during registration. Please try again."
 
     @staticmethod
     def verify_email(token):
@@ -168,7 +187,7 @@ class AuthService:
         if user:
             reset_token = user.get_reset_password_token()  # Generate the token
             reset_link = f"{current_app.config['FRONTEND_URL']}/password-reset/{reset_token}"
-            send_templated_email(user.email, 'reset_password', user, reset_link=reset_link)
+            send_templated_email(user.email, 'reset_password', user=user, reset_link=reset_link)
             logger.info(f"Password reset initiated for user: {user.email}")
         return True, "If an account with this email exists, a password reset link has been sent"
 

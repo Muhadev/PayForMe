@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 # Create a Blueprint for the profile routes
 profile_bp = Blueprint('profile', __name__)
 
-@profile_bp.route('/profile', methods=['GET'])
+@profile_bp.route('/', methods=['GET'])
 @jwt_required()
 def get_profile():
     current_user_id = get_jwt_identity()
@@ -30,7 +30,7 @@ def get_profile():
             status_code=404
         )
 
-@profile_bp.route('/profile', methods=['PUT'])
+@profile_bp.route('/', methods=['PUT'])
 @jwt_required()
 def update_profile():
     current_user_id = get_jwt_identity()
@@ -58,7 +58,7 @@ def update_profile():
             status_code=400
         )
 
-@profile_bp.route('/profile/<int:user_id>', methods=['GET'])
+@profile_bp.route('/<int:user_id>', methods=['GET'])
 @permission_required('view_public_profile')  # Restrict access to users with the 'view_public_profile' permission
 def get_public_profile(user_id):
     user_profile = UserService.get_user_public_profile(user_id)

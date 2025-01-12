@@ -7,7 +7,7 @@ import imagePath from '../../assets/image.png';
 
 function HeroSection() {
   return (
-    <section className="hero-section">
+    <section className="hero-section1">
       <Container>
         <Row className="align-items-center">
           <Col md={6}>

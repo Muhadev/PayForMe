@@ -1,0 +1,199 @@
+/* AboutUs.css */
+.about-page {
+    margin-top: 70px; /* Account for fixed navbar */
+  }
+  
+  /* Hero Section */
+.hero-section {
+    /* position: relative; */
+    background: linear-gradient(135deg, rgba(0, 51, 102, 0.7) 0%, rgba(0, 102, 204, 0.7) 100%), 
+                url('../assets/image.png') center/cover no-repeat;
+    padding: 200px 0;
+    color: white;
+    margin-bottom: 40px;
+    min-height: 500px;
+    text-align: center;
+    /* align-items: center;
+    justify-content: center; */
+  }
+  
+  .hero-title {
+    /* justify-content: center; */
+    font-size: 3rem;
+    font-weight: bold;
+    margin-bottom: 1.5rem;
+    text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.3);
+  }
+  
+  .hero-subtitle {
+    font-size: 1.25rem;
+    opacity: 0.9;
+    margin-bottom: 2rem;
+  }
+  
+  .cta-button {
+    background-color: #ff9900;
+    color: white;
+    padding: 12px 24px;
+    font-size: 1rem;
+    font-weight: bold;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: transform 0.3s ease, background-color 0.3s ease;
+  }
+  
+  .cta-button:hover {
+    transform: scale(1.05);
+    background-color: #e68a00;
+  }
+
+  
+  /* Stats Section */
+  .section-padding {
+    padding: 40px 0;
+  }
+  
+  .stat-item {
+    padding: 20px;
+    transition: transform 0.3s ease;
+  }
+  
+  .stat-item:hover {
+    transform: translateY(-10px);
+  }
+  
+  .stat-icon {  
+    font-size: 2.5rem;
+    color: #003366;
+    margin-bottom: 1rem;
+  }
+  
+  .stat-number {
+    font-size: 3rem;
+    font-weight: bold;
+    color: #003366;
+    margin-bottom: 0.5rem;
+  }
+  
+  .stat-label {
+    color: #666;
+    font-size: 1.1rem;
+  }
+  
+  /* Mission Section */
+  .mission-section {
+    background-color: #f8f9fa;
+    padding: 80px 0;
+  }
+  
+  .section-title {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #003366;
+    margin-bottom: 2rem;
+  }
+  
+  .mission-text {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: #555;
+  }
+  
+  /* Team Section */
+  .team-card {
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+    height: 100%;
+  }
+  
+  .team-card:hover {
+    transform: translateY(-5px);
+  }
+  
+  .team-member-img {
+    height: 200px;
+    background-color: #e9ecef;
+    border-radius: 4px 4px 0 0;
+  }
+  
+  .team-member-name {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: #003366;
+    margin-bottom: 0.5rem;
+  }
+  
+  .team-member-role {
+    color: #0066cc;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+  }
+  
+  .team-member-bio {
+    color: #666;
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+  
+  /* Values Section */
+  .values-section {
+    background-color: #f8f9fa;
+    padding: 80px 0;
+  }
+  
+  .value-card {
+    background-color: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    height: 100%;
+  }
+  
+  .value-card h3 {
+    color: #003366;
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+    font-weight: bold;
+  }
+  
+  .value-card p {
+    color: #666;
+    line-height: 1.6;
+  }
+  
+  /* CTA Section */
+  .cta-text {
+    font-size: 1.25rem;
+    color: #666;
+    
+  }
+  
+  .cta-buttons .btn {
+    padding: 12px 30px;
+    font-weight: 500;
+  }
+  
+  /* Responsive Adjustments */
+  @media (max-width: 768px) {
+    .hero-title {
+      font-size: 2rem;
+    }
+  
+    .hero-subtitle {
+      font-size: 1.1rem;
+    }
+  
+    .section-padding {
+      padding: 40px 0;
+    }
+  
+    .team-card {
+      margin-bottom: 20px;
+    }
+  
+    .stat-item {
+      margin-bottom: 30px;
+    }
+  }

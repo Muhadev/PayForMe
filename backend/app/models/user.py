@@ -56,6 +56,8 @@ class User(db.Model):
     two_factor_setup_code = db.Column(db.String(6))  # For temporary storage during setup
 
     last_permission_update = db.Column(db.DateTime, default=datetime.utcnow)
+
+    stripe_customer_id = db.Column(db.String(255), unique=True, nullable=True)
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -165,7 +167,7 @@ class User(db.Model):
         return None
 
     def to_dict(self, include_private=False):
-        user_dict = {
+        base_dict = {
             'id': self.id,
             'username': self.username,
             'full_name': self.full_name,
@@ -181,12 +183,14 @@ class User(db.Model):
             'two_factor_enabled': self.two_factor_enabled,
         }
 
+        # Private fields only included when specifically requested
         if include_private:
-            user_dict.update({
+            private_dict = {
                 'email': self.email,
-                'preferences': self.preferences,
-                'stripe_customer_id': self.stripe_customer_id,
-                'last_password_change': self.last_password_change.isoformat(),
-            })
+                'preferences': self.preferences or {},
+                'stripe_customer_id': getattr(self, 'stripe_customer_id', None),
+                'last_password_change': self.last_password_change.isoformat() if self.last_password_change else None
+            }
+            base_dict.update(private_dict)
 
-        return user_dict
+        return base_dict

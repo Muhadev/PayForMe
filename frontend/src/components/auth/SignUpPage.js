@@ -16,17 +16,26 @@ function SignUpPage() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     setIsLoading(true);
+    setErrorMessage(''); // Clear previous error message
     try {
-      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/auth/register`, {
-        username: username,
-        email: email,
-        password: password,
-        full_name: fullName,
-      });
+      const response = await axios.post(
+        `${process.env.REACT_APP_BACKEND_URL}/api/v1/auth/register`,
+        {
+          username,
+          email,
+          password,
+          full_name: fullName,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
 
       if (response.status === 201) {
         // Show a success message using a toast
-        toast.success('Registration successful! Please log in.');
+        toast.success('Registration successful! Please check your email to verify your account.');
       
         // Redirect to the login page
         setTimeout(() => {
@@ -34,7 +43,13 @@ function SignUpPage() {
         }, 2000); // Optional delay to let the user see the message
       }
     } catch (error) {
-      setErrorMessage(error.response?.data?.msg || 'Registration failed. Please try again.');
+      if (error.response) {
+        // Server returned an error
+        setErrorMessage(error.response.data.msg || 'Registration failed. Please try again.');
+      } else {
+        // Network error or no response
+        setErrorMessage('Network error. Please try again later.');
+      }
     } finally {
       setIsLoading(false); // Stop loading
     }

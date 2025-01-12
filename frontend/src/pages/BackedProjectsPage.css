@@ -1,0 +1,103 @@
+/* BackedProjectsPage.css */
+.backed-projects-page {
+  padding: 2rem 0;
+}
+
+.header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.project-count {
+  font-size: 1rem;
+  padding: 0.5rem 1rem;
+}
+
+.project-tabs {
+  margin-bottom: 2rem;
+}
+
+.project-grid {
+  margin-top: 1.5rem;
+}
+
+.project-card {
+  transition: transform 0.2s ease-in-out;
+  height: 100%;
+}
+
+.project-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.card-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.progress-section {
+  margin: 1.5rem 0;
+}
+
+.progress {
+  height: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.progress-stats {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  color: #6c757d;
+}
+
+.project-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  font-size: 0.875rem;
+}
+
+.stat-item i {
+  margin-right: 0.5rem;
+}
+
+.card-footer-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.view-details-btn {
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+.view-details-btn i {
+  margin-left: 0.25rem;
+}
+
+@media (max-width: 768px) {
+  .project-stats {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  
+  .card-footer-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}

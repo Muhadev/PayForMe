@@ -6,14 +6,34 @@ from sendgrid.helpers.mail import Mail
 from flask import current_app, render_template
 import logging
 from python_http_client.exceptions import HTTPError
-from tenacity import retry, stop_after_attempt, wait_exponential
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
-async def send_email(to_email: str, subject: str, text_content: str, html_content: str) -> bool:
+class EmailServiceError(Exception):
+    """Custom exception for email service errors"""
+    pass
+
+def should_retry_exception(exception):
+    """Determine if the exception should trigger a retry"""
+    if isinstance(exception, HTTPError):
+        # Retry on temporary SendGrid errors (5xx, 429)
+        status_code = exception.status_code
+        return status_code >= 500 or status_code == 429
+    return True
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=4, max=10),
+    retry=retry_if_exception_type((HTTPError, ConnectionError)),
+    reraise=True
+)
+def send_email(to_email: str, subject: str, text_content: str, html_content: str) -> bool:
     """Send an email using SendGrid with retry logic."""
+
+    if not current_app.config.get('SENDGRID_API_KEY'):
+        raise EmailServiceError("SendGrid API key not configured")
+
     message = Mail(
         from_email=current_app.config['SENDGRID_DEFAULT_FROM'],
         to_emails=to_email,
@@ -24,48 +44,58 @@ async def send_email(to_email: str, subject: str, text_content: str, html_conten
     try:
         sg = SendGridAPIClient(current_app.config['SENDGRID_API_KEY'])
         response = sg.send(message)
-        logger.info(f"Email sent to {to_email}. Status Code: {response.status_code}")
-        if response.body:
-            logger.debug(f"SendGrid Response: {response.body.decode('utf-8')}")
+
+        if response.status_code not in (200, 201, 202):
+            raise EmailServiceError(f"Unexpected status code: {response.status_code}")
+            
+        logger.info(f"Email sent successfully to {to_email}. Status: {response.status_code}")
         return True
     except HTTPError as e:
-        logger.error(f"SendGrid HTTP error: {e.to_dict}")
-        return False
+        error_details = e.to_dict.get('errors', [{}])[0].get('message', str(e))
+        logger.error(f"SendGrid HTTP error: {error_details}")
+        raise EmailServiceError(f"Failed to send email: {error_details}")
     except Exception as e:
         logger.error(f"Unexpected error sending email: {str(e)}")
-        return False
+        raise EmailServiceError(f"Failed to send email: {str(e)}")
 
 EMAIL_TEMPLATE_TYPES = [
-    'verification', 'reset_password', '2fa_enabled', '2fa_disabled', 
+    'verify_email', 'reset_password', '2fa_enabled', '2fa_disabled', 
     '2fa_setup', 'project_backed', 'project_update', 'project_milestone',
     'project_activated', 'reward_created', 'reward_updated', 'reward_claimed_backer',
     'reward_claimed_creator'
 ]
 
 def send_templated_email(to_email, email_type, **kwargs):
+    """Send a templated email with enhanced error handling"""
     if not to_email:
-        logger.error("No recipient email provided")
-        return False
+        raise ValueError("No recipient email provided")
         
     if email_type not in EMAIL_TEMPLATE_TYPES:
-        logger.error(f"Unknown email type: {email_type}")
-        return False
+        raise ValueError(f"Unknown email type: {email_type}")
     
     required_kwargs = get_required_template_kwargs(email_type)
     missing_kwargs = [k for k in required_kwargs if k not in kwargs]
+
     if missing_kwargs:
-        logger.error(f"Missing required template variables: {missing_kwargs}")
-        return False
+        raise ValueError(f"Missing required template variables: {missing_kwargs}")
+        
     try:
         kwargs['current_year'] = datetime.now().year
         subject = get_email_subject(email_type)
-        text_content = render_template(f'email/{email_type}.txt', **kwargs)
-        html_content = render_template(f'email/{email_type}.html', **kwargs)
+
+        # Verify template existence before rendering
+        template_path = f'email/{email_type}'
+        if not current_app.jinja_env.get_template(f'{template_path}.html'):
+            raise EmailServiceError(f"Email template not found: {template_path}.html")
+            
+        text_content = render_template(f'{template_path}.txt', **kwargs)
+        html_content = render_template(f'{template_path}.html', **kwargs)
+        
+        return send_email(to_email, subject, text_content, html_content)
+
     except Exception as e:
-        logger.error(f"Error rendering email template: {str(e)}")
-        return False
-    
-    return send_email(to_email, subject, text_content, html_content)
+        logger.error(f"Failed to send templated email: {str(e)}")
+        raise EmailServiceError(f"Failed to send templated email: {str(e)}")
 
 def get_required_template_kwargs(email_type):
     """Return required kwargs for each template type"""
@@ -77,7 +107,7 @@ def get_required_template_kwargs(email_type):
 
 def get_email_subject(email_type):
     subjects = {
-        'verification': 'Verify Your Email',
+        'verify_email': 'Verify Your Email',
         'reset_password': 'Reset Your Password',
         '2fa_enabled': 'Two-Factor Authentication Enabled',
         '2fa_disabled': 'Two-Factor Authentication Disabled',

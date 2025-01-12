@@ -7,10 +7,8 @@ function MainLayout() {
   return (
     <div>
       <AppNavbar />
-      <main>
-        <>
+      <main style={{ marginTop: '70px' }}> {/* Space for the navbar */}
         <Outlet />
-        </>
       </main>
       {/* <Footer /> */}
     </div>

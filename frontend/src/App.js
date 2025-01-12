@@ -11,14 +11,24 @@ import SignInPage from './components/auth/SignInPage';
 import SignUpPage from './components/auth/SignUpPage';
 import ForgotPasswordForm from './components/auth/ForgotPasswordForm';
 import 'react-toastify/dist/ReactToastify.css';
+import VerifyEmailPage from './components/auth/VerifyEmailPage';
+import PasswordResetSuccess from './components/auth/PasswordResetSuccess';
+import PasswordResetFailed from './components/auth/PasswordResetFailed';
+import ResetPassword from './components/auth/ResetPassword';
 import { ToastContainer } from 'react-toastify';
 import CategoryManagement from './pages/CategoryManagement';
+import MyProjectsPage from './pages/MyProjectsPage';
+import BackedProjectsPage from './pages/BackedProjectsPage';
+import ProfilePage from './pages/ProfilePage';
+import SettingsPage from './pages/SettingsPage';
+
 // import CreateProjectPage from './pages/CreateProjectPage';
 // Other imports...
 
+// console.log('MyProjects:', MyProjects);
 function App() {
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <ToastContainer
         position="bottom-center"
         autoClose={3000}
@@ -41,7 +51,15 @@ function App() {
           <Route path="signin" element={<SignInPage />} />
           <Route path="register" element={<SignUpPage />} />
           <Route path="forgot-password" element={<ForgotPasswordForm />} />
+          <Route path="/password-reset-success" element={<PasswordResetSuccess />} />
+          <Route path="/password-reset-failed" element={<PasswordResetFailed />} />
           <Route path="categories" element={<CategoryManagement/>} />
+          <Route path="/verify-email" element={<VerifyEmailPage/>} />
+          <Route path="my-projects" element={<MyProjectsPage />} />
+          <Route path="backed-projects" element={<BackedProjectsPage />} />
+          <Route path="profile" element={<ProfilePage />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="/password-reset/:token" element={<ResetPassword />} />
           {/* Add more routes as needed */}
         </Route>
       </Routes>
