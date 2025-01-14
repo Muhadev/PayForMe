@@ -3,9 +3,37 @@ import { Form, Button, Row, Col, Image, Modal } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+// import axiosInstance from '../../helper/axiosConfig'; 
+import { refreshAccessToken } from '../../helper/authHelpers'; 
 import { useForm, Controller } from 'react-hook-form';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+
+
+// Create axios instance with default config
+const api = axios.create({
+  baseURL: process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000',
+  withCredentials: true,
+  headers: {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json'
+  }
+});
+
+// Add request interceptor to add token
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('accessToken');
+  console.log('Access Token:', localStorage.getItem('accessToken'));
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+    console.log('Authorization header set:', config.headers.Authorization);
+  } else {
+    console.warn('Token is missing from local storage');
+  }
+  return config;
+}, (error) => {
+  return Promise.reject(error);
+});
 
 function CreateProjectForm() {
   const { register, handleSubmit, formState: { errors }, watch, setValue, getValues, control } = useForm({
@@ -39,25 +67,54 @@ function CreateProjectForm() {
   const watchImageType = watch('imageType', 'file');
   const watchVideoType = watch('videoType');
 
+  // const fetchCategories = async () => {
+  //   try {
+  //     // Debug: Check if token exists
+  //     const token = localStorage.getItem('token');
+  //     console.log('Token exists:', !!token);
+
+  //     const response = await api.get('/api/v1/categories/');
+  //     if (response.data && response.data.data) {
+  //       setCategories(response.data.data);
+  //     } else {
+  //       toast.error('Invalid category data format received');
+  //     }
+  //   } catch (error) {
+  //     // Enhanced error logging
+  //     console.error('Category fetch error details:', {
+  //       status: error.response?.status,
+  //       statusText: error.response?.statusText,
+  //       data: error.response?.data,
+  //       headers: error.response?.headers
+  //     });
+  //     const errorMessage = error.response?.data?.error || 'Failed to fetch categories';
+  //     toast.error(errorMessage);
+  //     console.error('Category fetch error:', error);
+  //   }
+  // };
+
+  const fetchCategories = async () => {
+    setIsLoading(true); // Show loading spinner
+    try {
+      const response = await api.get('/api/v1/categories/');
+      console.log('Categories response:', response.data);
+      if (response?.data?.data?.length) {
+        setCategories(response.data.data);
+      } else {
+        toast.error('Invalid category data format received');
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      const errorMessage = error.response?.data?.error || 'Failed to fetch categories';
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false); // Hide loading spinner
+    }
+  };
+
   useEffect(() => {
     fetchCategories();
   }, []);
-
-  const fetchCategories = async () => {
-    try {
-      const response = await axios.get(
-        `${process.env.REACT_APP_BACKEND_URL}/api/v1/categories`, 
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        }
-      );
-      setCategories(response.data);
-    } catch (error) {
-      toast.error('Failed to fetch categories');
-    }
-  };
 
   const onSubmit = async (data, isDraft = false) => {
     setIsLoading(true);
@@ -96,18 +153,33 @@ function CreateProjectForm() {
     }
 
     try {
-      const endpoint = isDraft ? '/api/v1/projects/drafts' : 'projects';
-      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/${endpoint}`, formData, {
+      const endpoint = isDraft ? '/api/v1/projects/drafts/' : '/api/v1/projects/';
+      const response = await api.post(endpoint, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
 
-      toast.success(isDraft ? 'Project saved as draft' : 'Project submitted successfully!');
-      navigate(isDraft ? `/api/v1/projects/drafts/${response.data.project.id}` : `/api/v1/projects/${response.data.project.id}`);
+      if (response.data && response.data.project) {
+        toast.success(isDraft ? 'Project saved as draft' : 'Project submitted successfully!');
+        navigate(isDraft ? 
+          `/projects/drafts/${response.data.project.id}` : 
+          `/projects/${response.data.project.id}`
+        );
+      } else {
+        throw new Error('Invalid response format');
+      }
     } catch (error) {
-      toast.error(error.response?.data?.error || 'An error occurred while processing the project');
+      if (error.response?.status === 401) {
+        // Attempt to refresh the token
+        const newToken = await refreshAccessToken();
+        if (newToken) {
+          // Retry the original request with the new token
+          return onSubmit(data, isDraft);
+        }
+      }
+      const errorMessage = error.response?.data?.error || error.message || 'An error occurred while processing the project';
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -195,14 +267,14 @@ function CreateProjectForm() {
           {errors.title && <span className="text-danger">{errors.title.message}</span>}
         </Form.Group>
 
-        <Form.Group className="mb-3">
+        <Form.Group controlId="category_id" className="mb-3">
           <Form.Label>Category</Form.Label>
           <Form.Control 
             as="select"
             {...register("category_id", { required: !isDraft ? "Category is required" : false })}
           >
             <option value="">Select a category</option>
-            {categories.map(category => (
+            {categories.map((category) => (
               <option key={category.id} value={category.id}>
                 {category.name}
               </option>

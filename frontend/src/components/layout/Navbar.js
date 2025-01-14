@@ -57,7 +57,7 @@ function AppNavbar() {
           <Nav>
             <button className="btn btn-primary start-project-btn">
               <i className="bi bi-plus-circle"></i>
-              Start a Project
+              Start Project
             </button>
             <Nav.Link href="/signin" className="sign-in">
               <i className="bi bi-person"></i>

@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, jsonify, request
 import logging
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
@@ -7,6 +7,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from app.utils.redis_client import get_redis_client
 from flask_cors import CORS
+# from flask_cors import CORS
 from flask_uploads import configure_uploads, IMAGES, UploadSet
 from config import Config
 from flask_caching import Cache
@@ -56,7 +57,24 @@ def create_app():
     migrate.init_app(app, db)
     jwt.init_app(app)
     limiter.init_app(app)
-    CORS(app)
+    # Configure CORS
+    
+    CORS(app, supports_credentials=True)  # Allow credentials
+
+    # def log_request(response):
+    #     print("Request Origin:", request.headers.get('Origin'))
+    #     print("Access-Control-Allow-Origin:", response.headers.get('Access-Control-Allow-Origin'))
+    #     return response
+
+    # app.after_request(log_request)
+    # CORS(app, supports_credentials=True, resources={
+    #     r"/api/v1/*": {
+    #         "origins": ["https://payforme.postman.co", "http://localhost:3000"],
+    #         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    #         "allow_headers": ["Content-Type", "Authorization"]
+    #     }
+    # })
+
     configure_logging()
 
     # auth-related routes
@@ -98,6 +116,14 @@ def create_app():
     #Reward-related routes
     from app.routes.reward_routes import reward_bp
     app.register_blueprint(reward_bp, url_prefix='/api/v1/rewards')
+
+    @app.errorhandler(422)
+    def handle_validation_error(e):
+        return jsonify({
+            "status": "error",
+            "message": "Invalid request data",
+            "errors": e.data['messages'] if hasattr(e, 'data') else None
+        }), 422
 
     # Add Donation, Payment, and Stripe Webhook blueprints
     # from app.routes.donation_routes import donation_bp

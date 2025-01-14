@@ -138,14 +138,18 @@ class AuthService:
             for perm in role.permissions:
                 permissions.add(perm.name)
         
+        # Add basic permissions that all authenticated users should have
+        basic_permissions = {'view_categories'}
+        permissions.update(basic_permissions)
         additional_claims = {
             "roles": roles,
             "permissions": list(permissions),
-            'last_permission_update': user.last_permission_update.timestamp()
+            'last_permission_update': user.last_permission_update.timestamp() if user.last_permission_update else time.time()
         }
 
         access_token = create_access_token(identity=user.id, additional_claims=additional_claims)
         return access_token
+
     @staticmethod
     def deactivate_user(user_id):
         user = User.query.get(user_id)

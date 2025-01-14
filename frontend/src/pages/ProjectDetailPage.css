@@ -1,8 +1,92 @@
-.project-detail-page {
+/* .project-detail-page {
     padding: 20px;
   }
   
   .description {
     margin-bottom: 20px;
   }
+   */
+
+   .project-detail-page {
+    padding: 20px;
+  }
   
+  .description {
+    margin-bottom: 20px;
+    line-height: 1.6;
+  }
+  
+  /* Project Header Styles */
+  .creator-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  
+  .creator-controls button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  /* Progress Bar Customization */
+  .progress {
+    height: 12px;
+    border-radius: 6px;
+  }
+  
+  /* Rewards Section */
+  .rewards-list {
+    max-height: 600px;
+    overflow-y: auto;
+  }
+  
+  .reward-item {
+    transition: all 0.3s ease;
+  }
+  
+  .reward-item:hover {
+    border-color: #0d6efd !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  /* Media Section */
+  .embed-responsive {
+    position: relative;
+    padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+    height: 0;
+    overflow: hidden;
+  }
+  
+  .embed-responsive iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+  
+  /* Tabs Customization */
+  .nav-tabs .nav-link {
+    color: #6c757d;
+  }
+  
+  .nav-tabs .nav-link.active {
+    font-weight: 500;
+  }
+  
+  /* Responsive Adjustments */
+  @media (max-width: 768px) {
+    .creator-controls {
+      flex-direction: column;
+      width: 100%;
+      margin-top: 1rem;
+    }
+  
+    .creator-controls button {
+      width: 100%;
+      justify-content: center;
+      margin-bottom: 0.5rem;
+    }
+  }

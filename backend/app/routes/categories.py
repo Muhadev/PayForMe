@@ -51,6 +51,7 @@ def get_category(category_id):
         logger.error(f'Error retrieving category with ID {category_id}: {e}')
         return jsonify({'error': str(e)}), 500
 
+# Update your categories endpoint view_categories
 @categories_bp.route('/', methods=['GET'])
 @jwt_required()
 @permission_required('view_categories')
@@ -58,13 +59,19 @@ def get_all_categories_route():
     """Retrieve all categories."""
     try:
         categories = get_all_categories()
-        return jsonify([{
-            'id': category.id,
-            'name': category.name
-        } for category in categories]), 200
+        return jsonify({
+            "status": "success",
+            "data": [{
+                'id': category.id,
+                'name': category.name
+            } for category in categories]
+        }), 200
     except Exception as e:
         logger.error(f'Error retrieving all categories: {e}')
-        return jsonify({'error': str(e)}), 500
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
 
 @categories_bp.route('/<int:category_id>', methods=['PUT'])
 @jwt_required()

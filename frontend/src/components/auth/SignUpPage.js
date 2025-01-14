@@ -34,6 +34,8 @@ function SignUpPage() {
       );
 
       if (response.status === 201) {
+        const { token } = response.data; // Ensure your API returns the token here
+        localStorage.setItem('token', token); // Save the token in local storage
         // Show a success message using a toast
         toast.success('Registration successful! Please check your email to verify your account.');
       

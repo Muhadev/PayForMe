@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+// import axios from 'axios';
 import { Container, Form, Button, Row, Col } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
+import axiosInstance from '../../helper/axiosConfig';
+import { refreshAccessToken } from '../../helper/authHelpers';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css'; // Ensure CSS is imported for styling
 import './SignInPage.css'; // Import custom CSS for styling
@@ -18,15 +20,18 @@ function SignInPage() {
     setIsLoading(true);
 
     try {
-      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/v1/auth/login`, {
-        email: email,
-        password: password,
+      const response = await axiosInstance.post('/api/v1/auth/login', {
+        email,
+        password,
       });
 
       if (response.status === 200) {
         // Save tokens to local storage or cookies
-        localStorage.setItem('accessToken', response.data.access_token);
-        localStorage.setItem('refreshToken', response.data.refresh_token);
+        const { access_token, refresh_token } = response.data;
+
+        // Save tokens to local storage
+        localStorage.setItem('accessToken', access_token);
+        localStorage.setItem('refreshToken', refresh_token);
 
         // Show success message using toast
         toast.success('Login successful! Redirecting to dashboard.');
@@ -37,8 +42,32 @@ function SignInPage() {
         }, 2000); // Optional delay to let the user see the message
       }
     } catch (error) {
-      // Handle login errors
-      setErrorMessage(error.response?.data?.msg || 'Login failed. Please try again.');
+      // Handle specific 401 error
+      if (error.response?.status === 401) {
+        toast.error('Invalid email or password. Please try again.');
+      } else {
+        // Attempt to refresh token if expired
+        const newToken = await refreshAccessToken();
+        if (!newToken) {
+          toast.error('Session expired. Please log in again.');
+        } else {
+          // Retry the original request with the new token (if applicable)
+          try {
+            const retryResponse = await axiosInstance.post('/api/v1/auth/login', {
+              email,
+              password,
+            });
+            if (retryResponse.status === 200) {
+              toast.success('Login successful on retry! Redirecting to dashboard.');
+              setTimeout(() => {
+                navigate('/dashboard');
+              }, 2000);
+            }
+          } catch (retryError) {
+            toast.error('Login failed. Please try again later.');
+          }
+        }
+      }
     } finally {
       setIsLoading(false);
     }
