@@ -59,21 +59,16 @@ def create_app():
     limiter.init_app(app)
     # Configure CORS
     
-    CORS(app, supports_credentials=True)  # Allow credentials
-
-    # def log_request(response):
-    #     print("Request Origin:", request.headers.get('Origin'))
-    #     print("Access-Control-Allow-Origin:", response.headers.get('Access-Control-Allow-Origin'))
-    #     return response
-
-    # app.after_request(log_request)
-    # CORS(app, supports_credentials=True, resources={
-    #     r"/api/v1/*": {
-    #         "origins": ["https://payforme.postman.co", "http://localhost:3000"],
-    #         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    #         "allow_headers": ["Content-Type", "Authorization"]
-    #     }
-    # })
+    # Configure CORS properly with all options in one place
+    CORS(app, 
+         resources={r"/api/v1/*": {
+             "origins": ["http://localhost:3000"],
+             "allow_credentials": True,
+             "expose_headers": ["Content-Type", "Authorization"],
+             "methods": ["GET", "PUT", "POST", "DELETE", "OPTIONS"],
+             "supports_credentials": True
+         }}
+    )
 
     configure_logging()
 
@@ -124,15 +119,5 @@ def create_app():
             "message": "Invalid request data",
             "errors": e.data['messages'] if hasattr(e, 'data') else None
         }), 422
-
-    # Add Donation, Payment, and Stripe Webhook blueprints
-    # from app.routes.donation_routes import donation_bp
-    # app.register_blueprint(donation_bp, url_prefix='/api/v1/donations')
-
-    # from app.routes.payment_routes import payment_bp
-    # app.register_blueprint(payment_bp, url_prefix='/api/v1/payments/donations')
-
-    # from app.routes.webhooks.stripe_webhook import stripe_webhook_bp
-    # app.register_blueprint(stripe_webhook_bp, url_prefix='/api/v1/webhooks/stripe')
     
     return app

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { refreshAccessToken } from './authHelpers'
 
 const axiosInstance = axios.create({
   baseURL: process.env.REACT_APP_BACKEND_URL,

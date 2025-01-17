@@ -30,25 +30,40 @@ def create_project(data: Dict[str, Any]) -> Project:
         # Log the entire data payload to check the received data
         logger.info(f"Received data: {data}")
 
+        # Determine if this is a draft based on status
+        is_draft = data.get('status') == ProjectStatus.DRAFT
+
         # Convert status to enum if it's a string
-        status = data.get('status', ProjectStatus.DRAFT)
+        status = data.get('status', ProjectStatus.DRAFT if is_draft else ProjectStatus.PENDING)
 
         logger.info(f"Status before creating project: {status}")  # Add this log
 
-        new_project = Project(
-            title=data['title'],
-            description=data['description'],
-            goal_amount=data['goal_amount'],
-            start_date=datetime.strptime(data['start_date'], '%Y-%m-%d').date(),
-            end_date=datetime.strptime(data['end_date'], '%Y-%m-%d').date(),
-            status=status,
-            featured=data.get('featured', False),
-            risk_and_challenges=data.get('risk_and_challenges', ''),
-            video_url=data.get('video_url', ''),
-            image_url=data.get('image_url', ''),
-            creator_id=data['creator_id'],
-            category_id=data['category_id'],
-        )
+        # Convert featured to boolean if it's a string
+        featured = data.get('featured', False)
+        if isinstance(featured, str):
+            featured = featured.lower() == 'true'
+        # Set default values for optional fields when creating draft
+        default_date = datetime.now().date()
+        project_data = {
+            'title': data['title'],
+            'description': data.get('description', '') if is_draft else data['description'],
+            'goal_amount': data.get('goal_amount', 0) if is_draft else data['goal_amount'],
+            'start_date': datetime.strptime(data.get('start_date', default_date.strftime('%Y-%m-%d')), '%Y-%m-%d').date(),
+            'end_date': datetime.strptime(data.get('end_date', default_date.strftime('%Y-%m-%d')), '%Y-%m-%d').date(),
+            'status': status,
+            'featured': featured,
+            'risk_and_challenges': data.get('risk_and_challenges', ''),
+            'video_url': data.get('video_url', ''),
+            'image_url': data.get('image_url', ''),
+            'creator_id': data['creator_id'],
+            'category_id': data.get('category_id', 1) if is_draft else data['category_id']  # Default to category_id 1 for drafts
+        }
+
+        # Log the project data before creation
+        logger.info(f"Project data before creation: {project_data}")
+
+        new_project = Project(**project_data)
+
         logger.info(f"Project status before adding to session: {new_project.status}")
         db.session.add(new_project)
         logger.info(f"Project status before commit: {new_project.status}")
@@ -58,9 +73,16 @@ def create_project(data: Dict[str, Any]) -> Project:
 
         # Create notification for admins if the project is pending
         if new_project.status == ProjectStatus.PENDING:
-            NotificationService.create_admin_notification(f"New project '{new_project.title}' needs review")
+            try:
+                NotificationService.create_admin_notification(
+                    message=f"New project '{new_project.title}' needs review",
+                    project_id=new_project.id
+                )
+            except Exception as e:
+                logger.error(f"Failed to create admin notification: {e}")
 
         return new_project
+
     except KeyError as e:
         logger.error(f"Missing required field: {e}")
         raise ValidationError(f"Missing required field: {e}")

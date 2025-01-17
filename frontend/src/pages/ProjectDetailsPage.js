@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 import axios from 'axios';
 import './ProjectDetailPage.css';
 
-import { PencilIcon, GiftIcon, BellIcon, GearIcon, ShareIcon, BookmarkIcon } from 'lucide-react';
+import { PencilIcon, GiftIcon, BellIcon, Cog, ShareIcon, BookmarkIcon } from 'lucide-react';
 
 // Create axios instance with default config
 const api = axios.create({
@@ -140,7 +140,7 @@ const ProjectDetailsPage = () => {
                         <BellIcon size={16} /> Post Update
                       </Button>
                       <Button variant="outline-secondary">
-                        <GearIcon size={16} /> Manage Project
+                        <Cog size={16} /> Manage Project
                       </Button>
                     </div>
                   )}

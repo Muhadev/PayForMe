@@ -29,9 +29,13 @@ class ProjectValidator:
 
     @staticmethod
     def validate_description(description: str, is_draft: bool) -> None:
-        if not is_draft and not description:
-            raise ValidationError("Description is required")
-        if description and len(description) > ProjectLimits.DESCRIPTION_MAX_LENGTH:
+        # Remove the requirement check for drafts
+        if not description:
+            if not is_draft:
+                raise ValidationError("Description is required")
+            return  # Allow empty description for drafts
+            
+        if len(description) > ProjectLimits.DESCRIPTION_MAX_LENGTH:
             raise ValidationError(f"Description must be {ProjectLimits.DESCRIPTION_MAX_LENGTH} characters or less")
 
     @staticmethod
@@ -79,8 +83,18 @@ class ProjectValidator:
 
     @staticmethod
     def validate_featured(featured: Any) -> None:
-        if featured is not None and not isinstance(featured, bool):
-            raise ValidationError("Featured must be a boolean value")
+        if featured is not None:
+            if isinstance(featured, str):
+                # Convert string to boolean
+                if featured.lower() == 'true':
+                    return True
+                elif featured.lower() == 'false':
+                    return False
+                else:
+                    raise ValidationError("Featured must be a boolean value or 'true'/'false' string")
+            elif not isinstance(featured, bool):
+                raise ValidationError("Featured must be a boolean value")
+        return False
 
     @staticmethod
     def validate_risk_and_challenges(risk_and_challenges: str) -> None:
@@ -144,11 +158,17 @@ def validate_project_data(data: Dict[str, Any], is_draft: bool = False) -> Dict[
 
     data['status'] = status
     
-    # Check for required fields
+    # Only validate required fields if not a draft
     if not is_draft:
+        required_fields = ['title', 'description', 'goal_amount', 'end_date', 'category_id']
         missing_fields = [field for field in required_fields if field not in data or not data[field]]
         if missing_fields:
             raise ValidationError(f"Missing required fields: {', '.join(missing_fields)}")
+    else:
+        # For drafts, only title is required
+        if not data.get('title'):
+            raise ValidationError("Title is required even for drafts")
+
 
     # Validate fields
     if 'title' in data:
@@ -165,8 +185,15 @@ def validate_project_data(data: Dict[str, Any], is_draft: bool = False) -> Dict[
     # Optional fields
     if 'start_date' in data:
         ProjectValidator.validate_start_date(data.get('start_date'), data.get('end_date'), is_draft)
+    # Handle featured field conversion
     if 'featured' in data:
-        ProjectValidator.validate_featured(data['featured'])
+        try:
+            if isinstance(data['featured'], str):
+                data['featured'] = data['featured'].lower() == 'true'
+            elif not isinstance(data['featured'], bool):
+                raise ValidationError("Featured must be a boolean value")
+        except Exception as e:
+            raise ValidationError(f"Invalid featured value: {str(e)}")
     if 'risk_and_challenges' in data:
         ProjectValidator.validate_risk_and_challenges(data['risk_and_challenges'])
     if 'video_url' in data:

@@ -34,12 +34,28 @@ def uploaded_file(filename):
 def limit_blueprint_requests():
     pass
 
-@projects_bp.route('/drafts', methods=['POST'])
+@projects_bp.route('/drafts', methods=['POST'], strict_slashes=False)
 @jwt_required()
 @permission_required('create_draft')
 def create_draft_project():
+    # if request.method == 'OPTIONS':
+    #     return api_response(message="OK", status_code=200)
     try:
-        data = request.json
+        # For multipart/form-data
+        if request.content_type and request.content_type.startswith('multipart/form-data'):
+            data = request.form.to_dict()
+            # Handle files if present
+            if request.files:
+                for key in request.files:
+                    file = request.files[key]
+                    # Handle file upload and add URL to data
+        else:
+            # For JSON content
+            data = request.json
+
+        if not data:
+            return api_response(message="No data received", status_code=400)
+
         data['status'] = ProjectStatus.DRAFT  # Enum instance, not the value
         data['creator_id'] = get_jwt_identity()
 
@@ -53,7 +69,16 @@ def create_draft_project():
         # Create the new project using validated data
         new_project = create_project(validated_data)
 
-        return api_response(data=new_project.to_dict(), message="Draft project created successfully", status_code=201)
+        project_dict = new_project.to_dict()
+        
+        logger.info(f"Sending response with project data: {project_dict}")  # Add this log
+        
+        return api_response(
+            data=project_dict,
+            message="Draft project created successfully",
+            status_code=201
+        )
+
     except ValidationError as e:
         logger.warning(f"Validation error in create_draft_project: {e}")
         return api_response(message=str(e), status_code=400)

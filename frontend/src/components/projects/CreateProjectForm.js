@@ -13,10 +13,10 @@ import 'react-quill/dist/quill.snow.css';
 // Create axios instance with default config
 const api = axios.create({
   baseURL: process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000',
-  withCredentials: true,
+  // withCredentials: true,
   headers: {
     'Accept': 'application/json',
-    'Content-Type': 'application/json'
+    // 'Content-Type': 'application/json'
   }
 });
 
@@ -35,6 +35,25 @@ api.interceptors.request.use((config) => {
   return Promise.reject(error);
 });
 
+// Add this after your request interceptor
+api.interceptors.response.use(
+  (response) => {
+    console.log('API Response Interceptor:', {
+      url: response.config.url,
+      status: response.status,
+      data: response.data
+    });
+    return response;
+  },
+  (error) => {
+    console.error('API Error Interceptor:', {
+      url: error.config?.url,
+      status: error.response?.status,
+      data: error.response?.data
+    });
+    return Promise.reject(error);
+  }
+);
 function CreateProjectForm() {
   const { register, handleSubmit, formState: { errors }, watch, setValue, getValues, control } = useForm({
     defaultValues: {
@@ -67,32 +86,6 @@ function CreateProjectForm() {
   const watchImageType = watch('imageType', 'file');
   const watchVideoType = watch('videoType');
 
-  // const fetchCategories = async () => {
-  //   try {
-  //     // Debug: Check if token exists
-  //     const token = localStorage.getItem('token');
-  //     console.log('Token exists:', !!token);
-
-  //     const response = await api.get('/api/v1/categories/');
-  //     if (response.data && response.data.data) {
-  //       setCategories(response.data.data);
-  //     } else {
-  //       toast.error('Invalid category data format received');
-  //     }
-  //   } catch (error) {
-  //     // Enhanced error logging
-  //     console.error('Category fetch error details:', {
-  //       status: error.response?.status,
-  //       statusText: error.response?.statusText,
-  //       data: error.response?.data,
-  //       headers: error.response?.headers
-  //     });
-  //     const errorMessage = error.response?.data?.error || 'Failed to fetch categories';
-  //     toast.error(errorMessage);
-  //     console.error('Category fetch error:', error);
-  //   }
-  // };
-
   const fetchCategories = async () => {
     setIsLoading(true); // Show loading spinner
     try {
@@ -120,70 +113,154 @@ function CreateProjectForm() {
     setIsLoading(true);
     const formData = new FormData();
     // Always append title for both draft and non-draft
-    formData.append("title", data.title);
+    try{
+      formData.append("title", data.title);
 
-    // Append status (either draft or pending)
-    formData.append('status', isDraft ? 'draft' : 'pending');
+      // Convert featured to boolean string that Python can parse
+      if (data.featured !== undefined) {
+        // Convert to lowercase string 'true' or 'false'
+        formData.append('featured', String(Boolean(data.featured)).toLowerCase());
+      }
 
-    // Append the featured field
-    formData.append("featured", data.featured);
+      // Append status (either draft or pending)
+      formData.append('status', isDraft ? 'draft' : 'pending');
 
-    // Only append other fields if it's not a draft
-    if (!isDraft) {
-      formData.append("description", data.description);
-      formData.append("goal_amount", data.goal_amount);
-      formData.append("start_date", data.start_date);
-      formData.append("end_date", data.end_date);
-      formData.append("category_id", data.category_id);
-      formData.append("risk_and_challenges", data.risk_and_challenges);
+      // Only append other fields if it's not a draft
+      if (!isDraft) {
+        if (data.description) formData.append('description', data.description);
+        if (data.goal_amount) formData.append('goal_amount', data.goal_amount);
+        if (data.start_date) formData.append('start_date', data.start_date);
+        if (data.end_date) formData.append('end_date', data.end_date);
+        if (data.category_id) formData.append('category_id', data.category_id);
+        if (data.risk_and_challenges) formData.append('risk_and_challenges', data.risk_and_challenges);
+        // formData.append("featured", data.featured);/
+      }
+      // Handle optional fields
+      // if (data.featured !== undefined) formData.append('featured', data.featured);
 
-      // Handle image
-      if (data.imageType === 'file' && data.image[0]) {
+      // Handle media files
+      if (data.imageType === 'file' && data.image?.[0]) {
         formData.append('image', data.image[0]);
-      } else if (data.imageType === 'url') {
+      } else if (data.imageType === 'url' && data.imageUrl) {
         formData.append('imageUrl', data.imageUrl);
       }
 
-      // Handle video
-      if (data.videoType === 'file' && data.video[0]) {
+      if (data.videoType === 'file' && data.video?.[0]) {
         formData.append('video', data.video[0]);
-      } else if (data.videoType === 'url') {
+      } else if (data.videoType === 'url' && data.videoUrl) {
         formData.append('videoUrl', data.videoUrl);
       }
-    }
 
-    try {
-      const endpoint = isDraft ? '/api/v1/projects/drafts/' : '/api/v1/projects/';
+      for (let pair of formData.entries()) {
+        console.log(pair[0] + ': ' + pair[1]);
+      }
+
+      const endpoint = isDraft ? '/api/v1/projects/drafts' : '/api/v1/projects';
+    
+      // Let axios set the correct Content-Type header for FormData
       const response = await api.post(endpoint, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
-        }
+        },
       });
 
-      if (response.data && response.data.project) {
-        toast.success(isDraft ? 'Project saved as draft' : 'Project submitted successfully!');
-        navigate(isDraft ? 
-          `/projects/drafts/${response.data.project.id}` : 
-          `/projects/${response.data.project.id}`
-        );
-      } else {
-        throw new Error('Invalid response format');
-      }
-    } catch (error) {
-      if (error.response?.status === 401) {
-        // Attempt to refresh the token
+      console.log('Full API Response:', response);
+      console.log('Response data:', response.data);
+      console.log('Response status:', response.status);
+
+      // Check if we have a valid response with data
+    if (response.status === 201 && response.data) {
+      const projectData = response.data.data || response.data;
+      toast.success(isDraft ? 'Project saved as draft' : 'Project submitted successfully!');
+      navigate(isDraft ? 
+        `/projects/drafts/${projectData.id}` : 
+        `/projects/${projectData.id}`
+      );
+    } else {
+      console.error('Unexpected response structure:', response);
+      throw new Error('Invalid response format');
+    }
+  } catch (error) {
+    console.error('Detailed error:', error);
+    console.error('Error response:', error.response);
+    if (error.response?.status === 401) {
+      try {
         const newToken = await refreshAccessToken();
         if (newToken) {
-          // Retry the original request with the new token
           return onSubmit(data, isDraft);
         }
+      } catch (refreshError) {
+        toast.error('Session expired. Please log in again.');
+        return;
       }
-      const errorMessage = error.response?.data?.error || error.message || 'An error occurred while processing the project';
-      toast.error(errorMessage);
-    } finally {
-      setIsLoading(false);
+    }
+    const errorMessage = error.response?.data?.message || 
+                        error.response?.data?.error || 
+                        error.message || 
+                        'Failed to save project';
+    toast.error(errorMessage);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+
+  // Updated getValidationRules function with all fields
+const getValidationRules = (fieldName, isDraft) => {
+  const baseRules = {
+    title: { 
+      required: "Title is required",
+      maxLength: { value: 100, message: "Title must be 100 characters or less" }
+    },
+    description: { 
+      required: !isDraft && "Description is required",
+      maxLength: { value: 5000, message: "Description must be 5000 characters or less" }
+    },
+    goal_amount: { 
+      required: !isDraft && "Goal amount is required",
+      min: { value: 1, message: "Goal amount must be positive" },
+      validate: value => !value || value > 0 || "Goal amount must be greater than 0"
+    },
+    category_id: { 
+      required: !isDraft && "Category is required" 
+    },
+    start_date: { 
+      required: !isDraft && "Start date is required",
+      validate: {
+        futureDate: date => !date || new Date(date) >= new Date().setHours(0, 0, 0, 0) || "Start date must be in the future"
+      }
+    },
+    end_date: { 
+      required: !isDraft && "End date is required",
+      validate: {
+        futureDate: date => !date || new Date(date) >= new Date().setHours(0, 0, 0, 0) || "End date must be in the future",
+        afterStartDate: (date, formValues) => 
+          !date || !formValues.start_date || new Date(date) > new Date(formValues.start_date) || 
+          "End date must be after start date"
+      }
+    },
+    risk_and_challenges: {
+      required: !isDraft && "Risks and challenges are required",
+      maxLength: { value: 1000, message: "Risks and challenges must be 1000 characters or less" }
+    },
+    image: {
+      validate: {
+        acceptedFormats: files => 
+          !files?.[0] || ['image/jpeg', 'image/png', 'image/gif'].includes(files[0]?.type) || 
+          "Only JPEG, PNG and GIF files are allowed"
+      }
+    },
+    video: {
+      validate: {
+        acceptedFormats: files =>
+          !files?.[0] || ['video/mp4', 'video/quicktime'].includes(files[0]?.type) ||
+          "Only MP4 and MOV files are allowed"
+      }
     }
   };
+
+  return baseRules[fieldName] || {};
+};
 
   // Handle image file input safely
   const handleImageChange = (e) => {
@@ -259,8 +336,7 @@ function CreateProjectForm() {
           <Form.Label>Project Title</Form.Label>
           <Form.Control 
             type="text"
-            {...register("title", { 
-              required: "Title is required",
+            {...register("title", getValidationRules("title", false), { 
               maxLength: { value: 100, message: "Title must be 100 characters or less" }
             })}
           />
@@ -271,7 +347,7 @@ function CreateProjectForm() {
           <Form.Label>Category</Form.Label>
           <Form.Control 
             as="select"
-            {...register("category_id", { required: !isDraft ? "Category is required" : false })}
+            {...register("category_id", getValidationRules("category_id", false))}
           >
             <option value="">Select a category</option>
             {categories.map((category) => (
@@ -289,10 +365,7 @@ function CreateProjectForm() {
               <Form.Label>Funding Goal ($)</Form.Label>
               <Form.Control 
                 type="number"
-                {...register("goal_amount", { 
-                  required: !isDraft ? "Funding goal is required" : false,
-                  min: { value: 1, message: "Funding goal must be positive" }
-                })}
+                {...register("goal_amount", getValidationRules("goal_amount", false))}
               />
               {errors.goal_amount && <span className="text-danger">{errors.goal_amount.message}</span>}
             </Form.Group>
@@ -305,7 +378,7 @@ function CreateProjectForm() {
               <Form.Label>Start Date</Form.Label>
               <Form.Control 
                 type="date"
-                {...register("start_date", { required: !isDraft ? "Start date is required" : false })}
+                {...register("start_date", getValidationRules("start_date", false))}
               />
               {errors.start_date && <span className="text-danger">{errors.start_date.message}</span>}
             </Form.Group>
@@ -315,7 +388,7 @@ function CreateProjectForm() {
               <Form.Label>End Date</Form.Label>
               <Form.Control 
                 type="date"
-                {...register("end_date", { required: !isDraft ? "End date is required" : false })}
+                {...register("end_date", getValidationRules("end_date", false))}
               />
               {errors.end_date && <span className="text-danger">{errors.end_date.message}</span>}
             </Form.Group>
@@ -327,13 +400,24 @@ function CreateProjectForm() {
           <Controller
             name="description"
             control={control}
-            rules={{ required: !isDraft ? "Description is required" : false }}
+            rules={getValidationRules("description", false)}
             render={({ field }) => <ReactQuill {...field} />}
           />
           {errors.description && <span className="text-danger">{errors.description.message}</span>}
         </Form.Group>
-
+        
         <Form.Group className="mb-3">
+          <Form.Label>Risks and Challenges</Form.Label>
+          <Controller
+            name="risk_and_challenges"
+            control={control}
+            rules={getValidationRules("risk_and_challenges", false)}
+            render={({ field }) => <ReactQuill {...field} />}
+          />
+          {errors.risk_and_challenges && <span className="text-danger">{errors.risk_and_challenges.message}</span>}
+        </Form.Group>
+
+        {/* <Form.Group className="mb-3">
           <Form.Label>Risks and Challenges</Form.Label>
           <Form.Control 
             as="textarea" 
@@ -344,7 +428,7 @@ function CreateProjectForm() {
             })}
           />
           {errors.risk_and_challenges && <span className="text-danger">{errors.risk_and_challenges.message}</span>}
-        </Form.Group>
+        </Form.Group> */}
 
         <Form.Group className="mb-3">
           <Form.Label>Project Image</Form.Label>
