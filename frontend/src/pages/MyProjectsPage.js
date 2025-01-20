@@ -58,16 +58,16 @@ const MyProjectsPage = () => {
   //   }
   // };
 
-  const handleEditDraft = (projectId) => {
-    navigate(`/projects/drafts/edit/${projectId}`);
-  };
-
   const handleViewDetails = (project) => {
     if (project.status === 'DRAFT') {
       navigate(`/projects/drafts/${project.id}`);
     } else {
       navigate(`/projects/${project.id}`);
     }
+  };
+  
+  const handleEditDraft = (projectId) => {
+    navigate(`/projects/drafts/edit/${projectId}`);
   };
 
   return (

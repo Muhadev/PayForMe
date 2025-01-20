@@ -36,16 +36,31 @@ const ProjectDetailsPage = () => {
   const [error, setError] = useState(null);
   const [isCreator, setIsCreator] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isDraft, setIsDraft] = useState(false);
 
   useEffect(() => {
     const fetchProjectDetails = async () => {
       try {
-        const response = await api.get(`/api/v1/projects/${id}`);
-        setProject(response.data.data);
+        setIsLoading(true);
+        let projectResponse;
+        
+        // First try to fetch as a draft
+        try {
+          const draftResponse = await api.get(`/api/v1/projects/drafts/${id}`);
+          projectResponse = draftResponse;
+          setProject(draftResponse.data.data);
+          setIsDraft(true);
+        } catch (draftError) {
+          // If not found as draft, try regular project endpoint
+          const response = await api.get(`/api/v1/projects/${id}`);
+          projectResponse = response;
+          setProject(response.data.data);
+          setIsDraft(false);
+        }
         
         // Check if current user is creator
         const userId = localStorage.getItem('userId');
-        setIsCreator(response.data.data.creator_id === parseInt(userId));
+        setIsCreator(projectResponse.data.data.creator_id === parseInt(userId));
         
         // Check if user is admin
         const userRole = localStorage.getItem('userRole');
@@ -57,9 +72,17 @@ const ProjectDetailsPage = () => {
         setIsLoading(false);
       }
     };
-
+  
     fetchProjectDetails();
   }, [id]);
+
+  const handleEditDraft = () => {
+    navigate(`/projects/drafts/edit/${id}`);
+  };
+
+  const handleEditProject = () => {
+    navigate(`/projects/edit/${id}`);
+  };
 
   const handleProjectAction = async (action) => {
     try {
@@ -89,7 +112,7 @@ const ProjectDetailsPage = () => {
 
   return (
     <div className="project-detail-page">
-      {project.status === 'pending' && (
+      {project.status === 'PENDING' && (
         <Alert variant="warning" className="mb-4">
           Your project is currently under review and not yet visible to others.
         </Alert>
@@ -128,10 +151,10 @@ const ProjectDetailsPage = () => {
                     <h5 className="text-muted">{project.tagline}</h5>
                     <Badge bg="primary" className="mt-2">{project.category?.name}</Badge>
                   </div>
-                  {isCreator && (
+                  {/* {isCreator && ( */}
                     <div className="creator-controls">
-                      <Button variant="outline-primary" className="me-2" onClick={() => navigate(`/projects/${id}/edit`)}>
-                        <PencilIcon size={16} /> Edit Project
+                      <Button variant="outline-primary" className="me-2" onClick={isDraft ? handleEditDraft : handleEditProject}>
+                      <PencilIcon size={16} /> {isDraft ? 'Edit Draft' : 'Edit Project'}
                       </Button>
                       <Button variant="outline-primary" className="me-2">
                         <GiftIcon size={16} /> Add Reward
@@ -143,7 +166,7 @@ const ProjectDetailsPage = () => {
                         <Cog size={16} /> Manage Project
                       </Button>
                     </div>
-                  )}
+                  {/* )} */}
                 </div>
 
                 <div className="d-flex justify-content-between align-items-center mt-4">

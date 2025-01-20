@@ -55,6 +55,7 @@ api.interceptors.response.use(
   }
 );
 function CreateProjectForm() {
+  const [isDraft, setIsDraft] = useState(false);
   const { register, handleSubmit, formState: { errors }, watch, setValue, getValues, control, reset } = useForm({
     defaultValues: {
       title: "",
@@ -139,7 +140,20 @@ function CreateProjectForm() {
     setShowPreview(true);
   };
 
-  const onSubmit = async (data, saveAsDraft = false) => {
+  // Add handleSaveAsDraft function
+  const handleSaveAsDraft = async (data) => {
+    try {
+      setIsSubmitting(true);
+      await onSubmit(data, true);
+      toast.success('Project saved as draft');
+    } catch (error) {
+      toast.error('Failed to save draft');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const onSubmit = async (data, isDraft = false) => {
     setIsLoading(true);
     try{
       const formData = new FormData();
@@ -154,10 +168,10 @@ function CreateProjectForm() {
       }
 
       // Append status (either draft or pending)
-      formData.append('status', saveAsDraft ? 'draft' : 'pending');
+      formData.append('status', isDraft ? 'draft' : 'pending');
 
       // Only append other fields if it's not a draft
-      if (!saveAsDraft) {
+      if (!isDraft) {
         if (data.description) formData.append('description', data.description);
         if (data.goal_amount) formData.append('goal_amount', data.goal_amount);
         if (data.start_date) formData.append('start_date', data.start_date);
@@ -188,7 +202,7 @@ function CreateProjectForm() {
 
       const endpoint = isEditMode
         ? `/api/v1/projects/${id}`
-        : saveAsDraft
+        : isDraft
           ? '/api/v1/projects/drafts'
           : '/api/v1/projects';
 
@@ -201,7 +215,7 @@ function CreateProjectForm() {
       });
 
       if (response.status === 201 && response.data) {
-        toast.success(saveAsDraft ? 'Project saved as draft' : 'Project submitted successfully!');
+        toast.success(isDraft ? 'Project saved as draft' : 'Project submitted successfully!');
         navigate('/my-projects');
       } else {
         throw new Error('Invalid response format');
@@ -212,7 +226,7 @@ function CreateProjectForm() {
         try {
           const newToken = await refreshAccessToken();
           if (newToken) {
-            return onSubmit(data, saveAsDraft);
+            return onSubmit(data, isDraft);
           }
         } catch (refreshError) {
           toast.error('Session expired. Please log in again.');
@@ -237,25 +251,25 @@ const getValidationRules = (fieldName, saveAsDraft) => {
       maxLength: { value: 100, message: "Title must be 100 characters or less" }
     },
     description: { 
-      required: !saveAsDraft && "Description is required",
+      required: !isDraft && "Description is required",
       maxLength: { value: 5000, message: "Description must be 5000 characters or less" }
     },
     goal_amount: { 
-      required: !saveAsDraft && "Goal amount is required",
+      required: !isDraft && "Goal amount is required",
       min: { value: 1, message: "Goal amount must be positive" },
       validate: value => !value || value > 0 || "Goal amount must be greater than 0"
     },
     category_id: { 
-      required: !saveAsDraft && "Category is required" 
+      required: !isDraft && "Category is required" 
     },
     start_date: { 
-      required: !saveAsDraft && "Start date is required",
+      required: !isDraft && "Start date is required",
       validate: {
         futureDate: date => !date || new Date(date) >= new Date().setHours(0, 0, 0, 0) || "Start date must be in the future"
       }
     },
     end_date: { 
-      required: !saveAsDraft && "End date is required",
+      required: !isDraft && "End date is required",
       validate: {
         futureDate: date => !date || new Date(date) >= new Date().setHours(0, 0, 0, 0) || "End date must be in the future",
         afterStartDate: (date, formValues) => 
@@ -264,7 +278,7 @@ const getValidationRules = (fieldName, saveAsDraft) => {
       }
     },
     risk_and_challenges: {
-      required: !saveAsDraft && "Risks and challenges are required",
+      required: !isDraft && "Risks and challenges are required",
       maxLength: { value: 1000, message: "Risks and challenges must be 1000 characters or less" }
     },
     image: {
@@ -479,7 +493,7 @@ const getValidationRules = (fieldName, saveAsDraft) => {
               <Controller
                 name="image"
                 control={control}
-                rules={{ required: !saveAsDraft && watchImageType === 'file' ? "Project image is required" : false }}
+                rules={{ required: !isDraft && watchImageType === 'file' ? "Project image is required" : false }}
                 render={({ field }) => (
                   <Form.Control
                     type="file"
@@ -500,7 +514,7 @@ const getValidationRules = (fieldName, saveAsDraft) => {
               <Form.Label>Image URL</Form.Label>
               <Form.Control
                 type="text"
-                {...register("imageUrl", { required: !saveAsDraft && watchImageType === 'url' ? "Image URL is required" : false })}
+                {...register("imageUrl", { required: !isDraft && watchImageType === 'url' ? "Image URL is required" : false })}
               />
               {errors.imageUrl && <span className="text-danger">{errors.imageUrl.message}</span>}
             </Form.Group>
@@ -534,7 +548,7 @@ const getValidationRules = (fieldName, saveAsDraft) => {
               type="file" 
               accept="video/*"
               {...register("video", { 
-                required: !saveAsDraft && watchVideoType === 'file' ? "Project video is required" : false 
+                required: !isDraft && watchVideoType === 'file' ? "Project video is required" : false 
               })}
               onChange={handleVideoChange}
             />
@@ -544,7 +558,7 @@ const getValidationRules = (fieldName, saveAsDraft) => {
               type="url" 
               placeholder="Enter video URL (YouTube, Vimeo, etc.)"
               {...register("videoUrl", { 
-                required: !saveAsDraft && watchVideoType === 'url' ? "Video URL is required" : false 
+                required: !isDraft && watchVideoType === 'url' ? "Video URL is required" : false 
               })}
             />
           )}
@@ -569,44 +583,44 @@ const getValidationRules = (fieldName, saveAsDraft) => {
 
         <div className="button-group mt-4">
         <Button
-          variant="secondary"
-          className="me-2"
-          disabled={isSubmitting}
-          onClick={() => handleSubmit((data) => onSubmit(data, true))}
-        >
-          {isSubmitting ? (
-            <>
-              <Spinner size="sm" className="me-2" />
-              Saving...
-            </>
-          ) : (
-            'Save as Draft'
-          )}
-        </Button>
-        
-        <Button
-          variant="info"
-          className="me-2"
-          disabled={isSubmitting}
-          onClick={handlePreview}
-        >
-          Preview
-        </Button>
-        
-        <Button
-          variant="primary"
-          type="submit"
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            <>
-              <Spinner size="sm" className="me-2" />
-              {isEditMode ? 'Updating...' : 'Creating...'}
-            </>
-          ) : (
-            isEditMode ? 'Update Project' : 'Create Project'
-          )}
-        </Button>
+            variant="secondary"
+            className="me-2"
+            disabled={isSubmitting}
+            onClick={handleSubmit(handleSaveAsDraft)}
+          >
+            {isSubmitting ? (
+              <>
+                <Spinner size="sm" className="me-2" />
+                Saving Draft...
+              </>
+            ) : (
+              'Save as Draft'
+            )}
+          </Button>
+          
+          <Button
+            variant="info"
+            className="me-2"
+            disabled={isSubmitting}
+            onClick={handlePreview}
+          >
+            Preview
+          </Button>
+          
+          <Button
+            variant="primary"
+            type="submit"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <>
+                <Spinner size="sm" className="me-2" />
+                Creating Project
+              </>
+            ) : (
+              'Create Project'
+            )}
+          </Button>
       </div>
       </Form>
 
