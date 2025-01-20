@@ -160,6 +160,42 @@ def create_new_project():
     except Exception as e:
         logger.error(f'Error creating project: {str(e)}', exc_info=True)
         return api_response(message=f"An unexpected error occurred: {str(e)}", status_code=500)
+
+@projects_bp.route('/drafts/<int:draft_id>', methods=['GET', 'PUT'])
+@jwt_required()
+@permission_required('view_drafts')
+def handle_draft_project(draft_id):
+    try:
+        if request.method == 'GET':
+            project = get_project_by_id(draft_id)
+            if project.status != ProjectStatus.DRAFT:
+                return api_response(message="Project is not a draft", status_code=400)
+            return api_response(data=project.to_dict(), status_code=200)
+        
+        elif request.method == 'PUT':
+            current_user_id = get_jwt_identity()
+            project = get_project_by_id(draft_id)
+            
+            if project.creator_id != current_user_id:
+                return api_response(message="Not authorized to update this project", status_code=403)
+            if project.status != ProjectStatus.DRAFT:
+                return api_response(message="Only draft projects can be updated through this endpoint", status_code=400)
+
+            data = request.json
+            validated_data = validate_project_data(data, is_draft=True)
+            updated_project = update_project(draft_id, validated_data)
+            
+            return api_response(
+                data=updated_project.to_dict(),
+                message="Draft project updated successfully",
+                status_code=200
+            )
+
+    except ProjectNotFoundError as e:
+        return api_response(message=str(e), status_code=404)
+    except Exception as e:
+        logger.error(f'Error handling draft project with ID {draft_id}: {e}')
+        return api_response(message="An unexpected error occurred", status_code=500)
         
 @projects_bp.route('/drafts', methods=['GET'])
 @jwt_required()

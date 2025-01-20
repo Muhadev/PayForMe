@@ -1,34 +1,32 @@
 import React from 'react';
 import { Container, Row, Col, Card } from 'react-bootstrap';
+import { useParams, useLocation } from 'react-router-dom';
 import CreateProjectForm from '../components/projects/CreateProjectForm';
 import './CreateProjectPage.css';
 
 function CreateProjectPage() {
+  const { id } = useParams();
+  const location = useLocation();
+  const isEditMode = Boolean(id);
+  const isDraftEdit = location.pathname.includes('/drafts/edit');
+
   return (
-    <div className="create-project-page">
-      <Container>
-        <Row className="justify-content-center">
-          <Col md={10} lg={8}>
-            <Card className="shadow-sm">
-              <Card.Body>
-                <h2 className="text-center mb-4">Create New Project</h2>
-                {/* <Alert variant="info">
-                  <Alert.Heading>Tips for a Successful Project</Alert.Heading>
-                  <ul>
-                    <li>Choose a clear, attention-grabbing title</li>
-                    <li>Set a realistic funding goal</li>
-                    <li>Provide a detailed description of your project</li>
-                    <li>Add high-quality images or videos</li>
-                    <li>Clearly explain how the funds will be used</li>
-                  </ul>
-                </Alert> */}
-                <CreateProjectForm />
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-      </Container>
-    </div>
+    <Container className="create-project-page py-5">
+      <Row className="justify-content-center">
+        <Col md={10}>
+          <Card className="shadow-sm">
+            <Card.Header className="bg-white border-0 pt-4 px-4">
+              <h2 className="mb-0">
+                {isDraftEdit ? 'Edit Draft Project' : isEditMode ? 'Edit Project' : 'Create New Project'}
+              </h2>
+            </Card.Header>
+            <Card.Body className="px-4 pb-4">
+              <CreateProjectForm projectId={id} isDraftEdit={isDraftEdit} />
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+    </Container>
   );
 }
 

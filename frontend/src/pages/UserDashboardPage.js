@@ -4,6 +4,9 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faChartLine, faHeart, faBell } from '@fortawesome/free-solid-svg-icons';
 import './UserDashboardPage.css';
 import { Link, NavLink } from 'react-router-dom';
+import placeholderImage from '../assets/image.png';  // Adjust the path according to your folder structure
+import profileholderImage from '../assets/news2.png';  // Adjust the path according to your folder structure
+
 
 const Sidebar = () => (
   <Col md={3} className="sidebar">
@@ -11,10 +14,10 @@ const Sidebar = () => (
     <Card.Body>
       <div className="text-center mb-4">
         <img
-          src="https://via.placeholder.com/150"
+          src={profileholderImage}
           alt="Profile"
           className="rounded-circle mb-3"
-          style={{ width: '100px', height: '100px' }}
+          style={{ width: '100px', height: '110px', objectFit: 'cover' }}
         />
         <h4>John Doe</h4>
       </div>
@@ -44,7 +47,7 @@ const ProjectsList = () => (
   <Card className="mb-4">
     <Card.Header className="d-flex justify-content-between align-items-center">
       <h5 className="mb-0">My Latest Projects</h5>
-      <Link to="/create-project">
+      <Link to="/projects/create">
         <Button variant="primary" size="sm">
           <FontAwesomeIcon icon={faPlus} className="me-2" />
           Create New Project
@@ -56,7 +59,11 @@ const ProjectsList = () => (
         {[1, 2, 3].map((project) => (
           <Col md={4} key={project}>
             <Card>
-              <Card.Img variant="top" src={`https://via.placeholder.com/300x200?text=Project+${project}`} />
+            <Card.Img 
+                variant="top" 
+                src={project.image_url || placeholderImage} 
+                style={{ height: '200px', objectFit: 'cover' }}  // This will maintain aspect ratio
+              />
               <Card.Body>
                 <Card.Title>Project {project}</Card.Title>
                 <Card.Text>$1,234 raised of $5,000 goal</Card.Text>

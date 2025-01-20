@@ -4,7 +4,7 @@ import MainLayout from './components/layout/MainLayout';
 import HomePage from './pages/HomePage';
 import AboutPage from './pages/AboutPage';
 import ProjectsPage from './pages/ProjectsPage';
-import ProjectDetailPage from './pages/ProjectDetailsPage';  // Added for project details page
+import ProjectDetailsPage from './pages/ProjectDetailsPage';  // Added for project details page
 import CreateProjectPage from './pages/CreateProjectPage';  // Added for create project page
 import UserDashboardPage from './pages/UserDashboardPage';  // Added for user dashboard page
 import SignInPage from './components/auth/SignInPage';
@@ -21,6 +21,7 @@ import MyProjectsPage from './pages/MyProjectsPage';
 import BackedProjectsPage from './pages/BackedProjectsPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
+// import CreateProjectForm from './components/projects/CreateProjectForm';
 
 // import CreateProjectPage from './pages/CreateProjectPage';
 // Other imports...
@@ -45,8 +46,8 @@ function App() {
           <Route index element={<HomePage />} />
           <Route path="about" element={<AboutPage />} />
           <Route path="projects" element={<ProjectsPage />} />
-          <Route path="project/:id" element={<ProjectDetailPage />} /> {/* Dynamic route for project details */}
-          <Route path="create-project" element={<CreateProjectPage />} />
+          <Route path="project/:id" element={<ProjectDetailsPage />} /> {/* Dynamic route for project details */}
+          <Route path="projects/create" element={<CreateProjectPage />} />
           <Route path="dashboard" element={<UserDashboardPage />} />
           <Route path="signin" element={<SignInPage />} />
           <Route path="register" element={<SignUpPage />} />
@@ -60,6 +61,9 @@ function App() {
           <Route path="profile" element={<ProfilePage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="/password-reset/:token" element={<ResetPassword />} />
+          <Route path="projects/drafts/edit/:id" element={<CreateProjectPage />} />
+          <Route path="projects/drafts/:id" element={<ProjectDetailsPage />} />
+          {/* <Route path="projects/:id" element={<ProjectDetailPage />} /> */}
           {/* Add more routes as needed */}
         </Route>
       </Routes>
