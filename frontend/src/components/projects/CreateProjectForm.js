@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Form, Button, Row, Col, Image, Modal, Spinner } from 'react-bootstrap';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 // import axiosInstance from '../../helper/axiosConfig'; 
@@ -8,6 +8,7 @@ import { refreshAccessToken } from '../../helper/authHelpers';
 import { useForm, Controller } from 'react-hook-form';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import './CreateProjectForm.css';
 
 
 // Create axios instance with default config
@@ -86,6 +87,8 @@ function CreateProjectForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEditMode = Boolean(id);
+  const location = useLocation();
+  const isDraftEdit = location.pathname.includes('/drafts/edit');
 
   const watchImageType = watch('imageType', 'file');
   const watchVideoType = watch('videoType');
@@ -118,71 +121,126 @@ function CreateProjectForm() {
     const fetchDraftData = async () => {
       if (id) {
         try {
-          const response = await axios.get(`/api/v1/projects/${id}`);
+          setIsLoading(true);
+          const endpoint = isDraftEdit ? `/api/v1/projects/drafts/${id}` : `/api/v1/projects/${id}`;
+          const token = localStorage.getItem('accessToken');
+          
+          const response = await axios.get(endpoint, {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          });
+
           if (response.data?.data) {
             const projectData = response.data.data;
+            
+            // Reset form with project data
             reset({
-              ...projectData,
-              imageType: projectData.image ? 'file' : 'url',
-              videoType: projectData.video ? 'file' : 'url',
+              title: projectData.title,
+              category_id: projectData.category_id?.toString(),
+              goal_amount: projectData.goal_amount,
+              start_date: projectData.start_date,
+              end_date: projectData.end_date,
+              description: projectData.description,
+              risk_and_challenges: projectData.risk_and_challenges,
+              featured: projectData.featured,
+              imageType: projectData.image_url ? 'url' : 'file',
+              imageUrl: projectData.image_url || '',
+              videoType: projectData.video_url ? 'url' : 'file',
+              videoUrl: projectData.video_url || '',
             });
+
+            // Set previews if available
+            if (projectData.image_url) {
+              setImagePreview(projectData.image_url);
+            }
+            if (projectData.video_url) {
+              setVideoPreview(projectData.video_url);
+            }
           }
         } catch (error) {
-          toast.error('Failed to fetch draft data');
+          console.error('Error fetching draft:', error);
+          toast.error('Failed to fetch draft data: ' + (error.response?.data?.message || 'Unknown error'));
+        } finally {
+          setIsLoading(false);
         }
       }
     };
 
     fetchDraftData();
-  }, [id, reset]);
+  }, [id, isDraftEdit, reset]);
 
   const handlePreview = () => {
     setShowPreview(true);
   };
 
-  // Add handleSaveAsDraft function
+  // Modified submit handler to properly handle draft saving
   const handleSaveAsDraft = async (data) => {
     try {
       setIsSubmitting(true);
-      await onSubmit(data, true);
-      toast.success('Project saved as draft');
+      const formData = new FormData();
+      
+      // Only required fields for draft
+      formData.append("title", data.title);
+      formData.append("status", "draft");
+      
+      // Optional fields for draft
+      if (data.description) formData.append("description", data.description);
+      if (data.category_id) formData.append("category_id", data.category_id);
+      if (data.goal_amount) formData.append("goal_amount", data.goal_amount);
+      if (data.start_date) formData.append("start_date", data.start_date);
+      if (data.end_date) formData.append("end_date", data.end_date);
+      
+      // Handle media files
+      if (data.imageType === 'file' && data.image?.[0]) {
+        formData.append('image', data.image[0]);
+      } else if (data.imageType === 'url' && data.imageUrl) {
+        formData.append('imageUrl', data.imageUrl);
+      }
+
+      if (data.videoType === 'file' && data.video?.[0]) {
+        formData.append('video', data.video[0]);
+      } else if (data.videoType === 'url' && data.videoUrl) {
+        formData.append('videoUrl', data.videoUrl);
+      }
+
+      const response = await api.post('/api/v1/projects/drafts', formData);
+      
+      if (response.status === 201 || response.status === 200) {
+        toast.success('Project saved as draft');
+        navigate('/my-projects');
+      }
     } catch (error) {
-      toast.error('Failed to save draft');
+      toast.error(error.response?.data?.message || 'Failed to save draft');
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // Updated form submission handler
   const onSubmit = async (data, isDraft = false) => {
-    setIsLoading(true);
-    try{
+    if (isDraft) {
+      return handleSaveAsDraft(data);
+    }
+
+    setIsSubmitting(true);
+    try {
       const formData = new FormData();
-      // Always append title for both draft and non-draft
-
+      
+      // Required fields for full submission
       formData.append("title", data.title);
-
-      // Convert featured to boolean string that Python can parse
-      if (data.featured !== undefined) {
-        // Convert to lowercase string 'true' or 'false'
-        formData.append('featured', String(Boolean(data.featured)).toLowerCase());
+      formData.append("description", data.description);
+      formData.append("goal_amount", data.goal_amount);
+      formData.append("category_id", data.category_id);
+      formData.append("start_date", data.start_date);
+      formData.append("end_date", data.end_date);
+      formData.append("status", "PENDING");
+      
+      // Optional fields
+      if (data.risk_and_challenges) {
+        formData.append("risk_and_challenges", data.risk_and_challenges);
       }
-
-      // Append status (either draft or pending)
-      formData.append('status', isDraft ? 'draft' : 'pending');
-
-      // Only append other fields if it's not a draft
-      if (!isDraft) {
-        if (data.description) formData.append('description', data.description);
-        if (data.goal_amount) formData.append('goal_amount', data.goal_amount);
-        if (data.start_date) formData.append('start_date', data.start_date);
-        if (data.end_date) formData.append('end_date', data.end_date);
-        if (data.category_id) formData.append('category_id', data.category_id);
-        if (data.risk_and_challenges) formData.append('risk_and_challenges', data.risk_and_challenges);
-        // formData.append("featured", data.featured);/
-      }
-      // Handle optional fields
-      // if (data.featured !== undefined) formData.append('featured', data.featured);
-
+      
       // Handle media files
       if (data.imageType === 'file' && data.image?.[0]) {
         formData.append('image', data.image[0]);
@@ -200,22 +258,10 @@ function CreateProjectForm() {
         console.log(pair[0] + ': ' + pair[1]);
       }
 
-      const endpoint = isEditMode
-        ? `/api/v1/projects/${id}`
-        : isDraft
-          ? '/api/v1/projects/drafts'
-          : '/api/v1/projects';
-
-      const method = isEditMode ? 'put' : 'post';
-
-      const response = await api[method](endpoint, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      if (response.status === 201 && response.data) {
-        toast.success(isDraft ? 'Project saved as draft' : 'Project submitted successfully!');
+      const response = await api.post('/api/v1/projects', formData);
+      
+      if (response.status === 201 || response.status === 200) {
+        toast.success('Project created successfully');
         navigate('/my-projects');
       } else {
         throw new Error('Invalid response format');
@@ -244,7 +290,7 @@ function CreateProjectForm() {
   };
 
   // Updated getValidationRules function with all fields
-const getValidationRules = (fieldName, saveAsDraft) => {
+const getValidationRules = (fieldName, isDraft) => {
   const baseRules = {
     title: { 
       required: "Title is required",
@@ -288,6 +334,7 @@ const getValidationRules = (fieldName, saveAsDraft) => {
           "Only JPEG, PNG and GIF files are allowed"
       }
     },
+    // Modified video validation to be optional
     video: {
       validate: {
         acceptedFormats: files =>
@@ -324,30 +371,79 @@ const getValidationRules = (fieldName, saveAsDraft) => {
     }
   };
 
-  const ProjectPreview = () => (
-    <div className="project-preview">
-      <h2>{getValues('title')}</h2>
-      <p>Category: {categories.find(c => c.id === parseInt(getValues('category_id')))?.name}</p>
-      <p>Goal: ${getValues('goal_amount')}</p>
-      <p>Duration: {getValues('start_date')} to {getValues('end_date')}</p>
-      {watchImageType === 'file' && imagePreview && (
-        <Image src={imagePreview} alt="Project preview" fluid />
-      )}
-      {watchImageType === 'url' && getValues('imageUrl') && (
-        <Image src={getValues('imageUrl')} alt="Project preview" fluid />
-      )}
-      <div dangerouslySetInnerHTML={{ __html: getValues('description') }} />
-      <h4>Risks and Challenges</h4>
-      <p>{getValues('risk_and_challenges')}</p>
-      {watchVideoType === 'file' && videoPreview && (
-        <video src={videoPreview} controls width="100%" />
-      )}
-      {watchVideoType === 'url' && getValues('videoUrl') && (
-        <p>Video URL: {getValues('videoUrl')}</p>
-      )}
-    </div>
-  );
+  // Modified ProjectPreview component to avoid title duplication
+  const ProjectPreview = () => {
+    const formValues = getValues();
+    const selectedCategory = categories.find(c => c.id === parseInt(formValues.category_id));
 
+    return (
+      <div className="project-preview">
+        <h2 className="mb-4">{formValues.title || 'Untitled Project'}</h2>
+        
+        <div className="mb-4">
+          <h4>Category</h4>
+          <p>{selectedCategory?.name || 'Not specified'}</p>
+        </div>
+        
+        <div className="mb-4">
+          <h4>Goal Amount</h4>
+          <p>${formValues.goal_amount || '0.00'}</p>
+        </div>
+        
+        <div className="mb-4">
+          <h4>Project Duration</h4>
+          <p>From: {formValues.start_date || 'Not specified'}</p>
+          <p>To: {formValues.end_date || 'Not specified'}</p>
+        </div>
+        
+        <div className="mb-4">
+          <h4>Project Description</h4>
+          <div className="preview-content" dangerouslySetInnerHTML={{ __html: formValues.description || 'No description provided' }} />
+        </div>
+        
+        <div className="mb-4">
+          <h4>Risks and Challenges</h4>
+          <div className="preview-content" dangerouslySetInnerHTML={{ __html: formValues.risk_and_challenges || 'No risks and challenges specified' }} />
+        </div>
+        
+        <div className="mb-4">
+          <h4>Project Media</h4>
+          {watchImageType === 'file' && imagePreview && (
+            <div className="mb-3">
+              <p>Project Image:</p>
+              <Image src={imagePreview} alt="Project preview" fluid className="preview-image" />
+            </div>
+          )}
+          {watchImageType === 'url' && formValues.imageUrl && (
+            <div className="mb-3">
+              <p>Project Image URL:</p>
+              <Image src={formValues.imageUrl} alt="Project preview" fluid className="preview-image" />
+            </div>
+          )}
+          
+          {watchVideoType === 'file' && videoPreview && (
+            <div className="mb-3">
+              <p>Project Video:</p>
+              <video src={videoPreview} controls width="100%" className="preview-video" />
+            </div>
+          )}
+          {watchVideoType === 'url' && formValues.videoUrl && (
+            <div className="mb-3">
+              <p>Project Video URL:</p>
+              <p>{formValues.videoUrl}</p>
+            </div>
+          )}
+        </div>
+  
+        {formValues.featured && (
+          <div className="mb-4">
+            <h4>Featured Status</h4>
+            <p>This project is marked for featured consideration</p>
+          </div>
+        )}
+      </div>
+    );
+  };
   const ProjectGuidelines = () => (
     <div className="project-guidelines">
       <h3>Tips for a Successful Project</h3>
@@ -369,7 +465,7 @@ const getValidationRules = (fieldName, saveAsDraft) => {
       <Button variant="info" className="mb-3" onClick={() => setShowGuidelines(true)}>
         View Project Guidelines
       </Button>
-      <Form onSubmit={handleSubmit((data) => onSubmit(data, false))}>
+      <Form className="project-form"onSubmit={handleSubmit((data) => onSubmit(data, false))}>
         <Form.Group className="mb-3">
           <Form.Label>Project Title</Form.Label>
           <Form.Control 
@@ -454,19 +550,6 @@ const getValidationRules = (fieldName, saveAsDraft) => {
           />
           {errors.risk_and_challenges && <span className="text-danger">{errors.risk_and_challenges.message}</span>}
         </Form.Group>
-
-        {/* <Form.Group className="mb-3">
-          <Form.Label>Risks and Challenges</Form.Label>
-          <Form.Control 
-            as="textarea" 
-            rows={3}
-            {...register("risk_and_challenges", { 
-              required: !isDraft ? "Risks and challenges are required" : false, 
-              maxLength: { value: 1000, message: "Risks and challenges must be 1000 characters or less" }
-            })}
-          />
-          {errors.risk_and_challenges && <span className="text-danger">{errors.risk_and_challenges.message}</span>}
-        </Form.Group> */}
 
         <Form.Group className="mb-3">
           <Form.Label>Project Image</Form.Label>
@@ -581,7 +664,7 @@ const getValidationRules = (fieldName, saveAsDraft) => {
           </Form.Text>
         </Form.Group>
 
-        <div className="button-group mt-4">
+        <div className="button-group mt-4 spinner-container">
         <Button
             variant="secondary"
             className="me-2"
@@ -624,12 +707,12 @@ const getValidationRules = (fieldName, saveAsDraft) => {
       </div>
       </Form>
 
+      {/* Updated Modal */}
       <Modal show={showPreview} onHide={() => setShowPreview(false)} size="lg">
         <Modal.Header closeButton>
-          <Modal.Title>Project Preview</Modal.Title>
+          <Modal.Title>{getValues('title')}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <h2>{getValues('title')}</h2>
           <ProjectPreview />
         </Modal.Body>
         <Modal.Footer>
