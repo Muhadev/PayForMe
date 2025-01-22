@@ -4,9 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import './MyProjectsPage.css';
-import placeholderImage from '../assets/image.png';  // Adjust the path according to your folder structure
+import placeholderImage from '../assets/image.png';
 
-const MyProjectsPage = ({ project }) => {
+const MyProjectsPage = () => {
   const [filter, setFilter] = useState('all');
   const [projects, setProjects] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -27,34 +27,34 @@ const MyProjectsPage = ({ project }) => {
     const progress = (raised / goal) * 100;
     return isNaN(progress) ? 0 : Math.min(progress, 100);
   };
-  
-    useEffect(() => {
-      const fetchProjects = async () => {
-        try {
-          setIsLoading(true);
-          const token = localStorage.getItem('accessToken');
-          const response = await axios.get('/api/v1/projects/', {
-            params: {
-              status: filter !== 'all' ? filter : undefined
-            },
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          });
-          setProjects(response.data.data.projects);
-        } catch (error) {
-          toast.error('Failed to fetch projects');
-          console.error('Error fetching projects:', error);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-  
-      fetchProjects();
-    }, [filter]); // Only depends on filter now
-  
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        setIsLoading(true);
+        const token = localStorage.getItem('accessToken');
+        const response = await axios.get('/api/v1/projects/', {
+          params: {
+            status: filter !== 'all' ? filter : undefined
+          },
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        setProjects(response.data.data.projects);
+      } catch (error) {
+        toast.error('Failed to fetch projects');
+        console.error('Error fetching projects:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, [filter]);
+
   const getStatusBadgeClass = (status) => {
-    switch (status) {
+    switch (status?.toLowerCase()) {
       case 'active':
         return 'bg-success';
       case 'successful':
@@ -66,16 +66,8 @@ const MyProjectsPage = ({ project }) => {
     }
   };
 
-  // const handleProjectAction = (projectId, status) => {
-  //   if (status === 'draft') {
-  //     navigate(`/projects/drafts/${projectId}`);
-  //   } else {
-  //     navigate(`/projects/${projectId}`);
-  //   }
-  // };
-
   const handleViewDetails = (project) => {
-    if (project.status === 'DRAFT') {
+    if (project?.status?.toUpperCase() === 'DRAFT') {
       navigate(`/projects/drafts/${project.id}`);
     } else {
       navigate(`/projects/${project.id}`);
@@ -84,6 +76,132 @@ const MyProjectsPage = ({ project }) => {
   
   const handleEditDraft = (projectId) => {
     navigate(`/projects/drafts/edit/${projectId}`);
+  };
+
+  const renderProjectCard = (project) => {
+    const isDraft = project?.status?.toUpperCase() === 'DRAFT';
+
+    return (
+      <Col md={4} key={project.id} className="mb-4">
+        <Card className="project-card h-100">
+        <Card.Img 
+          variant="top" 
+          src={project.image_url || placeholderImage} 
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = placeholderImage;
+          }}
+          style={{ height: '200px', objectFit: 'cover' }}
+        />
+          <Card.Body>
+            <div className="card-header-content">
+              <div>
+                <Card.Title>{project.title || 'Untitled Project'}</Card.Title>
+                <Card.Subtitle className="mb-2 text-muted">
+                  {project.category?.name}
+                </Card.Subtitle>
+              </div>
+              <Badge className={getStatusBadgeClass(project.status)}>
+                {project.status ? project.status.charAt(0).toUpperCase() + project.status.slice(1).toLowerCase() : 'Unknown'}
+              </Badge>
+            </div>
+
+            <Card.Text className="project-description">
+              {stripHtml(project.description || '')}
+            </Card.Text>
+
+            {/* Show draft details */}
+          {isDraft && (
+            <div className="draft-details mt-3">
+              <div className="mb-2">
+                <strong>Category:</strong> {project.category?.name || 'Not set'}
+              </div>
+              <div className="mb-2">
+                <strong>Goal Amount:</strong> {formatCurrency(project.goal_amount || 0)}
+              </div>
+              {project.start_date && (
+                <div className="mb-2">
+                  <strong>Start Date:</strong> {new Date(project.start_date).toLocaleDateString()}
+                </div>
+              )}
+              {project.end_date && (
+                <div className="mb-2">
+                  <strong>End Date:</strong> {new Date(project.end_date).toLocaleDateString()}
+                </div>
+              )}
+            </div>
+          )}
+
+            {!isDraft && (
+              <div className="progress-section">
+                <div className="progress">
+                  <div 
+                    className="progress-bar" 
+                    role="progressbar"
+                    style={{ 
+                      width: `${calculateProgress(project.total_pledged || 0, project.goal_amount)}%` 
+                    }}
+                  />
+                </div>
+                <div className="progress-stats">
+                  <span>{formatCurrency(project.total_pledged || 0)} raised</span>
+                  <span>{calculateProgress(project.total_pledged || 0, project.goal_amount).toFixed(0)}%</span>
+                </div>
+              </div>
+            )}
+
+            <div className="project-stats">
+              {!isDraft ? (
+                <>
+                  <div className="stat-item">
+                    <i className="bi bi-people"></i>
+                    <span>{project.backers_count || 0} backers</span>
+                  </div>
+                  <div className="stat-item">
+                    <i className="bi bi-clock"></i>
+                    <span>{project.days_left > 0 ? `${project.days_left} days left` : 'Ended'}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="stat-item">
+                  <i className="bi bi-pencil"></i>
+                  <span>Draft saved</span>
+                </div>
+              )}
+            </div>
+          </Card.Body>
+          <Card.Footer>
+            <div className="card-footer-content">
+              <small className="text-muted">
+                {isDraft
+                  ? `Last edited: ${new Date(project.updated_at).toLocaleDateString()}`
+                  : `Launched: ${new Date(project.created_at).toLocaleDateString()}`
+                }
+              </small>
+              <div className="button-group">
+                {isDraft && (
+                  <Button 
+                    variant="outline-primary" 
+                    size="sm"
+                    className="me-2"
+                    onClick={() => handleEditDraft(project.id)}
+                  >
+                    Edit Draft
+                  </Button>
+                )}
+                <Button 
+                  variant="outline-secondary" 
+                  size="sm"
+                  onClick={() => handleViewDetails(project)}
+                >
+                  View Details
+                </Button>
+              </div>
+            </div>
+          </Card.Footer>
+        </Card>
+      </Col>
+    );
   };
 
   return (
@@ -142,101 +260,7 @@ const MyProjectsPage = ({ project }) => {
         <div className="text-center mt-4">Loading...</div>
       ) : (
         <Row className="project-grid">
-          {projects.map((project) => (
-            <Col md={4} key={project.id} className="mb-4">
-              <Card className="project-card h-100">
-              <Card.Img 
-                variant="top" 
-                src={project.image_url || placeholderImage} 
-                style={{ height: '200px', objectFit: 'cover' }}  // This will maintain aspect ratio
-              />
-                <Card.Body>
-                  <div className="card-header-content">
-                    <div>
-                      <Card.Title>{project.title}</Card.Title>
-                      <Card.Subtitle className="mb-2 text-muted">
-                        {project.category?.name || 'Uncategorized'}
-                      </Card.Subtitle>
-                    </div>
-                    <Badge className={getStatusBadgeClass(project.status)}>
-                      {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
-                    </Badge>
-                  </div>
-
-                  <Card.Text className="project-description">
-                    {stripHtml(project.description || '')}
-                  </Card.Text>
-
-                  {project.status !== 'DRAFT' && (
-                    <div className="progress-section">
-                      <div className="progress">
-                        <div 
-                          className="progress-bar" 
-                          role="progressbar"
-                          style={{ 
-                            width: `${calculateProgress(project.total_pledged || 0, project.goal_amount)}%` 
-                          }}
-                        />
-                      </div>
-                      <div className="progress-stats">
-                        <span>{formatCurrency(project.total_pledged || 0)} raised</span>
-                        <span>{calculateProgress(project.total_pledged || 0, project.goal_amount).toFixed(0)}%</span>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="project-stats">
-                    {project.status !== 'DRAFT' ? (
-                      <>
-                        <div className="stat-item">
-                          <i className="bi bi-people"></i>
-                          <span>{project.backers_count || 0} backers</span>
-                        </div>
-                        <div className="stat-item">
-                          <i className="bi bi-clock"></i>
-                          <span>{project.days_left > 0 ? `${project.days_left} days left` : 'Ended'}</span>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="stat-item">
-                        <i className="bi bi-pencil"></i>
-                        <span>Draft saved</span>
-                      </div>
-                    )}
-                  </div>
-                </Card.Body>
-                <Card.Footer>
-                    <div className="card-footer-content">
-                      <small className="text-muted">
-                        {project.status === 'DRAFT' 
-                          ? `Last edited: ${new Date(project.updated_at).toLocaleDateString()}`
-                          : `Launched: ${new Date(project.created_at).toLocaleDateString()}`
-                        }
-                      </small>
-                      <div className="button-group">
-                        {project.status === 'DRAFT' && (
-                          <Button 
-                            variant="outline-primary" 
-                            size="sm"
-                            className="me-2"
-                            onClick={() => handleEditDraft(project.id)}
-                          >
-                            Edit Draft
-                          </Button>
-                        )}
-                        <Button 
-                          variant="outline-secondary" 
-                          size="sm"
-                          onClick={() => handleViewDetails(project)}
-                        >
-                          View Details
-                        </Button>
-                      </div>
-                    </div>
-                  </Card.Footer>
-              </Card>
-            </Col>
-          ))}
+          {projects.map(project => renderProjectCard(project))}
         </Row>
       )}
     </Container>

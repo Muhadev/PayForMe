@@ -16,7 +16,7 @@ const api = axios.create({
   baseURL: process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000',
   // withCredentials: true, 
   headers: {
-    'Accept': 'application/json',
+    'Accept': 'application/js on',
     // 'Content-Type': 'application/json'
   }
 });
@@ -85,7 +85,7 @@ function CreateProjectForm() {
   const [showGuidelines, setShowGuidelines] = useState(false);
   // const [isDraft, setIsDraft] = useState(false);
   const { id } = useParams();
-  const navigate = useNavigate();
+  const navigate = useNavigate(); 
   const isEditMode = Boolean(id);
   const location = useLocation();
   const isDraftEdit = location.pathname.includes('/drafts/edit');
@@ -116,62 +116,71 @@ function CreateProjectForm() {
     fetchCategories();
   }, []);
 
-  // Fetch draft data if in edit mode
-  useEffect(() => {
-    const fetchDraftData = async () => {
-      if (id) {
-        try {
-          setIsLoading(true);
-          const endpoint = isDraftEdit ? `/api/v1/projects/drafts/${id}` : `/api/v1/projects/${id}`;
-          const token = localStorage.getItem('accessToken');
-          
-          const response = await axios.get(endpoint, {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          });
-
-          if (response.data?.data) {
-            const projectData = response.data.data;
-            
-            // Reset form with project data, handling null/undefined values
-            reset({
-              title: projectData.title || '',
-              category_id: projectData.category_id?.toString() || '',
-              goal_amount: projectData.goal_amount || '',
-              start_date: projectData.start_date || '',
-              end_date: projectData.end_date || '',
-              description: projectData.description || '',
-              risk_and_challenges: projectData.risk_and_challenges || '',
-              featured: Boolean(projectData.featured),
-              imageType: projectData.image_url ? 'url' : 'file',
-              imageUrl: projectData.image_url || '',
-              videoType: projectData.video_url ? 'url' : 'file',
-              videoUrl: projectData.video_url || ''
-            });
-
-            // Set previews if available
-            if (projectData.image_url) {
-              setImagePreview(projectData.image_url);
-            }
-            if (projectData.video_url) {
-              setVideoPreview(projectData.video_url);
-            }
-          }
-        } catch (error) {
-          console.error('Error fetching draft:', error);
-          toast.error('Failed to fetch draft data: ' + (error.response?.data?.message || 'Unknown error'));
-        } finally {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    fetchDraftData();
-  }, [id, isDraftEdit, reset]);
-
   const handlePreview = () => {
     setShowPreview(true);
+  };
+
+  // Define validation rules
+  const baseRules = {
+    title: { 
+      required: "Title is required",
+      maxLength: { value: 100, message: "Title must be 100 characters or less" }
+    },
+    description: { 
+      required: "Description is required",
+      maxLength: { value: 5000, message: "Description must be 5000 characters or less" }
+    },
+    goal_amount: { 
+      required: "Goal amount is required",
+      min: { value: 1, message: "Goal amount must be positive" }
+    },
+    category_id: { 
+      required: "Category is required" 
+    },
+    start_date: {
+      required: "Start date is required",
+      validate: {
+        futureDate: date => !date || new Date(date) >= new Date().setHours(0, 0, 0, 0) || "Start date must be in the future"
+      }
+    },
+    end_date: {
+      required: "End date is required",
+      validate: {
+        futureDate: date => !date || new Date(date) >= new Date().setHours(0, 0, 0, 0) || "End date must be in the future",
+        afterStartDate: (date, formValues) => 
+          !date || !formValues.start_date || new Date(date) > new Date(formValues.start_date) || 
+          "End date must be after start date"
+      }
+    },
+    risk_and_challenges: {
+      required: "Risks and challenges are required",
+      maxLength: { value: 1000, message: "Risks and challenges must be 1000 characters or less" }
+    },
+    image: {
+      validate: {
+        acceptedFormats: files => 
+          !files?.[0] || ['image/jpeg', 'image/png', 'image/gif'].includes(files[0]?.type) || 
+          "Only JPEG, PNG and GIF files are allowed"
+      }
+    },
+    video: {
+      validate: {
+        acceptedFormats: files =>
+          !files?.[0] || ['video/mp4', 'video/quicktime'].includes(files[0]?.type) ||
+          "Only MP4 and MOV files are allowed"
+      }
+    }
+  };
+
+  // Modified validation rules for draft mode
+  const getValidationRules = (fieldName, isDraft) => {
+    if (isDraft) {
+      // Only title is required for drafts
+      return fieldName === 'title' ? { required: "Title is required" } : {};
+    }
+
+    // Your existing validation rules for non-draft mode...
+    return baseRules[fieldName] || {};
   };
 
   // Modified submit handler to properly handle draft saving
@@ -292,71 +301,62 @@ function CreateProjectForm() {
     }
   };
 
-  // Updated getValidationRules function with all fields
-const getValidationRules = (fieldName, isDraft) => {
-  const baseRules = {
-    title: { 
-      required: "Title is required",
-      maxLength: { value: 100, message: "Title must be 100 characters or less" }
-    },
-    description: isDraft ? {} : { 
-      required: "Description is required",
-      maxLength: { value: 5000, message: "Description must be 5000 characters or less" }
-    },
-    goal_amount: isDraft ? {} : { 
-      required: "Goal amount is required",
-      min: { value: 1, message: "Goal amount must be positive" }
-    },
-    category_id: isDraft ? {} : { 
-      required: "Category is required" 
-    },
-    start_date: { 
-      required: !isDraft && "Start date is required",
-      validate: {
-        futureDate: date => !date || new Date(date) >= new Date().setHours(0, 0, 0, 0) || "Start date must be in the future"
-      }
-    },
-    end_date: { 
-      required: !isDraft && "End date is required",
-      validate: {
-        futureDate: date => !date || new Date(date) >= new Date().setHours(0, 0, 0, 0) || "End date must be in the future",
-        afterStartDate: (date, formValues) => 
-          !date || !formValues.start_date || new Date(date) > new Date(formValues.start_date) || 
-          "End date must be after start date"
-      }
-    },
-    risk_and_challenges: {
-      required: !isDraft && "Risks and challenges are required",
-      maxLength: { value: 1000, message: "Risks and challenges must be 1000 characters or less" }
-    },
-    image: {
-      validate: {
-        acceptedFormats: files => 
-          !files?.[0] || ['image/jpeg', 'image/png', 'image/gif'].includes(files[0]?.type) || 
-          "Only JPEG, PNG and GIF files are allowed"
-      }
-    },
-    // Modified video validation to be optional
-    video: {
-      validate: {
-        acceptedFormats: files =>
-          !files?.[0] || ['video/mp4', 'video/quicktime'].includes(files[0]?.type) ||
-          "Only MP4 and MOV files are allowed"
-      }
-    }
-  };
+  // Fetch draft data if in edit mode
+  useEffect(() => {
+    const fetchDraftData = async () => {
+      if (id && isDraftEdit) {
+        try {
+          setIsLoading(true);
+          // const endpoint = isDraftEdit ? `/api/v1/projects/drafts/${id}` : `/api/v1/projects/${id}`;
+          // const token = localStorage.getItem('accessToken');
+          
+          const response = await api.get(`/api/v1/projects/drafts/${id}`);
 
-  return baseRules[fieldName] || {};
-};
+          if (response.data?.data) {
+            const projectData = response.data.data;
 
-// Updated project card rendering
-const renderDescription = (description) => {
-  // Strip HTML tags and limit to 150 characters
-  const strippedDescription = description.replace(/<[^>]+>/g, '');
-  return strippedDescription.length > 150 
-    ? `${strippedDescription.substring(0, 150)}...` 
-    : strippedDescription;
-};
+            // Format dates to YYYY-MM-DD
+            const formatDate = (dateString) => {
+              if (!dateString) return '';
+              const date = new Date(dateString);
+              return date.toISOString().split('T')[0];
+            };
+            
+            // Reset form with project data, handling null/undefined values
+            reset({
+              title: projectData.title || '',
+              category_id: projectData.category_id?.toString() || '',
+              goal_amount: projectData.goal_amount || '',
+              start_date: formatDate(projectData.start_date),
+              end_date: formatDate(projectData.end_date),
+              description: projectData.description || '',
+              risk_and_challenges: projectData.risk_and_challenges || '',
+              featured: Boolean(projectData.featured),
+              imageType: projectData.image_url ? 'url' : 'file',
+              imageUrl: projectData.image_url || '',
+              videoType: projectData.video_url ? 'url' : 'file',
+              videoUrl: projectData.video_url || ''
+            });
+
+            // Set previews if available
+            if (projectData.image_url) {
+              setImagePreview(projectData.image_url);
+            }
+            if (projectData.video_url) {
+              setVideoPreview(projectData.video_url);
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching draft:', error);
+          toast.error('Failed to fetch draft data: ' + (error.response?.data?.message || 'Unknown error'));
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchDraftData();
+  }, [id, isDraftEdit, reset]);
 
   // Handle image file input safely
   const handleImageChange = (e) => {
@@ -371,14 +371,23 @@ const renderDescription = (description) => {
     }
   };
 
-  // Handle video file input safely
   const handleVideoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setVideoPreview(reader.result);
-      reader.readAsDataURL(file);
+      // Check file size (e.g., 100MB limit)
+      const maxSize = 100 * 1024 * 1024; // 100MB in bytes
+      if (file.size > maxSize) {
+        toast.error('Video file size must be less than 100MB');
+        return;
+      }
+  
+      // Create a temporary URL for preview
+      const videoUrl = URL.createObjectURL(file);
+      setVideoPreview(videoUrl);
       setValue('video', [file]);
+      
+      // Clean up the temporary URL when component unmounts
+      return () => URL.revokeObjectURL(videoUrl);
     }
   };
 

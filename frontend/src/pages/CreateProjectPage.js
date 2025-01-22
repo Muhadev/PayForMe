@@ -21,7 +21,11 @@ function CreateProjectPage() {
               </h2>
             </Card.Header>
             <Card.Body className="px-4 pb-4">
-              <CreateProjectForm projectId={id} isDraftEdit={isDraftEdit} />
+              <CreateProjectForm 
+                projectId={id} 
+                isDraftEdit={isDraftEdit}
+                isEditMode={isEditMode}
+              />
             </Card.Body>
           </Card>
         </Col>
