@@ -14,7 +14,7 @@ import './CreateProjectForm.css';
 // Create axios instance with default config
 const api = axios.create({
   baseURL: process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000',
-  // withCredentials: true,
+  // withCredentials: true, 
   headers: {
     'Accept': 'application/json',
     // 'Content-Type': 'application/json'
@@ -134,20 +134,20 @@ function CreateProjectForm() {
           if (response.data?.data) {
             const projectData = response.data.data;
             
-            // Reset form with project data
+            // Reset form with project data, handling null/undefined values
             reset({
-              title: projectData.title,
-              category_id: projectData.category_id?.toString(),
-              goal_amount: projectData.goal_amount,
-              start_date: projectData.start_date,
-              end_date: projectData.end_date,
-              description: projectData.description,
-              risk_and_challenges: projectData.risk_and_challenges,
-              featured: projectData.featured,
+              title: projectData.title || '',
+              category_id: projectData.category_id?.toString() || '',
+              goal_amount: projectData.goal_amount || '',
+              start_date: projectData.start_date || '',
+              end_date: projectData.end_date || '',
+              description: projectData.description || '',
+              risk_and_challenges: projectData.risk_and_challenges || '',
+              featured: Boolean(projectData.featured),
               imageType: projectData.image_url ? 'url' : 'file',
               imageUrl: projectData.image_url || '',
               videoType: projectData.video_url ? 'url' : 'file',
-              videoUrl: projectData.video_url || '',
+              videoUrl: projectData.video_url || ''
             });
 
             // Set previews if available
@@ -182,14 +182,17 @@ function CreateProjectForm() {
       
       // Only required fields for draft
       formData.append("title", data.title);
-      formData.append("status", "draft");
+      formData.append("status", "DRAFT");
       
       // Optional fields for draft
+      // Add optional fields if they exist
       if (data.description) formData.append("description", data.description);
       if (data.category_id) formData.append("category_id", data.category_id);
       if (data.goal_amount) formData.append("goal_amount", data.goal_amount);
       if (data.start_date) formData.append("start_date", data.start_date);
       if (data.end_date) formData.append("end_date", data.end_date);
+      if (data.risk_and_challenges) formData.append("risk_and_challenges", data.risk_and_challenges);
+      if (data.featured !== undefined) formData.append("featured", data.featured);
       
       // Handle media files
       if (data.imageType === 'file' && data.image?.[0]) {
@@ -296,17 +299,16 @@ const getValidationRules = (fieldName, isDraft) => {
       required: "Title is required",
       maxLength: { value: 100, message: "Title must be 100 characters or less" }
     },
-    description: { 
-      required: !isDraft && "Description is required",
+    description: isDraft ? {} : { 
+      required: "Description is required",
       maxLength: { value: 5000, message: "Description must be 5000 characters or less" }
     },
-    goal_amount: { 
-      required: !isDraft && "Goal amount is required",
-      min: { value: 1, message: "Goal amount must be positive" },
-      validate: value => !value || value > 0 || "Goal amount must be greater than 0"
+    goal_amount: isDraft ? {} : { 
+      required: "Goal amount is required",
+      min: { value: 1, message: "Goal amount must be positive" }
     },
-    category_id: { 
-      required: !isDraft && "Category is required" 
+    category_id: isDraft ? {} : { 
+      required: "Category is required" 
     },
     start_date: { 
       required: !isDraft && "Start date is required",
@@ -345,6 +347,15 @@ const getValidationRules = (fieldName, isDraft) => {
   };
 
   return baseRules[fieldName] || {};
+};
+
+// Updated project card rendering
+const renderDescription = (description) => {
+  // Strip HTML tags and limit to 150 characters
+  const strippedDescription = description.replace(/<[^>]+>/g, '');
+  return strippedDescription.length > 150 
+    ? `${strippedDescription.substring(0, 150)}...` 
+    : strippedDescription;
 };
 
   // Handle image file input safely

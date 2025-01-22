@@ -6,11 +6,27 @@ import { toast } from 'react-toastify';
 import './MyProjectsPage.css';
 import placeholderImage from '../assets/image.png';  // Adjust the path according to your folder structure
 
-const MyProjectsPage = () => {
+const MyProjectsPage = ({ project }) => {
   const [filter, setFilter] = useState('all');
   const [projects, setProjects] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+
+  const stripHtml = (html) => {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || '';
+  };
+
+  const formatCurrency = (amount) => {
+    const number = parseFloat(amount);
+    return isNaN(number) ? "$0" : `$${number.toLocaleString()}`;
+  };
+
+  const calculateProgress = (raised, goal) => {
+    const progress = (raised / goal) * 100;
+    return isNaN(progress) ? 0 : Math.min(progress, 100);
+  };
   
     useEffect(() => {
       const fetchProjects = async () => {
@@ -139,7 +155,7 @@ const MyProjectsPage = () => {
                     <div>
                       <Card.Title>{project.title}</Card.Title>
                       <Card.Subtitle className="mb-2 text-muted">
-                        {project.category}
+                        {project.category?.name || 'Uncategorized'}
                       </Card.Subtitle>
                     </div>
                     <Badge className={getStatusBadgeClass(project.status)}>
@@ -148,30 +164,29 @@ const MyProjectsPage = () => {
                   </div>
 
                   <Card.Text className="project-description">
-                    {project.description}
+                    {stripHtml(project.description || '')}
                   </Card.Text>
 
-                  {project.status !== 'draft' && (
+                  {project.status !== 'DRAFT' && (
                     <div className="progress-section">
                       <div className="progress">
                         <div 
                           className="progress-bar" 
                           role="progressbar"
-                          style={{ width: `${(project.total_pledged / project.goal_amount) * 100}%` }}
-                          aria-valuenow={(project.total_pledged / project.goal_amount) * 100}
-                          aria-valuemin="0"
-                          aria-valuemax="100"
+                          style={{ 
+                            width: `${calculateProgress(project.total_pledged || 0, project.goal_amount)}%` 
+                          }}
                         />
                       </div>
                       <div className="progress-stats">
-                        <span>${project.total_pledged?.toLocaleString()} raised</span>
-                        <span>{((project.total_pledged / project.goal_amount) * 100).toFixed(0)}%</span>
+                        <span>{formatCurrency(project.total_pledged || 0)} raised</span>
+                        <span>{calculateProgress(project.total_pledged || 0, project.goal_amount).toFixed(0)}%</span>
                       </div>
                     </div>
                   )}
 
                   <div className="project-stats">
-                    {project.status !== 'draft' ? (
+                    {project.status !== 'DRAFT' ? (
                       <>
                         <div className="stat-item">
                           <i className="bi bi-people"></i>
