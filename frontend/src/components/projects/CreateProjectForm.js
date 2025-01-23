@@ -188,6 +188,13 @@ function CreateProjectForm() {
     try {
       setIsSubmitting(true);
       const formData = new FormData();
+
+      // Only title is absolutely required for drafts
+      if (!data.title) {
+        toast.error('Project title is required');
+        setIsSubmitting(false);
+        return;
+      }
       
       // Only required fields for draft
       formData.append("title", data.title);
@@ -501,7 +508,7 @@ function CreateProjectForm() {
           <Form.Label>Category</Form.Label>
           <Form.Control 
             as="select"
-            {...register("category_id", getValidationRules("category_id", false))}
+            {...register("category_id", getValidationRules("category_id", isDraft))}
           >
             <option value="">Select a category</option>
             {categories.map((category) => (
@@ -532,7 +539,7 @@ function CreateProjectForm() {
               <Form.Label>Start Date</Form.Label>
               <Form.Control 
                 type="date"
-                {...register("start_date", getValidationRules("start_date", false))}
+                {...register("start_date", getValidationRules("start_date", isDraft))}
               />
               {errors.start_date && <span className="text-danger">{errors.start_date.message}</span>}
             </Form.Group>
@@ -542,7 +549,7 @@ function CreateProjectForm() {
               <Form.Label>End Date</Form.Label>
               <Form.Control 
                 type="date"
-                {...register("end_date", getValidationRules("end_date", false))}
+                {...register("end_date", getValidationRules("end_date", isDraft))}
               />
               {errors.end_date && <span className="text-danger">{errors.end_date.message}</span>}
             </Form.Group>
@@ -554,7 +561,7 @@ function CreateProjectForm() {
           <Controller
             name="description"
             control={control}
-            rules={getValidationRules("description", false)}
+            rules={getValidationRules("description", isDraft)}
             render={({ field }) => <ReactQuill {...field} />}
           />
           {errors.description && <span className="text-danger">{errors.description.message}</span>}
@@ -565,7 +572,7 @@ function CreateProjectForm() {
           <Controller
             name="risk_and_challenges"
             control={control}
-            rules={getValidationRules("risk_and_challenges", false)}
+            rules={getValidationRules("risk_and_challenges", isDraft)}
             render={({ field }) => <ReactQuill {...field} />}
           />
           {errors.risk_and_challenges && <span className="text-danger">{errors.risk_and_challenges.message}</span>}

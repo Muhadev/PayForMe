@@ -97,9 +97,9 @@ const MyProjectsPage = () => {
             <div className="card-header-content">
               <div>
                 <Card.Title>{project.title || 'Untitled Project'}</Card.Title>
-                <Card.Subtitle className="mb-2 text-muted">
-                  {project.category?.name}
-                </Card.Subtitle>
+                {/* <Card.Subtitle className="mb-2 text-muted">
+                  {project.category}
+                </Card.Subtitle> */}
               </div>
               <Badge className={getStatusBadgeClass(project.status)}>
                 {project.status ? project.status.charAt(0).toUpperCase() + project.status.slice(1).toLowerCase() : 'Unknown'}
@@ -111,26 +111,26 @@ const MyProjectsPage = () => {
             </Card.Text>
 
             {/* Show draft details */}
-          {isDraft && (
-            <div className="draft-details mt-3">
-              <div className="mb-2">
-                <strong>Category:</strong> {project.category?.name || 'Not set'}
-              </div>
-              <div className="mb-2">
-                <strong>Goal Amount:</strong> {formatCurrency(project.goal_amount || 0)}
-              </div>
-              {project.start_date && (
+            {isDraft && (
+              <div className="draft-details mt-3">
                 <div className="mb-2">
-                  <strong>Start Date:</strong> {new Date(project.start_date).toLocaleDateString()}
+                <strong>Category:</strong> { project.category_name || project.category || 'Not set'}
                 </div>
-              )}
-              {project.end_date && (
                 <div className="mb-2">
-                  <strong>End Date:</strong> {new Date(project.end_date).toLocaleDateString()}
+                  <strong>Goal Amount:</strong> {formatCurrency(project.goal_amount || 0)}
                 </div>
-              )}
-            </div>
-          )}
+                {project.start_date && (
+                  <div className="mb-2">
+                    <strong>Start Date:</strong> {new Date(project.start_date).toLocaleDateString()}
+                  </div>
+                )}
+                {project.end_date && (
+                  <div className="mb-2">
+                    <strong>End Date:</strong> {new Date(project.end_date).toLocaleDateString()}
+                  </div>
+                )}
+              </div>
+            )}
 
             {!isDraft && (
               <div className="progress-section">
