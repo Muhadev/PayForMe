@@ -28,8 +28,13 @@ class Config:
     FIRST_ADMIN_SECRET_KEY = os.environ.get('FIRST_ADMIN_SECRET_KEY')
 
     # Set JWT expiration times
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=5)  # Adjust the time as needed
-    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
+    # Convert seconds from env to timedelta, with fallback values
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(
+        seconds=int(os.environ.get('JWT_ACCESS_TOKEN_EXPIRES', 86400))  # <-- FIXED
+    )
+    JWT_REFRESH_TOKEN_EXPIRES = timedelta(
+        seconds=int(os.environ.get('JWT_REFRESH_TOKEN_EXPIRES', 2592000))  # <-- FIXED
+    )
     
     # Redis configuration
     REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')

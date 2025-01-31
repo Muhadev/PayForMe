@@ -66,9 +66,39 @@ def create_app():
              "allow_credentials": True,
              "expose_headers": ["Content-Type", "Authorization"],
              "methods": ["GET", "PUT", "POST", "DELETE", "OPTIONS"],
-             "supports_credentials": True
+             "supports_credentials": True,
+             "allow_headers": ["Content-Type", "Authorization"]  # Add this line
          }}
     )
+    # Configure CORS
+    # CORS(app, 
+    #     resources={
+    #         r"/api/v1/*": {
+    #             "origins": ["http://localhost:3000"],
+    #             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    #             "allow_headers": [
+    #                 "Content-Type", 
+    #                 "Authorization",
+    #                 "Access-Control-Allow-Headers",
+    #                 "Access-Control-Allow-Origin",
+    #                 "Access-Control-Allow-Methods",
+    #                 "Access-Control-Allow-Credentials"
+    #             ],
+    #             "expose_headers": ["Content-Type", "Authorization"],
+    #             "supports_credentials": True,
+    #             "send_wildcard": False,
+    #             "max_age": 86400  # Cache preflight response for 24 hours
+    #         }
+    #     }
+    # )
+
+    # # Add CORS headers to all responses
+    # @app.after_request
+    # def after_request(response):
+    #     response.headers.add('Access-Control-Allow-Credentials', 'true')
+    #     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    #     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    #     return response
 
     configure_logging()
 

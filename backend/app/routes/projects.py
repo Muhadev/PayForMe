@@ -2,7 +2,7 @@
 
 from flask import Blueprint, request, current_app, send_from_directory
 from app import jwt, limiter
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 import logging
 from app.services.project_service import (
     create_project, get_project_by_id, update_project, delete_project, get_all_projects, get_user_drafts
@@ -12,6 +12,7 @@ from app.utils.response import api_response
 from app.models.enums import ProjectStatus
 from app.utils.file_utils import handle_file_upload
 from app import db
+from datetime import datetime
 from app.utils.project_utils import validate_project_data
 from werkzeug.datastructures import CombinedMultiDict
 from app.utils.decorators import permission_required
@@ -24,6 +25,12 @@ from app.utils.rate_limit import rate_limit
 logger = logging.getLogger(__name__)
 
 projects_bp = Blueprint('projects', __name__)
+
+@projects_bp.before_request
+def handle_preflight():
+    if request.method == 'OPTIONS':
+        response = current_app.make_default_options_response()
+        return response
 
 @projects_bp.route('/uploads/<filename>', methods=['GET'])
 def uploaded_file(filename):
@@ -116,6 +123,7 @@ def create_new_project():
 
         # Handle featured field as boolean
         if 'featured' in data:
+            
             featured_value = data['featured'].lower() if isinstance(data['featured'], str) else data['featured']
             if featured_value == 'true':
                 data['featured'] = True
@@ -202,12 +210,21 @@ def handle_draft_project(draft_id):
 @permission_required('view_drafts')
 def get_user_draft_projects():
     try:
+        # Debug logging
+        current_token = get_jwt()
+        current_time = datetime.utcnow().timestamp()
+        exp_time = current_token.get('exp', 0)
+        
+        logger.info(f"Current time (UTC): {current_time}")
+        logger.info(f"Token expiration: {exp_time}")
+        logger.info(f"Time until expiration: {exp_time - current_time} seconds")
+
         user_id = get_jwt_identity()
         drafts = get_user_drafts(user_id)
         return api_response(data={'drafts': [draft.to_dict() for draft in drafts]}, status_code=200)
     except Exception as e:
-        logger.error(f'Error retrieving draft projects: {e}')
-        return api_response(message="An unexpected error occurred", status_code=500)
+        logger.error(f'Error retrieving draft projects: {str(e)}', exc_info=True)
+        return api_response(message=str(e), status_code=500)
 
 @projects_bp.route('/drafts/<int:draft_id>', methods=['PUT'])
 @jwt_required()

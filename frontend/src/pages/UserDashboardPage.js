@@ -19,7 +19,7 @@ const Sidebar = () => (
           className="rounded-circle mb-3"
           style={{ width: '100px', height: '110px', objectFit: 'cover' }}
         />
-        <h4>John Doe</h4>
+        <h4>Fayemi Muhammed O.</h4>
       </div>
       <Nav className="flex-column">
       <Nav.Link as={NavLink} to="/dashboard" activeclassname="active">Dashboard</Nav.Link>

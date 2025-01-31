@@ -58,6 +58,7 @@ def create_project(data: Dict[str, Any]) -> Project:
             'creator_id': data['creator_id'],
             'category_id': data.get('category_id', 1) if is_draft else data['category_id']  # Default to category_id 1 for drafts
         }
+        logger.info(f"Draft project category data: category_id={project_data.get('category_id')}")
 
         # Log the project data before creation
         logger.info(f"Project data before creation: {project_data}")

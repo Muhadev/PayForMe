@@ -1,411 +1,78 @@
-import React, { useState, useEffect } from 'react';
+// components/projects/CreateProjectForm.jsx
+import React, { useState } from 'react';
 import { Form, Button, Row, Col, Image, Modal, Spinner } from 'react-bootstrap';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import axios from 'axios';
-import { toast } from 'react-toastify';
-// import axiosInstance from '../../helper/axiosConfig'; 
-import { refreshAccessToken } from '../../helper/authHelpers'; 
-import { useForm, Controller } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 import ReactQuill from 'react-quill';
+import { toast } from 'react-toastify';
 import 'react-quill/dist/quill.snow.css';
 import './CreateProjectForm.css';
+import { useProjectForm } from '../../hooks/useProjectForm';
 
-
-// Create axios instance with default config
-const api = axios.create({
-  baseURL: process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000',
-  // withCredentials: true, 
-  headers: {
-    'Accept': 'application/js on',
-    // 'Content-Type': 'application/json'
-  }
-});
-
-// Add request interceptor to add token
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken');
-  console.log('Access Token:', localStorage.getItem('accessToken'));
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-    console.log('Authorization header set:', config.headers.Authorization);
-  } else {
-    console.warn('Token is missing from local storage');
-  }
-  return config;
-}, (error) => {
-  return Promise.reject(error);
-});
-
-// Add this after your request interceptor
-api.interceptors.response.use(
-  (response) => {
-    console.log('API Response Interceptor:', {
-      url: response.config.url,
-      status: response.status,
-      data: response.data
-    });
-    return response;
-  },
-  (error) => {
-    console.error('API Error Interceptor:', {
-      url: error.config?.url,
-      status: error.response?.status,
-      data: error.response?.data
-    });
-    return Promise.reject(error);
-  }
-);
-function CreateProjectForm() {
-  const [isDraft, setIsDraft] = useState(false);
-  const { register, handleSubmit, formState: { errors }, watch, setValue, getValues, control, reset } = useForm({
-    defaultValues: {
-      title: "",
-      category_id: "",
-      goal_amount: "",
-      start_date: "",
-      end_date: "",
-      description: "",
-      risk_and_challenges: "",
-      image: null,
-      imageUrl: "",
-      imageType: "file",
-      video: null,
-      videoUrl: "",
-      videoType: "file",
-      featured: false // Default value for the featured field
-    },
-    mode: 'onBlur'
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [categories, setCategories] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [imagePreview, setImagePreview] = useState(null);
-  const [videoPreview, setVideoPreview] = useState(null);
+function CreateProjectForm({ projectId, isDraftEdit }) {
+  const navigate = useNavigate();
   const [showPreview, setShowPreview] = useState(false);
   const [showGuidelines, setShowGuidelines] = useState(false);
-  // const [isDraft, setIsDraft] = useState(false);
-  const { id } = useParams();
-  const navigate = useNavigate(); 
-  const isEditMode = Boolean(id);
-  const location = useLocation();
-  const isDraftEdit = location.pathname.includes('/drafts/edit');
+  
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    watch,
+    setValue,
+    // control,
+    categories,
+    isSubmitting,
+    imagePreview,
+    setImagePreview,
+    videoPreview,
+    setVideoPreview,
+    handleFormSubmit,
+    handleImageUrlChange,  // Add these two
+    handleVideoUrlChange   // functions here
+  } = useProjectForm(projectId, isDraftEdit);
 
-  const watchImageType = watch('imageType', 'file');
-  const watchVideoType = watch('videoType');
+  // const watchImageType = watch('imageType');
+  // const watchVideoType = watch('videoType');
 
-  const fetchCategories = async () => {
-    setIsLoading(true); // Show loading spinner
-    try {
-      const response = await api.get('/api/v1/categories/');
-      console.log('Categories response:', response.data);
-      if (response?.data?.data?.length) {
-        setCategories(response.data.data);
-      } else {
-        toast.error('Invalid category data format received');
-      }
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-      const errorMessage = error.response?.data?.error || 'Failed to fetch categories';
-      toast.error(errorMessage);
-    } finally {
-      setIsSubmitting(false); // Hide loading spinner
-    }
-  };
-
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  const handlePreview = () => {
-    setShowPreview(true);
-  };
-
-  // Define validation rules
-  const baseRules = {
-    title: { 
-      required: "Title is required",
-      maxLength: { value: 100, message: "Title must be 100 characters or less" }
-    },
-    description: { 
-      required: "Description is required",
-      maxLength: { value: 5000, message: "Description must be 5000 characters or less" }
-    },
-    goal_amount: { 
-      required: "Goal amount is required",
-      min: { value: 1, message: "Goal amount must be positive" }
-    },
-    category_id: { 
-      required: "Category is required" 
-    },
-    start_date: {
-      required: "Start date is required",
-      validate: {
-        futureDate: date => !date || new Date(date) >= new Date().setHours(0, 0, 0, 0) || "Start date must be in the future"
-      }
-    },
-    end_date: {
-      required: "End date is required",
-      validate: {
-        futureDate: date => !date || new Date(date) >= new Date().setHours(0, 0, 0, 0) || "End date must be in the future",
-        afterStartDate: (date, formValues) => 
-          !date || !formValues.start_date || new Date(date) > new Date(formValues.start_date) || 
-          "End date must be after start date"
-      }
-    },
-    risk_and_challenges: {
-      required: "Risks and challenges are required",
-      maxLength: { value: 1000, message: "Risks and challenges must be 1000 characters or less" }
-    },
-    image: {
-      validate: {
-        acceptedFormats: files => 
-          !files?.[0] || ['image/jpeg', 'image/png', 'image/gif'].includes(files[0]?.type) || 
-          "Only JPEG, PNG and GIF files are allowed"
-      }
-    },
-    video: {
-      validate: {
-        acceptedFormats: files =>
-          !files?.[0] || ['video/mp4', 'video/quicktime'].includes(files[0]?.type) ||
-          "Only MP4 and MOV files are allowed"
-      }
-    }
-  };
-
-  // Modified validation rules for draft mode
-  const getValidationRules = (fieldName, isDraft) => {
-    if (isDraft) {
-      // Only title is required for drafts
-      return fieldName === 'title' ? { required: "Title is required" } : {};
-    }
-
-    // Your existing validation rules for non-draft mode...
-    return baseRules[fieldName] || {};
-  };
-
-  // Modified submit handler to properly handle draft saving
-  const handleSaveAsDraft = async (data) => {
-    try {
-      setIsSubmitting(true);
-      const formData = new FormData();
-
-      // Only title is absolutely required for drafts
-      if (!data.title) {
-        toast.error('Project title is required');
-        setIsSubmitting(false);
-        return;
-      }
-      
-      // Only required fields for draft
-      formData.append("title", data.title);
-      formData.append("status", "DRAFT");
-      
-      // Optional fields for draft
-      // Add optional fields if they exist
-      if (data.description) formData.append("description", data.description);
-      if (data.category_id) formData.append("category_id", data.category_id);
-      if (data.goal_amount) formData.append("goal_amount", data.goal_amount);
-      if (data.start_date) formData.append("start_date", data.start_date);
-      if (data.end_date) formData.append("end_date", data.end_date);
-      if (data.risk_and_challenges) formData.append("risk_and_challenges", data.risk_and_challenges);
-      if (data.featured !== undefined) formData.append("featured", data.featured);
-      
-      // Handle media files
-      if (data.imageType === 'file' && data.image?.[0]) {
-        formData.append('image', data.image[0]);
-      } else if (data.imageType === 'url' && data.imageUrl) {
-        formData.append('imageUrl', data.imageUrl);
-      }
-
-      if (data.videoType === 'file' && data.video?.[0]) {
-        formData.append('video', data.video[0]);
-      } else if (data.videoType === 'url' && data.videoUrl) {
-        formData.append('videoUrl', data.videoUrl);
-      }
-
-      const response = await api.post('/api/v1/projects/drafts', formData);
-      
-      if (response.status === 201 || response.status === 200) {
-        toast.success('Project saved as draft');
-        navigate('/my-projects');
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to save draft');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Updated form submission handler
-  const onSubmit = async (data, isDraft = false) => {
-    if (isDraft) {
-      return handleSaveAsDraft(data);
-    }
-
-    setIsSubmitting(true);
-    try {
-      const formData = new FormData();
-      
-      // Required fields for full submission
-      formData.append("title", data.title);
-      formData.append("description", data.description);
-      formData.append("goal_amount", data.goal_amount);
-      formData.append("category_id", data.category_id);
-      formData.append("start_date", data.start_date);
-      formData.append("end_date", data.end_date);
-      formData.append("status", "PENDING");
-      
-      // Optional fields
-      if (data.risk_and_challenges) {
-        formData.append("risk_and_challenges", data.risk_and_challenges);
-      }
-      
-      // Handle media files
-      if (data.imageType === 'file' && data.image?.[0]) {
-        formData.append('image', data.image[0]);
-      } else if (data.imageType === 'url' && data.imageUrl) {
-        formData.append('imageUrl', data.imageUrl);
-      }
-
-      if (data.videoType === 'file' && data.video?.[0]) {
-        formData.append('video', data.video[0]);
-      } else if (data.videoType === 'url' && data.videoUrl) {
-        formData.append('videoUrl', data.videoUrl);
-      }
-
-      for (let pair of formData.entries()) {
-        console.log(pair[0] + ': ' + pair[1]);
-      }
-
-      const response = await api.post('/api/v1/projects', formData);
-      
-      if (response.status === 201 || response.status === 200) {
-        toast.success('Project created successfully');
-        navigate('/my-projects');
-      } else {
-        throw new Error('Invalid response format');
-      }
-    } catch (error) {
-      console.error('Detailed error:', error);
-      if (error.response?.status === 401) {
-        try {
-          const newToken = await refreshAccessToken();
-          if (newToken) {
-            return onSubmit(data, isDraft);
-          }
-        } catch (refreshError) {
-          toast.error('Session expired. Please log in again.');
-          return;
-        }
-      }
-      const errorMessage = error.response?.data?.message || 
-                          error.response?.data?.error || 
-                          error.message || 
-                          'Failed to save project';
-      toast.error(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Fetch draft data if in edit mode
-  useEffect(() => {
-    const fetchDraftData = async () => {
-      if (id && isDraftEdit) {
-        try {
-          setIsLoading(true);
-          // const endpoint = isDraftEdit ? `/api/v1/projects/drafts/${id}` : `/api/v1/projects/${id}`;
-          // const token = localStorage.getItem('accessToken');
-          
-          const response = await api.get(`/api/v1/projects/drafts/${id}`);
-
-          if (response.data?.data) {
-            const projectData = response.data.data;
-
-            // Format dates to YYYY-MM-DD
-            const formatDate = (dateString) => {
-              if (!dateString) return '';
-              const date = new Date(dateString);
-              return date.toISOString().split('T')[0];
-            };
-            
-            // Reset form with project data, handling null/undefined values
-            reset({
-              title: projectData.title || '',
-              category_id: projectData.category_id?.toString() || '',
-              goal_amount: projectData.goal_amount || '',
-              start_date: formatDate(projectData.start_date),
-              end_date: formatDate(projectData.end_date),
-              description: projectData.description || '',
-              risk_and_challenges: projectData.risk_and_challenges || '',
-              featured: Boolean(projectData.featured),
-              imageType: projectData.image_url ? 'url' : 'file',
-              imageUrl: projectData.image_url || '',
-              videoType: projectData.video_url ? 'url' : 'file',
-              videoUrl: projectData.video_url || ''
-            });
-
-            // Set previews if available
-            if (projectData.image_url) {
-              setImagePreview(projectData.image_url);
-            }
-            if (projectData.video_url) {
-              setVideoPreview(projectData.video_url);
-            }
-          }
-        } catch (error) {
-          console.error('Error fetching draft:', error);
-          toast.error('Failed to fetch draft data: ' + (error.response?.data?.message || 'Unknown error'));
-        } finally {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    fetchDraftData();
-  }, [id, isDraftEdit, reset]);
-
-  // Handle image file input safely
   const handleImageChange = (e) => {
-    const file = e.target.files[0] || null;
+    const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => setImagePreview(reader.result);
       reader.readAsDataURL(file);
       setValue('image', [file]);
-    } else {
-      setValue('image', null);
     }
   };
 
   const handleVideoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Check file size (e.g., 100MB limit)
-      const maxSize = 100 * 1024 * 1024; // 100MB in bytes
+      const maxSize = 100 * 1024 * 1024; // 100MB
       if (file.size > maxSize) {
         toast.error('Video file size must be less than 100MB');
         return;
       }
-  
-      // Create a temporary URL for preview
       const videoUrl = URL.createObjectURL(file);
       setVideoPreview(videoUrl);
       setValue('video', [file]);
-      
-      // Clean up the temporary URL when component unmounts
-      return () => URL.revokeObjectURL(videoUrl);
     }
   };
 
-  // Modified ProjectPreview component to avoid title duplication
+  const onSubmit = async (data, isDraft = false) => {
+    const success = await handleFormSubmit(data, isDraft);
+    if (success) {
+      navigate('/my-projects');
+    }
+  };
+
+  // Preview Modal Content Component
   const ProjectPreview = () => {
-    const formValues = getValues();
-    const selectedCategory = categories.find(c => c.id === parseInt(formValues.category_id));
+    const formData = watch();
+    const selectedCategory = categories.find(c => c.id === parseInt(formData.category_id));
 
     return (
       <div className="project-preview">
-        <h2 className="mb-4">{formValues.title || 'Untitled Project'}</h2>
+        <h2 className="mb-4">{formData.title || 'Untitled Project'}</h2>
         
         <div className="mb-4">
           <h4>Category</h4>
@@ -414,63 +81,39 @@ function CreateProjectForm() {
         
         <div className="mb-4">
           <h4>Goal Amount</h4>
-          <p>${formValues.goal_amount || '0.00'}</p>
+          <p>${formData.goal_amount || '0.00'}</p>
         </div>
         
         <div className="mb-4">
           <h4>Project Duration</h4>
-          <p>From: {formValues.start_date || 'Not specified'}</p>
-          <p>To: {formValues.end_date || 'Not specified'}</p>
+          <p>From: {formData.start_date || 'Not specified'}</p>
+          <p>To: {formData.end_date || 'Not specified'}</p>
         </div>
         
         <div className="mb-4">
           <h4>Project Description</h4>
-          <div className="preview-content" dangerouslySetInnerHTML={{ __html: formValues.description || 'No description provided' }} />
+          <div dangerouslySetInnerHTML={{ __html: formData.description || 'No description provided' }} />
         </div>
         
         <div className="mb-4">
           <h4>Risks and Challenges</h4>
-          <div className="preview-content" dangerouslySetInnerHTML={{ __html: formValues.risk_and_challenges || 'No risks and challenges specified' }} />
+          <div dangerouslySetInnerHTML={{ __html: formData.risk_and_challenges || 'No risks and challenges specified' }} />
         </div>
         
         <div className="mb-4">
           <h4>Project Media</h4>
-          {watchImageType === 'file' && imagePreview && (
-            <div className="mb-3">
-              <p>Project Image:</p>
-              <Image src={imagePreview} alt="Project preview" fluid className="preview-image" />
-            </div>
+          {imagePreview && (
+            <Image src={imagePreview} alt="Project preview" fluid className="mb-3" />
           )}
-          {watchImageType === 'url' && formValues.imageUrl && (
-            <div className="mb-3">
-              <p>Project Image URL:</p>
-              <Image src={formValues.imageUrl} alt="Project preview" fluid className="preview-image" />
-            </div>
-          )}
-          
-          {watchVideoType === 'file' && videoPreview && (
-            <div className="mb-3">
-              <p>Project Video:</p>
-              <video src={videoPreview} controls width="100%" className="preview-video" />
-            </div>
-          )}
-          {watchVideoType === 'url' && formValues.videoUrl && (
-            <div className="mb-3">
-              <p>Project Video URL:</p>
-              <p>{formValues.videoUrl}</p>
-            </div>
+          {videoPreview && (
+            <video src={videoPreview} controls width="100%" className="mb-3" />
           )}
         </div>
-  
-        {formValues.featured && (
-          <div className="mb-4">
-            <h4>Featured Status</h4>
-            <p>This project is marked for featured consideration</p>
-          </div>
-        )}
       </div>
     );
   };
+
+  // Guidelines Modal Content Component
   const ProjectGuidelines = () => (
     <div className="project-guidelines">
       <h3>Tips for a Successful Project</h3>
@@ -479,36 +122,45 @@ function CreateProjectForm() {
         <li>Set a realistic funding goal</li>
         <li>Provide a detailed description of your project</li>
         <li>Add high-quality images or videos</li>
-        <li>Clearly explain how the funds will be used</li>
-        <li>Offer compelling rewards to backers</li>
-        <li>Create a project timeline</li>
         <li>Be transparent about potential risks and challenges</li>
+        <li>Create a realistic project timeline</li>
+        <li>Consider your target audience</li>
+        <li>Plan your marketing strategy</li>
       </ul>
     </div>
   );
 
   return (
     <>
-      <Button variant="info" className="mb-3" onClick={() => setShowGuidelines(true)}>
+      <Button 
+        variant="info" 
+        className="mb-3" 
+        onClick={() => setShowGuidelines(true)}
+      >
         View Project Guidelines
       </Button>
-      <Form className="project-form"onSubmit={handleSubmit((data) => onSubmit(data, false))}>
+
+      <Form onSubmit={handleSubmit((data) => onSubmit(data, false))}>
+        {/* Title Field */}
         <Form.Group className="mb-3">
-          <Form.Label>Project Title</Form.Label>
-          <Form.Control 
+          <Form.Label>Project Title *</Form.Label>
+          <Form.Control
             type="text"
-            {...register("title", getValidationRules("title", false), { 
-              maxLength: { value: 100, message: "Title must be 100 characters or less" }
-            })}
+            {...register("title", { required: "Title is required" })}
           />
-          {errors.title && <span className="text-danger">{errors.title.message}</span>}
+          {errors.title && (
+            <Form.Text className="text-danger">
+              {errors.title.message}
+            </Form.Text>
+          )}
         </Form.Group>
 
-        <Form.Group controlId="category_id" className="mb-3">
-          <Form.Label>Category</Form.Label>
-          <Form.Control 
+        {/* Category Field */}
+        <Form.Group className="mb-3">
+          <Form.Label>Category {!isDraftEdit && '*'}</Form.Label>
+          <Form.Control
             as="select"
-            {...register("category_id", getValidationRules("category_id", isDraft))}
+            {...register("category_id", { required: !isDraftEdit })}
           >
             <option value="">Select a category</option>
             {categories.map((category) => (
@@ -517,186 +169,190 @@ function CreateProjectForm() {
               </option>
             ))}
           </Form.Control>
-          {errors.category_id && <span className="text-danger">{errors.category_id.message}</span>}
+          {errors.category_id && (
+            <Form.Text className="text-danger">
+              {errors.category_id.message}
+            </Form.Text>
+          )}
         </Form.Group>
 
+        {/* Goal Amount Field */}
+        <Form.Group className="mb-3">
+          <Form.Label>Funding Goal ($) {!isDraftEdit && '*'}</Form.Label>
+          <Form.Control
+            type="number"
+            {...register("goal_amount", { required: !isDraftEdit })}
+          />
+          {errors.goal_amount && (
+            <Form.Text className="text-danger">
+              {errors.goal_amount.message}
+            </Form.Text>
+          )}
+        </Form.Group>
+
+        {/* Project Dates */}
         <Row>
-          <Col>
+          <Col md={6}>
             <Form.Group className="mb-3">
-              <Form.Label>Funding Goal ($)</Form.Label>
-              <Form.Control 
-                type="number"
-                {...register("goal_amount", getValidationRules("goal_amount", false))}
+              <Form.Label>Start Date {!isDraftEdit && '*'}</Form.Label>
+              <Form.Control
+                type="date"
+                {...register("start_date", { required: !isDraftEdit })}
               />
-              {errors.goal_amount && <span className="text-danger">{errors.goal_amount.message}</span>}
+              {errors.start_date && (
+                <Form.Text className="text-danger">
+                  {errors.start_date.message}
+                </Form.Text>
+              )}
+            </Form.Group>
+          </Col>
+          <Col md={6}>
+            <Form.Group className="mb-3">
+              <Form.Label>End Date {!isDraftEdit && '*'}</Form.Label>
+              <Form.Control
+                type="date"
+                {...register("end_date", { required: !isDraftEdit })}
+              />
+              {errors.end_date && (
+                <Form.Text className="text-danger">
+                  {errors.end_date.message}
+                </Form.Text>
+              )}
             </Form.Group>
           </Col>
         </Row>
 
-        <Row>
-          <Col>
-            <Form.Group className="mb-3">
-              <Form.Label>Start Date</Form.Label>
-              <Form.Control 
-                type="date"
-                {...register("start_date", getValidationRules("start_date", isDraft))}
-              />
-              {errors.start_date && <span className="text-danger">{errors.start_date.message}</span>}
-            </Form.Group>
-          </Col>
-          <Col>
-            <Form.Group className="mb-3">
-              <Form.Label>End Date</Form.Label>
-              <Form.Control 
-                type="date"
-                {...register("end_date", getValidationRules("end_date", isDraft))}
-              />
-              {errors.end_date && <span className="text-danger">{errors.end_date.message}</span>}
-            </Form.Group>
-          </Col>
-        </Row>
-
+        {/* Description Field */}
         <Form.Group className="mb-3">
-          <Form.Label>Project Description</Form.Label>
-          <Controller
-            name="description"
-            control={control}
-            rules={getValidationRules("description", isDraft)}
-            render={({ field }) => <ReactQuill {...field} />}
+          <Form.Label>Project Description {!isDraftEdit && '*'}</Form.Label>
+          <ReactQuill
+            value={watch('description') || ''}
+            onChange={(content) => setValue('description', content)}
           />
-          {errors.description && <span className="text-danger">{errors.description.message}</span>}
-        </Form.Group>
-        
-        <Form.Group className="mb-3">
-          <Form.Label>Risks and Challenges</Form.Label>
-          <Controller
-            name="risk_and_challenges"
-            control={control}
-            rules={getValidationRules("risk_and_challenges", isDraft)}
-            render={({ field }) => <ReactQuill {...field} />}
-          />
-          {errors.risk_and_challenges && <span className="text-danger">{errors.risk_and_challenges.message}</span>}
+          {errors.description && (
+            <Form.Text className="text-danger">
+              {errors.description.message}
+            </Form.Text>
+          )}
         </Form.Group>
 
+        {/* Risks and Challenges Field */}
+        <Form.Group className="mb-3">
+          <Form.Label>Risks and Challenges {!isDraftEdit && '*'}</Form.Label>
+          <ReactQuill
+            value={watch('risk_and_challenges') || ''}
+            onChange={(content) => setValue('risk_and_challenges', content)}
+          />
+          {errors.risk_and_challenges && (
+            <Form.Text className="text-danger">
+              {errors.risk_and_challenges.message}
+            </Form.Text>
+          )}
+        </Form.Group>
+
+        {/* Image Field */}
         <Form.Group className="mb-3">
           <Form.Label>Project Image</Form.Label>
-          <Form.Check
-            type="radio"
-            label="Upload Image"
-            name="imageType"
-            value="file"
-            {...register("imageType")}
-            defaultChecked
-          />
-          <Form.Check
-            type="radio"
-            label="Image URL"
-            name="imageType"
-            value="url"
-            {...register("imageType")}
-          />
-          
-          {/* Conditionally Render File Input or URL Input */}
-          {watchImageType === 'file' && (
-            <Form.Group>
-              <Form.Label>Upload Image</Form.Label>
-              <Controller
-                name="image"
-                control={control}
-                rules={{ required: !isDraft && watchImageType === 'file' ? "Project image is required" : false }}
-                render={({ field }) => (
-                  <Form.Control
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      handleImageChange(e);
-                      field.onChange(e.target.files);
-                    }}
-                  />
-                )}
-              />
-              {errors.image && <span className="text-danger">{errors.image.message}</span>}
-            </Form.Group>
+          <div className="mb-2">
+            <Form.Check
+              type="radio"
+              label="Upload Image"
+              name="imageType"
+              value="file"
+              checked={watch('imageType') === 'file'}
+              onChange={(e) => setValue('imageType', 'file')}
+            />
+            <Form.Check
+              type="radio"
+              label="Image URL"
+              name="imageType"
+              value="url"
+              checked={watch('imageType') === 'url'}
+              onChange={(e) => setValue('imageType', 'url')}
+            />
+          </div>
+
+          {watch('imageType') === 'file' ? (
+            <Form.Control
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+            />
+          ) : (
+            <Form.Control
+              type="text"
+              placeholder="Enter image URL"
+              {...register("imageUrl")}
+              onChange={(e) => handleImageUrlChange(e.target.value)}
+            />
           )}
 
-          {watchImageType === 'url' && (
-            <Form.Group>
-              <Form.Label>Image URL</Form.Label>
-              <Form.Control
-                type="text"
-                {...register("imageUrl", { required: !isDraft && watchImageType === 'url' ? "Image URL is required" : false })}
-              />
-              {errors.imageUrl && <span className="text-danger">{errors.imageUrl.message}</span>}
-            </Form.Group>
-          )}
-          
-          {imagePreview && watchImageType === 'file' && (
-            <Image src={imagePreview} alt="Project preview" thumbnail className="mt-2" style={{ maxWidth: '200px' }} />
+          {imagePreview && (
+            <div className="mt-2">
+              <Image src={imagePreview} alt="Preview" fluid style={{ maxWidth: '300px' }} />
+            </div>
           )}
         </Form.Group>
 
-
+        {/* Video Field */}
         <Form.Group className="mb-3">
           <Form.Label>Project Video</Form.Label>
-          <Form.Check
-            type="radio"
-            label="Upload Video"
-            name="videoType"
-            value="file"
-            {...register("videoType")}
-            defaultChecked
-          />
-          <Form.Check
-            type="radio"
-            label="Video URL"
-            name="videoType"
-            value="url"
-            {...register("videoType")}
-          />
-          {watchVideoType === 'file' && (
-            <Form.Control 
-              type="file" 
+          <div className="mb-2">
+            <Form.Check
+              type="radio"
+              label="Upload Video"
+              name="videoType"
+              value="file"
+              checked={watch('videoType') === 'file'}
+              onChange={(e) => setValue('videoType', 'file')}
+            />
+            <Form.Check
+              type="radio"
+              label="Video URL"
+              name="videoType"
+              value="url"
+              checked={watch('videoType') === 'url'}
+              onChange={(e) => setValue('videoType', 'url')}
+            />
+          </div>
+
+          {watch('videoType') === 'file' ? (
+            <Form.Control
+              type="file"
               accept="video/*"
-              {...register("video", { 
-                required: !isDraft && watchVideoType === 'file' ? "Project video is required" : false 
-              })}
               onChange={handleVideoChange}
             />
-          )}
-          {watchVideoType === 'url' && (
-            <Form.Control 
-              type="url" 
-              placeholder="Enter video URL (YouTube, Vimeo, etc.)"
-              {...register("videoUrl", { 
-                required: !isDraft && watchVideoType === 'url' ? "Video URL is required" : false 
-              })}
+          ) : (
+            <Form.Control
+              type="text"
+              placeholder="Enter video URL"
+              {...register("videoUrl")}
+              onChange={(e) => handleVideoUrlChange(e.target.value)}
             />
           )}
-          {videoPreview && watchVideoType === 'file' && (
-            <video src={videoPreview} controls width="200" className="mt-2" />
-          )}
 
-          {errors.video && <span className="text-danger">{errors.video.message}</span>}
-          {errors.videoUrl && <span className="text-danger">{errors.videoUrl.message}</span>}
+          {videoPreview && (
+            <div className="mt-2">
+              <video src={videoPreview} controls style={{ maxWidth: '300px' }} />
+            </div>
+          )}
         </Form.Group>
 
+        {/* Featured Checkbox */}
         <Form.Group className="mb-3">
-          <Form.Check 
+          <Form.Check
             type="checkbox"
             label="Feature this project (admin will review)"
             {...register("featured")}
           />
-          <Form.Text className="text-muted">
-            If selected, this project will be highlighted for users. 
-          </Form.Text>
         </Form.Group>
 
-        <div className="button-group mt-4 spinner-container">
-        <Button
+        {/* Form Buttons */}
+        <div className="d-flex gap-2 mt-4">
+          <Button
             variant="secondary"
-            className="me-2"
+            onClick={handleSubmit((data) => onSubmit(data, true))}
             disabled={isSubmitting}
-            onClick={handleSubmit(handleSaveAsDraft)}
           >
             {isSubmitting ? (
               <>
@@ -707,16 +363,15 @@ function CreateProjectForm() {
               'Save as Draft'
             )}
           </Button>
-          
+
           <Button
             variant="info"
-            className="me-2"
+            onClick={() => setShowPreview(true)}
             disabled={isSubmitting}
-            onClick={handlePreview}
           >
             Preview
           </Button>
-          
+
           <Button
             variant="primary"
             type="submit"
@@ -725,19 +380,23 @@ function CreateProjectForm() {
             {isSubmitting ? (
               <>
                 <Spinner size="sm" className="me-2" />
-                Creating Project
+                {isDraftEdit ? 'Updating Project...' : 'Creating Project...'}
               </>
             ) : (
-              'Create Project'
+              isDraftEdit ? 'Update Project' : 'Create Project'
             )}
           </Button>
-      </div>
+        </div>
       </Form>
 
-      {/* Updated Modal */}
-      <Modal show={showPreview} onHide={() => setShowPreview(false)} size="lg">
+      {/* Preview Modal */}
+      <Modal 
+        show={showPreview} 
+        onHide={() => setShowPreview(false)}
+        size="lg"
+      >
         <Modal.Header closeButton>
-          <Modal.Title>{getValues('title')}</Modal.Title>
+          <Modal.Title>Project Preview</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <ProjectPreview />
@@ -746,16 +405,14 @@ function CreateProjectForm() {
           <Button variant="secondary" onClick={() => setShowPreview(false)}>
             Close
           </Button>
-          <Button variant="primary" onClick={handleSubmit((data) => {
-            setShowPreview(false);
-            onSubmit(data, false);
-          })}>
-            Submit Project
-          </Button>
         </Modal.Footer>
       </Modal>
 
-      <Modal show={showGuidelines} onHide={() => setShowGuidelines(false)}>
+      {/* Guidelines Modal */}
+      <Modal 
+        show={showGuidelines} 
+        onHide={() => setShowGuidelines(false)}
+      >
         <Modal.Header closeButton>
           <Modal.Title>Project Guidelines</Modal.Title>
         </Modal.Header>

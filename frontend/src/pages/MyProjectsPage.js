@@ -4,12 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import './MyProjectsPage.css';
+import * as projectService from '../services/projectService';
 import placeholderImage from '../assets/image.png';
 
 const MyProjectsPage = () => {
   const [filter, setFilter] = useState('all');
   const [projects, setProjects] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [categories, setCategories] = useState([]); // Add this state
   const navigate = useNavigate();
 
   const stripHtml = (html) => {
@@ -27,6 +29,23 @@ const MyProjectsPage = () => {
     const progress = (raised / goal) * 100;
     return isNaN(progress) ? 0 : Math.min(progress, 100);
   };
+
+  // Add useEffect for fetching categories
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const result = await projectService.fetchCategories();
+        if (result?.data) {
+          setCategories(result.data);
+        }
+      } catch (error) {
+        console.error('Failed to load categories:', error);
+        setCategories([]);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -80,13 +99,33 @@ const MyProjectsPage = () => {
 
   const renderProjectCard = (project) => {
     const isDraft = project?.status?.toUpperCase() === 'DRAFT';
+  
+    // Format the date properly
+    const formatDate = (dateString) => {
+      if (!dateString) return 'Not available';
+      const date = new Date(dateString);
+      return !isNaN(date.getTime()) ? date.toLocaleDateString() : 'Not available';
+    };
+
+    // Get category name
+    const getCategoryName = (project) => {
+      if (!project) return 'Not set';
+      return project.category?.name || 
+            project.category_name || 
+            categories.find(c => c.id === project.category_id)?.name || 
+            'Not set';
+    };
+
+    const getImageUrl = (project) => {
+      return project.image_url || placeholderImage;
+    };
 
     return (
       <Col md={4} key={project.id} className="mb-4">
         <Card className="project-card h-100">
         <Card.Img 
           variant="top" 
-          src={project.image_url || placeholderImage} 
+          src={getImageUrl(project)}
           onError={(e) => {
             e.target.onerror = null;
             e.target.src = placeholderImage;
@@ -97,9 +136,9 @@ const MyProjectsPage = () => {
             <div className="card-header-content">
               <div>
                 <Card.Title>{project.title || 'Untitled Project'}</Card.Title>
-                {/* <Card.Subtitle className="mb-2 text-muted">
+                <Card.Subtitle className="mb-2 text-muted">
                   {project.category}
-                </Card.Subtitle> */}
+                </Card.Subtitle>
               </div>
               <Badge className={getStatusBadgeClass(project.status)}>
                 {project.status ? project.status.charAt(0).toUpperCase() + project.status.slice(1).toLowerCase() : 'Unknown'}
@@ -114,7 +153,8 @@ const MyProjectsPage = () => {
             {isDraft && (
               <div className="draft-details mt-3">
                 <div className="mb-2">
-                <strong>Category:</strong> { project.category_name || project.category || 'Not set'}
+                  <strong>Category:</strong>{getCategoryName(project)}
+
                 </div>
                 <div className="mb-2">
                   <strong>Goal Amount:</strong> {formatCurrency(project.goal_amount || 0)}
@@ -174,8 +214,8 @@ const MyProjectsPage = () => {
             <div className="card-footer-content">
               <small className="text-muted">
                 {isDraft
-                  ? `Last edited: ${new Date(project.updated_at).toLocaleDateString()}`
-                  : `Launched: ${new Date(project.created_at).toLocaleDateString()}`
+                  ? `Last edited: ${formatDate(project.updated_at || project.created_at)}`
+                  : `Launched: ${formatDate(project.created_at)}`
                 }
               </small>
               <div className="button-group">
