@@ -62,3 +62,62 @@
     text-decoration: underline;
   }
   
+  .google-signin-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+  
+  .or-divider {
+    text-align: center;
+    margin: 20px 0;
+    position: relative;
+  }
+  
+  .or-divider span {
+    background: white;
+    padding: 0 10px;
+    position: relative;
+    z-index: 1;
+  }
+  
+  .or-divider::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    border-top: 1px solid #ccc;
+    z-index: 0;
+  }
+  .google-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 8px 16px;
+    background-color: white;
+    border: 1px solid #ddd;
+    color: #757575;
+  }
+  
+  .google-icon {
+    width: 18px;
+    height: 18px;
+    margin-right: 8px;
+  }
+
+  /* Add this at the end of your CSS file */
+@media (max-width: 768px) {
+  .signin-form {
+    padding: 4ch; /* Reduced padding for mobile */
+  }
+  
+  .signin-form h2 {
+    font-size: 1.75rem; /* Slightly smaller heading on mobile */
+  }
+  
+  .signin-form .description {
+    font-size: 1.1rem; /* Slightly smaller description on mobile */
+  }
+}

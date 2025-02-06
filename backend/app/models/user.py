@@ -6,6 +6,7 @@ from app import db
 from time import time
 import jwt
 from enum import Enum as PyEnum
+from flask import url_for
 from flask import current_app
 from datetime import datetime
 from app.models.association_tables import user_roles  # Import the association table
@@ -24,8 +25,12 @@ class User(db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     full_name = db.Column(db.String(100))
     bio = db.Column(db.Text)
+    website = db.Column(db.String(255), nullable=True)
+    twitter = db.Column(db.String(255), nullable=True)
+    location = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    
+    profile_image = db.Column(db.String(255), nullable=True)
+
     is_active = db.Column(db.Boolean, default=True)
     preferences = db.Column(db.JSON)
     failed_login_attempts = db.Column(db.Integer, default=0)
@@ -166,12 +171,22 @@ class User(db.Model):
             current_app.logger.error(f"Invalid reset password token: {str(e)}")
         return None
 
+    # Method to get full URL of profile image
+    def get_profile_image_url(self):
+        if not self.profile_image:
+            return None
+        return url_for('static', filename=f'uploads/profiles/{self.profile_image}', _external=True)
+
     def to_dict(self, include_private=False):
         base_dict = {
             'id': self.id,
             'username': self.username,
             'full_name': self.full_name,
             'bio': self.bio,
+            'profile_image': self.get_profile_image_url(),
+            'website': self.website,
+            'twitter': self.twitter,
+            'location': self.location,
             'created_at': self.created_at.isoformat(),
             'is_active': self.is_active,
             'is_verified': self.is_verified,

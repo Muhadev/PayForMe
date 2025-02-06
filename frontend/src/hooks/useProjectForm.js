@@ -1,9 +1,8 @@
-// hooks/useProjectForm.js
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-toastify';
 import * as projectService from '../services/projectService';
-import { createFormData } from '../utils/formUtils';
+import { createFormData, validateMediaUrl } from '../utils/formUtils';
 
 export const useProjectForm = (projectId, isDraftEdit) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -122,59 +121,58 @@ export const useProjectForm = (projectId, isDraftEdit) => {
         }
       }
   
-        // Image validation (if image type is 'file' and image is provided)
-        if (data.imageType === 'file' && data.image?.[0]) {
-          const file = data.image[0];
-          const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
-          const maxSize = 5 * 1024 * 1024; // 5MB
+      // Image validation (if image type is 'file' and image is provided)
+      if (data.imageType === 'file' && data.image?.[0]) {
+        const file = data.image[0];
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+        const maxSize = 5 * 1024 * 1024; // 5MB
   
-          if (!allowedTypes.includes(file.type)) {
-            errors.image = {
-              type: 'validate',
-              message: 'Image must be in JPEG, PNG, or GIF format'
-            };
-          } else if (file.size > maxSize) {
-            errors.image = {
-              type: 'validate',
-              message: 'Image must be less than 5MB'
-            };
-          }
-        }
-  
-        // Image URL validation (if image type is 'url' and URL is provided)
-        if (data.imageType === 'url' && data.imageUrl && !isValidUrl(data.imageUrl)) {
-          errors.imageUrl = {
+        if (!allowedTypes.includes(file.type)) {
+          errors.image = {
             type: 'validate',
-            message: 'Please enter a valid image URL'
+            message: 'Image must be in JPEG, PNG, or GIF format'
+          };
+        } else if (file.size > maxSize) {
+          errors.image = {
+            type: 'validate',
+            message: 'Image must be less than 5MB'
           };
         }
+      }
   
-        if (data.videoType === 'file' && data.video?.[0]) {
-          const file = data.video[0];
-          const allowedTypes = ['video/mp4', 'video/webm', 'video/ogg'];
-          const maxSize = 100 * 1024 * 1024; // 100MB
+      // Image URL validation (if image type is 'url' and URL is provided)
+      if (data.imageType === 'url' && data.imageUrl && !isValidUrl(data.imageUrl)) {
+        errors.imageUrl = {
+          type: 'validate',
+          message: 'Please enter a valid image URL'
+        };
+      }
+  
+      if (data.videoType === 'file' && data.video?.[0]) {
+        const file = data.video[0];
+        const allowedTypes = ['video/mp4', 'video/webm', 'video/ogg'];
+        const maxSize = 100 * 1024 * 1024; // 100MB
+      
+        if (!allowedTypes.includes(file.type)) {
+          errors.video = {
+            type: 'validate',
+            message: 'Video must be in MP4, WebM, or OGG format'
+          };
+        } else if (file.size > maxSize) {
+          errors.video = {
+            type: 'validate',
+            message: 'Video must be less than 100MB'
+          };
+        }
+      }
         
-          if (!allowedTypes.includes(file.type)) {
-            errors.video = {
-              type: 'validate',
-              message: 'Video must be in MP4, WebM, or OGG format'
-            };
-          } else if (file.size > maxSize) {
-            errors.video = {
-              type: 'validate',
-              message: 'Video must be less than 100MB'
-            };
-          }
-        }
-          
-  
-        // Video URL validation (if video type is 'url' and URL is provided)
-        if (data.videoType === 'url' && data.videoUrl && !isValidUrl(data.videoUrl)) {
-          errors.videoUrl = {
-            type: 'validate',
-            message: 'Please enter a valid video URL'
-          };
-        }
+      // Video URL validation (if video type is 'url' and URL is provided)
+      if (data.videoType === 'url' && data.videoUrl && !isValidUrl(data.videoUrl)) {
+        errors.videoUrl = {
+          type: 'validate',
+          message: 'Please enter a valid video URL'
+        };
+      }
       
       return {
         values: data,
@@ -201,9 +199,9 @@ export const useProjectForm = (projectId, isDraftEdit) => {
     };
 
     loadCategories();
-}, []);
+  }, []);
 
-useEffect(() => {
+  useEffect(() => {
     const loadDraftData = async () => {
       if (projectId && isDraftEdit) {
         try {
@@ -268,8 +266,7 @@ useEffect(() => {
       toast.error('Failed to read file');
     }
   };
-  
-  // Add cleanup for file previews
+
   useEffect(() => {
     return () => {
       if (videoPreview) {
@@ -281,8 +278,6 @@ useEffect(() => {
   const handleFormSubmit = async (data, isDraft = false) => {
     setIsSubmitting(true);
     try {
-      // Create FormData object
-
       const formData = createFormData(data, isDraft);
       
       const response = isDraftEdit
@@ -299,6 +294,40 @@ useEffect(() => {
       return false;
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleImageUrlChange = (url) => {
+    if (validateMediaUrl(url, 'image')) {
+      setImagePreview(url);
+      formMethods.setValue('imageUrl', url);
+    } else {
+      toast.error('Please enter a valid image URL');
+    }
+  };
+
+  const handleVideoUrlChange = (url) => {
+    if (validateMediaUrl(url, 'video')) {
+      // For YouTube videos, convert to embed URL
+      if (url.includes('youtube.com') || url.includes('youtu.be')) {
+        const videoId = url.includes('youtube.com') 
+          ? url.split('v=')[1]
+          : url.split('youtu.be/')[1];
+        const embedUrl = `https://www.youtube.com/embed/${videoId}`;
+        setVideoPreview(embedUrl);
+        formMethods.setValue('videoUrl', url);
+      } else if (url.includes('vimeo.com')) {
+        // Handle Vimeo videos
+        const videoId = url.split('vimeo.com/')[1];
+        const embedUrl = `https://player.vimeo.com/video/${videoId}`;
+        setVideoPreview(embedUrl);
+        formMethods.setValue('videoUrl', url);
+      } else {
+        setVideoPreview(url);
+        formMethods.setValue('videoUrl', url);
+      }
+    } else {
+      toast.error('Please enter a valid video URL (YouTube or Vimeo)');
     }
   };
 
@@ -323,16 +352,6 @@ useEffect(() => {
       handleFilePreview(file, 'video');
       formMethods.setValue('video', [file]);
     }
-  };
-
-  const handleImageUrlChange = (url) => {
-    setImagePreview(url);
-    formMethods.setValue('imageUrl', url);
-  };
-
-  const handleVideoUrlChange = (url) => {
-    setVideoPreview(url);
-    formMethods.setValue('videoUrl', url);
   };
 
   return {

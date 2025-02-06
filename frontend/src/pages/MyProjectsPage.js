@@ -117,7 +117,12 @@ const MyProjectsPage = () => {
     };
 
     const getImageUrl = (project) => {
-      return project.image_url || placeholderImage;
+      if (project.image_url) {
+        return project.image_url.startsWith('http') 
+          ? project.image_url 
+          : `${process.env.REACT_APP_BACKEND_URL}${project.image_url}`;
+      }
+      return placeholderImage;
     };
 
     return (

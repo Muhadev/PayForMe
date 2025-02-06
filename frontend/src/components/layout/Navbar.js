@@ -4,63 +4,39 @@ import './Navbar.css';
 
 function AppNavbar() {
   return (
-    <Navbar bg="white" expand="lg" fixed="top">
-      <Container>
-        <Navbar.Brand href="/">
-          <i className="bi bi-piggy-bank"></i>
-          <span className="brand-logo">PayForMe</span>
+    <Navbar bg="white" expand="lg" fixed="top" className="py-2">
+      <Container fluid className="px-4">
+        <Navbar.Brand href="/" className="me-4">
+          <i className="bi bi-piggy-bank me-2"></i>
+          PayForMe
         </Navbar.Brand>
 
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
-          <Form className="d-flex">
+          <Form className="d-flex me-auto">
             <Form.Control
               type="search"
               placeholder="Search projects"
+              className="me-2"
               aria-label="Search"
             />
           </Form>
 
-          <Nav className="mx-auto">
-            {/* <Nav.Link href="/discover">
-              <i className="bi bi-compass"></i>
-              Discover
-            </Nav.Link> */}
-
-            <NavDropdown title={
-              <span>
-                <i className="bi bi-grid"></i>
-                Categories
-              </span>
-            } id="basic-nav-dropdown">
+          <Nav>
+            <NavDropdown title="Categories" id="basic-nav-dropdown" className="me-2">
               <NavDropdown.Item href="/category/tech">Tech</NavDropdown.Item>
               <NavDropdown.Item href="/category/arts">Arts</NavDropdown.Item>
               <NavDropdown.Item href="/category/community">Community</NavDropdown.Item>
             </NavDropdown>
 
-            <Nav.Link href="/about">
-              <i className="bi bi-info-circle"></i>
-              About Us
-            </Nav.Link>
+            <Nav.Link href="/about" className="me-2">About</Nav.Link>
+            <Nav.Link href="/dashboard" className="me-2">Dashboard</Nav.Link>
+            <Nav.Link href="/faqs" className="me-2">FAQs</Nav.Link>
 
-            <Nav.Link href="/dashboard">
-              <i className="bi bi-speedometer2"></i>
-              Dashboard
-            </Nav.Link>
-
-            <Nav.Link href="/faqs">
-              <i className="bi bi-question-circle"></i>
-              FAQs
-            </Nav.Link>
-          </Nav>
-
-          <Nav>
-            <button className="btn btn-primary start-project-btn">
-              <i className="bi bi-plus-circle"></i>
+            <button className="btn btn-primary rounded-pill me-2">
               Start Project
             </button>
-            <Nav.Link href="/signin" className="sign-in">
-              <i className="bi bi-person"></i>
+            <Nav.Link href="/signin" className="btn btn-outline-primary rounded-pill">
               Sign In
             </Nav.Link>
           </Nav>

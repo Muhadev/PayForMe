@@ -1,0 +1,109 @@
+CreateProjectForm.css
+
+/* Form Layout */
+.project-form {
+    max-width: 100%;
+    margin: 0 auto;
+  }
+  
+  /* Preview Modal Styles */
+  .project-preview {
+    padding: 20px;
+  }
+  
+  .project-preview h2 {
+    color: #333;
+    margin-bottom: 1.5rem;
+  }
+  
+  .project-preview h4 {
+    color: #444;
+    margin: 1rem 0;
+    font-size: 1.2rem;
+  }
+  
+  /* Preview Content Sections */
+  .preview-content {
+    margin: 10px 0;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
+  }
+  
+  /* Media Preview Styles */
+  .preview-image {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+    margin: 10px 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  .preview-video {
+    max-width: 100%;
+    border-radius: 4px;
+    margin: 10px 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  /* Rich Text Editor Customization */
+  .quill {
+    margin-bottom: 1rem;
+  }
+  
+  .ql-container {
+    min-height: 200px;
+    border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
+  }
+  
+  .ql-toolbar {
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+  }
+  
+  /* Form Controls */
+  .form-control:focus {
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
+  }
+  
+  /* Button Group Styles */
+  .button-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+  }
+  
+  /* Guidelines Modal */
+  .project-guidelines {
+    padding: 15px;
+  }
+  
+  .project-guidelines ul {
+    padding-left: 20px;
+  }
+  
+  .project-guidelines li {
+    margin-bottom: 10px;
+    color: #555;
+  }
+  
+  /* Loading States */
+  .spinner-container {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  /* Responsive Adjustments */
+  @media (max-width: 768px) {
+    .button-group {
+      flex-direction: column;
+    }
+    
+    .button-group button {
+      width: 100%;
+      margin-bottom: 10px;
+    }
+  }

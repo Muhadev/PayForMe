@@ -207,7 +207,7 @@ const ProjectDetailsPage = () => {
                 {project.video_url && (
                   <div className="embed-responsive embed-responsive-16by9 mb-4">
                     <iframe 
-                      className="embed-responsive-item" 
+                      className="embed-responsive-item"
                       src={project.video_url}
                       allowFullScreen
                       title="Project video"

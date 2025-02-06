@@ -19,7 +19,7 @@ function CreateProjectForm({ projectId, isDraftEdit }) {
     formState: { errors },
     watch,
     setValue,
-    // control,
+    control,
     categories,
     isSubmitting,
     imagePreview,
@@ -55,15 +55,29 @@ function CreateProjectForm({ projectId, isDraftEdit }) {
       const videoUrl = URL.createObjectURL(file);
       setVideoPreview(videoUrl);
       setValue('video', [file]);
+    } 
+  };
+
+  const handleSaveDraft = async (data) => {
+    const success = await handleFormSubmit(data, true);
+    if (success) {
+      navigate('/my-projects?tab=drafts');
     }
   };
 
-  const onSubmit = async (data, isDraft = false) => {
-    const success = await handleFormSubmit(data, isDraft);
+  const handleCreateProject = async (data) => {
+    const success = await handleFormSubmit(data, false);
     if (success) {
       navigate('/my-projects');
     }
   };
+
+  // const onSubmit = async (data, isDraft = false) => {
+  //   const success = await handleFormSubmit(data, isDraft);
+  //   if (success) {
+  //     navigate('/my-projects');
+  //   }
+  // };
 
   // Preview Modal Content Component
   const ProjectPreview = () => {
@@ -103,10 +117,29 @@ function CreateProjectForm({ projectId, isDraftEdit }) {
         <div className="mb-4">
           <h4>Project Media</h4>
           {imagePreview && (
-            <Image src={imagePreview} alt="Project preview" fluid className="mb-3" />
+            <Image 
+              src={imagePreview} 
+              alt="Preview" 
+              fluid 
+              style={{ maxWidth: '300px' }}
+              onError={(e) => {
+                e.target.onerror = null;
+                setImagePreview(null);
+                toast.error('Failed to load image preview');
+              }}
+            />
           )}
+
           {videoPreview && (
-            <video src={videoPreview} controls width="100%" className="mb-3" />
+            <video 
+              src={videoPreview} 
+              controls 
+              style={{ maxWidth: '300px' }}
+              onError={() => {
+                setVideoPreview(null);
+                toast.error('Failed to load video preview');
+              }}
+            />
           )}
         </div>
       </div>
@@ -140,7 +173,7 @@ function CreateProjectForm({ projectId, isDraftEdit }) {
         View Project Guidelines
       </Button>
 
-      <Form onSubmit={handleSubmit((data) => onSubmit(data, false))}>
+      <Form onSubmit={handleSubmit(handleCreateProject)}>
         {/* Title Field */}
         <Form.Group className="mb-3">
           <Form.Label>Project Title *</Form.Label>
@@ -347,46 +380,86 @@ function CreateProjectForm({ projectId, isDraftEdit }) {
           />
         </Form.Group>
 
-        {/* Form Buttons */}
-        <div className="d-flex gap-2 mt-4">
-          <Button
-            variant="secondary"
-            onClick={handleSubmit((data) => onSubmit(data, true))}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <>
-                <Spinner size="sm" className="me-2" />
-                Saving Draft...
-              </>
-            ) : (
-              'Save as Draft'
-            )}
-          </Button>
-
-          <Button
-            variant="info"
-            onClick={() => setShowPreview(true)}
-            disabled={isSubmitting}
-          >
-            Preview
-          </Button>
-
-          <Button
-            variant="primary"
-            type="submit"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <>
-                <Spinner size="sm" className="me-2" />
-                {isDraftEdit ? 'Updating Project...' : 'Creating Project...'}
-              </>
-            ) : (
-              isDraftEdit ? 'Update Project' : 'Create Project'
-            )}
-          </Button>
-        </div>
+        {/* Updated buttons section */}
+      <div className="d-flex gap-2 mt-4">
+        {isDraftEdit ? (
+          <>
+            <Button
+              variant="secondary"
+              onClick={handleSubmit(handleSaveDraft)}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Spinner size="sm" className="me-2" animation="border" />
+                  Updating Draft...
+                </>
+              ) : (
+                'Update Draft'
+              )}
+            </Button>
+            <Button
+              variant="info"
+              onClick={() => setShowPreview(true)}
+              disabled={isSubmitting}
+            >
+              Preview
+            </Button>
+            <Button
+              variant="primary"
+              type="submit"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Spinner size="sm" className="me-2" animation="border" />
+                  Creating Project...
+                </>
+              ) : (
+                'Create Project'
+              )}
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button
+              variant="secondary"
+              onClick={handleSubmit(handleSaveDraft)}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Spinner size="sm" className="me-2" animation="border" />
+                  Saving Draft...
+                </>
+              ) : (
+                'Save as Draft'
+              )}
+            </Button>
+            <Button
+              variant="info"
+              onClick={() => setShowPreview(true)}
+              disabled={isSubmitting}
+            >
+              Preview
+            </Button>
+            <Button
+              variant="primary"
+              type="submit"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Spinner size="sm" className="me-2" animation="border" />
+                  Creating Project...
+                </>
+              ) : (
+                'Create Project'
+              )}
+            </Button>
+          </>
+        )}
+      </div>
       </Form>
 
       {/* Preview Modal */}

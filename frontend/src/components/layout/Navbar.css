@@ -4,7 +4,12 @@
   background-color: white !important;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   height: 70px;
-  padding: 0 10px !important;
+  padding: 0 !important;
+}
+
+.navbar .container {
+  max-width: 1200px; /* Adjust max-width as needed */
+  padding: 0 15px; /* Add some minimal side padding */
 }
 
 /* Brand/Logo styling */
@@ -33,7 +38,7 @@
 /* Navigation items */
 .navbar-nav {
   align-items: center;
-  gap: 8px;
+  gap: 4px;
 }
 
 .nav-link {
@@ -41,7 +46,7 @@
   align-items: center;
   gap: 8px;
   color: #4a4a4a !important;
-  padding: 4px 8px !important;
+  padding: 4px 12px !important; /* Tighter padding */
   font-size: 15px;
   font-weight: 500;
 }

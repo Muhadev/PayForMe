@@ -1,30 +1,174 @@
-// ProfilePage.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+// import axios from 'axios';
+import axiosInstance from '../helper/axiosConfig';
 import { Container, Form, Button, Row, Col, Card, Alert, Nav } from 'react-bootstrap';
+import { toast } from 'react-toastify';
 import './ProfilePage.css';
+import placeholderImage from '../assets/image.png';
+
 
 const ProfilePage = () => {
   const [activeTab, setActiveTab] = useState('profile');
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showError, setShowError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [userData, setUserData] = useState({
+    username: '',
+    full_name: '',
+    email: '',
+    location: '',
+    bio: '',
+    website: '',
+    twitter: '',
+    currentProfileImage: null,
+    projects_created_count: 0,
+    backed_projects_count: 0,
+    total_donations: 0,
+    profile_image: null,
+    join_date: '',
+  });
+  const [profileData, setProfileData] = useState({
+    full_name: '',
+    email: '',
+    location: '',
+    bio: '',
+    website: '',
+    twitter: '',
+    preferences: {},
+    profile_image: null
+  });
+  const [profileImage, setProfileImage] = useState(null);
+  const [previewImage, setPreviewImage] = useState(null);
 
-  const userData = {
-    name: "John Doe",
-    email: "john.doe@example.com",
-    location: "New York, USA",
-    bio: "Passionate creator and innovator",
-    website: "www.johndoe.com",
-    twitter: "@johndoe",
-    joinDate: "January 2023",
-    projectsLaunched: 5,
-    projectsBacked: 12,
-    totalRaised: 25000,
-    successRate: 80
+  // Fetch user profile on component mount
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await axiosInstance.get('/api/v1/profile/');
+        
+        const fetchedUserData = response.data.data.user;
+        setUserData({
+          username: fetchedUserData.username,
+          full_name: fetchedUserData.full_name || '',
+          email: fetchedUserData.email || '',
+          location: fetchedUserData.location || '',
+          bio: fetchedUserData.bio || '',
+          website: fetchedUserData.website || '',
+          twitter: fetchedUserData.twitter || '',
+          projects_created_count: fetchedUserData.projects_created_count || 0,
+          backed_projects_count: fetchedUserData.backed_projects_count || 0,
+          total_donations: fetchedUserData.total_donations || 0,
+          profile_image: fetchedUserData.profile_image,
+          join_date: fetchedUserData.created_at || '',
+        });
+        
+        // Set profile data for form
+        setProfileData({
+          full_name: fetchedUserData.full_name || '',
+          email: fetchedUserData.email || '',
+          location: fetchedUserData.location || '',
+          bio: fetchedUserData.bio || '',
+          website: fetchedUserData.website || '',
+          twitter: fetchedUserData.twitter || '',
+          // preferences: fetchedUserData.preferences || {},
+          profile_image: fetchedUserData.profile_image || null
+        });
+        
+        // Set preview image if exists
+        if (fetchedUserData.profile_image) {
+          setPreviewImage(fetchedUserData.profile_image);
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        if (error.response?.status === 404) {
+          toast.error('Profile not found');
+        } else {
+          toast.error('Failed to load profile data');
+        }
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+  const handleInputChange = (e) => {
+    const { id, value } = e.target;
+    setProfileData(prev => ({
+      ...prev,
+      [id]: value
+    }));
   };
 
-  const handleSubmit = (e) => {
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type and size
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+      const maxSize = 5 * 1024 * 1024; // 5MB
+
+      if (!allowedTypes.includes(file.type)) {
+        toast.error('Invalid file type. Please upload JPEG, PNG, or GIF.');
+        return;
+      }
+
+      if (file.size > maxSize) {
+        toast.error('File size exceeds 5MB limit.');
+        return;
+      }
+
+      setProfileImage(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewImage(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
+    try {
+      // const token = localStorage.getItem('token');
+      
+      // Prepare form data for upload
+      const formData = new FormData();
+      
+      // Append text fields
+      Object.keys(profileData).forEach(key => {
+        if (key !== 'profile_image' && profileData[key]) {
+          formData.append(key, profileData[key]);
+        }
+      });
+
+      // Append profile image if selected
+      if (profileImage) {
+        formData.append('profile_image', profileImage);
+      }
+
+      const response = await axiosInstance.put('/api/v1/profile/', formData, {
+        headers: { 
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      // Update user data with response
+      toast.success('Profile updated successfully!');
+      
+      // Optionally refresh profile data
+      const updatedProfileResponse = await axiosInstance.get('/api/v1/profile/');
+      
+      const updatedUserData = updatedProfileResponse.data.data.user;
+      setUserData(prevData => ({
+        ...prevData,
+        ...updatedUserData
+      }));
+
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error(error.response?.data?.message || 'Failed to update profile');
+    }
   };
 
   return (
@@ -34,30 +178,41 @@ const ProfilePage = () => {
           <div className="profile-sidebar">
             <div className="profile-picture-container">
               <img
-                src="https://via.placeholder.com/150"
+                src={previewImage || userData.profile_image || placeholderImage}
                 alt="Profile"
                 className="rounded-circle profile-picture"
               />
-              <Button variant="link" className="change-photo-btn">
+              <input 
+                type="file" 
+                id="profile-image-upload"
+                accept="image/jpeg,image/png,image/gif"
+                style={{ display: 'none' }}
+                onChange={handleImageUpload}
+              />
+              <Button 
+                variant="link" 
+                className="change-photo-btn"
+                onClick={() => document.getElementById('profile-image-upload').click()}
+              >
                 <i className="bi bi-camera"></i>
               </Button>
             </div>
             <div className="profile-stats">
               <div className="stat-item">
                 <span className="stat-label">Projects Launched</span>
-                <span className="stat-value">{userData.projectsLaunched}</span>
+                <span className="stat-value">{userData.projects_created_count}</span>
               </div>
               <div className="stat-item">
                 <span className="stat-label">Projects Backed</span>
-                <span className="stat-value">{userData.projectsBacked}</span>
+                <span className="stat-value">{userData.backed_projects_count}</span>
               </div>
               <div className="stat-item">
-                <span className="stat-label">Success Rate</span>
-                <span className="stat-value">{userData.successRate}%</span>
+                <span className="stat-label">Total Donations</span>
+                <span className="stat-value">${userData.total_donations.toFixed(2)}</span>
               </div>
             </div>
             <div className="member-since">
-              Member since {userData.joinDate}
+              Member since {new Date(userData.join_date).toLocaleDateString()}
             </div>
           </div>
         </Col>
@@ -68,7 +223,11 @@ const ProfilePage = () => {
               Profile updated successfully!
             </Alert>
           )}
-
+          {showError && (
+            <Alert variant="danger" className="mb-4">
+              {errorMessage}
+            </Alert>
+          )}
           <Card>
             <Card.Header>
               <Nav variant="tabs" defaultActiveKey="profile">
@@ -104,11 +263,12 @@ const ProfilePage = () => {
                 <Form onSubmit={handleSubmit}>
                   <Row>
                     <Col md={6}>
-                      <Form.Group className="mb-3" controlId="name">
+                      <Form.Group className="mb-3" controlId="full_name">
                         <Form.Label>Full Name</Form.Label>
                         <Form.Control 
                           type="text" 
-                          defaultValue={userData.name}
+                          value={profileData.full_name}
+                          onChange={handleInputChange}
                           required 
                         />
                       </Form.Group>
@@ -118,7 +278,8 @@ const ProfilePage = () => {
                         <Form.Label>Email Address</Form.Label>
                         <Form.Control 
                           type="email" 
-                          defaultValue={userData.email}
+                          value={profileData.email}
+                          onChange={handleInputChange}
                           required 
                         />
                       </Form.Group>
@@ -129,7 +290,8 @@ const ProfilePage = () => {
                     <Form.Label>Location</Form.Label>
                     <Form.Control 
                       type="text" 
-                      defaultValue={userData.location}
+                      value={profileData.location || ''}
+                      onChange={handleInputChange}
                     />
                   </Form.Group>
 
@@ -138,7 +300,8 @@ const ProfilePage = () => {
                     <Form.Control 
                       as="textarea" 
                       rows={3} 
-                      defaultValue={userData.bio}
+                      value={profileData.bio || ''}
+                      onChange={handleInputChange}
                     />
                   </Form.Group>
 

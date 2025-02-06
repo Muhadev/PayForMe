@@ -1,8 +1,11 @@
+# backend/app/routes/google_auth.py
+
 from flask import Blueprint, redirect, url_for, session, request, current_app
 from authlib.integrations.flask_client import OAuth
 from app import db
 from app.models.user import User
 from app.utils.response import success_response, error_response
+from flask_jwt_extended import create_access_token, create_refresh_token
 import secrets
 
 google_auth = Blueprint('google_auth', __name__)
@@ -32,48 +35,42 @@ def login():
 
 @google_auth.route('/login/google/authorized')
 def authorized():
-    current_app.logger.info("Entered authorized route")
-    if request.args.get('state') != session.pop('oauth_state', None):
-        current_app.logger.error("Invalid state parameter")
-        return error_response("Invalid state parameter", status_code=403)
-
     try:
-        current_app.logger.info("Attempting to authorize access token")
+        if request.args.get('state') != session.pop('oauth_state', None):
+            return redirect(f"{current_app.config['FRONTEND_URL']}/signin?error=invalid_state")
+
         token = google.authorize_access_token()
-        current_app.logger.info(f"Token received: {token}")
-    except Exception as e:
-        current_app.logger.error(f"Failed to authorize access token: {str(e)}")
-        return error_response(f"Authorization failed: {str(e)}", status_code=500)
-
-    try:
-        current_app.logger.info("Fetching user info")
         resp = google.get('https://www.googleapis.com/oauth2/v3/userinfo')
         user_info = resp.json()
-        current_app.logger.info(f"User info received: {user_info}")
+
+        user = User.query.filter_by(email=user_info['email']).first()
+        if user is None:
+            user = User(email=user_info['email'], name=user_info.get('name', ''))
+            db.session.add(user)
+        else:
+            user.full_name = user_info.get('name', user.full_name)
+        
+        db.session.commit()
+
+        # Create tokens
+        token_identity = {
+            'id': user.id,
+            'email': user.email,
+            'roles': [role.name for role in user.roles] if hasattr(user, 'roles') else []
+        }
+        
+        access_token = create_access_token(identity=token_identity)
+        refresh_token = create_refresh_token(identity=token_identity)
+
+        # Redirect to frontend with tokens in URL parameters
+        redirect_url = f"{current_app.config['FRONTEND_URL']}/auth/callback?access_token={access_token}&refresh_token={refresh_token}"
+        return redirect(redirect_url)
+
     except Exception as e:
-        current_app.logger.error(f"Failed to fetch user info: {str(e)}")
-        return error_response(f"Failed to fetch user info: {str(e)}", status_code=500)
-
-    user = User.query.filter_by(email=user_info['email']).first()
-    if user is None:
-        user = User(email=user_info['email'], name=user_info.get('name', ''))
-        db.session.add(user)
-    else:
-        user.full_name = user_info.get('name', user.full_name)
-    
-    db.session.commit()
-
-    session['user_id'] = user.id
-
-    return success_response(
-        data={
-            'email': user_info['email'],
-            'name': user_info.get('name', '')
-        },
-        message="Successfully authenticated with Google"
-    )
+        current_app.logger.error(f"Google auth error: {str(e)}")
+        return redirect(f"{current_app.config['FRONTEND_URL']}/signin?error=auth_failed")
 
 @google_auth.route('/logout')
 def logout():
     session.clear()
-    return success_response(message="Logged out successfully")
+    return redirect(f"{current_app.config['FRONTEND_URL']}/signin")

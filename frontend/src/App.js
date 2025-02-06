@@ -21,6 +21,7 @@ import MyProjectsPage from './pages/MyProjectsPage';
 import BackedProjectsPage from './pages/BackedProjectsPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
+import AuthCallback from './components/auth/AuthCallback';
 // import CreateProjectForm from './components/projects/CreateProjectForm';
 
 // import CreateProjectPage from './pages/CreateProjectPage';
@@ -67,6 +68,7 @@ function App() {
           <Route path="/projects/drafts/:id" element={<ProjectDetailsPage isDraft={true} />} />
           {/* <Route path="/projects/drafts/edit/:id" element={<CreateProjectPage />} /> */}
           <Route path="/projects/edit/:id" element={<CreateProjectPage />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
           {/* <Route path="projects/:id" element={<ProjectDetailPage />} /> */}
           {/* Add more routes as needed */}
         </Route>

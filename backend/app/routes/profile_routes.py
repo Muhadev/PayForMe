@@ -15,7 +15,11 @@ profile_bp = Blueprint('profile', __name__)
 @jwt_required()
 def get_profile():
     current_user_id = get_jwt_identity()
+    
+    logger.debug(f"JWT Identity returned: {current_user_id} (type: {type(current_user_id)})")
+    
     user_profile = UserService.get_user_private_profile(current_user_id)
+    
     if user_profile:
         logger.info(f"User profile retrieved for user ID {current_user_id}")
         return api_response(
@@ -34,16 +38,34 @@ def get_profile():
 @jwt_required()
 def update_profile():
     current_user_id = get_jwt_identity()
-    data = request.get_json()
 
-    if not data:
+    # Get JSON data
+    data = request.form.to_dict()
+
+    # Validate input size/type
+    if request.content_length and request.content_length > 10 * 1024 * 1024:  # 10MB limit
+        return api_response(
+            message="File too large. Maximum 10MB allowed.",
+            status_code=413
+        )
+    
+    # Check if request contains file
+    profile_image = None
+    if 'profile_image' in request.files:
+        profile_image = request.files['profile_image']
+
+    if not data and not profile_image:
         logger.warning(f"Update profile attempt with missing data for user {current_user_id}")
         return api_response(
             message="No data provided",
             status_code=400
         )
 
-    success, message = UserService.update_user_profile(current_user_id, data)
+    success, message = UserService.update_user_profile(
+        current_user_id, 
+        data, 
+        profile_image
+    )
 
     if success:
         logger.info(f"User {current_user_id} updated their profile")

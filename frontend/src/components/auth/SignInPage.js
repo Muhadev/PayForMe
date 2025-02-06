@@ -1,12 +1,10 @@
-import React, { useState } from 'react';
-// import axios from 'axios';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Container, Form, Button, Row, Col } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import axiosInstance from '../../helper/axiosConfig';
-import { refreshAccessToken } from '../../helper/authHelpers';
 import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css'; // Ensure CSS is imported for styling
-import './SignInPage.css'; // Import custom CSS for styling
+import 'react-toastify/dist/ReactToastify.css';
+import './SignInPage.css';
 
 function SignInPage() {
   const [email, setEmail] = useState('');
@@ -14,10 +12,59 @@ function SignInPage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
+  // Memoize handleSuccessfulLogin to prevent unnecessary re-renders
+  const handleSuccessfulLogin = useCallback((access_token, refresh_token) => {
+    if (!access_token || !refresh_token) {
+      toast.error('Authentication failed: No tokens received.');
+      return;
+    }
+    
+    localStorage.setItem('accessToken', access_token);
+    localStorage.setItem('refreshToken', refresh_token);
+  
+    toast.success('Login successful! Redirecting to dashboard...');
+    setTimeout(() => {
+      navigate('/dashboard');
+    }, 1000);
+  }, [navigate]);
+
+  // Handle OAuth callback
+  useEffect(() => {
+    const handleOAuthCallback = async () => {
+      // Check if this is a callback from OAuth
+      if (searchParams.has('code') && searchParams.has('state')) {
+        setIsLoading(true);
+        try {
+          // The backend will handle the token exchange
+          const response = await axiosInstance.get('/api/v1/google_auth/login/google/authorized' + window.location.search);
+          
+          if (response.status === 200) {
+            const { access_token, refresh_token } = response.data.data;
+            if (access_token && refresh_token) {
+              handleSuccessfulLogin(access_token, refresh_token);
+            } else {
+              toast.error('Authentication failed: No tokens received.');
+            }
+          }
+        } catch (error) {
+          console.error('OAuth callback error:', error);
+          toast.error('Failed to complete Google sign in. Please try again.');
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    handleOAuthCallback();
+  }, [searchParams, handleSuccessfulLogin]);
+
+  // Standard Email Login
   const handleSubmit = async (event) => {
     event.preventDefault();
     setIsLoading(true);
+    setErrorMessage('');
 
     try {
       const response = await axiosInstance.post('/api/v1/auth/login', {
@@ -26,50 +73,32 @@ function SignInPage() {
       });
 
       if (response.status === 200) {
-        // Save tokens to local storage or cookies
         const { access_token, refresh_token } = response.data;
-
-        // Save tokens to local storage
-        localStorage.setItem('accessToken', access_token);
-        localStorage.setItem('refreshToken', refresh_token);
-
-        // Show success message using toast
-        toast.success('Login successful! Redirecting to dashboard.');
-
-        // Redirect to the dashboard or home page after 2 seconds
-        setTimeout(() => {
-          navigate('/dashboard');
-        }, 2000); // Optional delay to let the user see the message
+        handleSuccessfulLogin(access_token, refresh_token);
       }
     } catch (error) {
-      // Handle specific 401 error
       if (error.response?.status === 401) {
         toast.error('Invalid email or password. Please try again.');
       } else {
-        // Attempt to refresh token if expired
-        const newToken = await refreshAccessToken();
-        if (!newToken) {
-          toast.error('Session expired. Please log in again.');
-        } else {
-          // Retry the original request with the new token (if applicable)
-          try {
-            const retryResponse = await axiosInstance.post('/api/v1/auth/login', {
-              email,
-              password,
-            });
-            if (retryResponse.status === 200) {
-              toast.success('Login successful on retry! Redirecting to dashboard.');
-              setTimeout(() => {
-                navigate('/dashboard');
-              }, 2000);
-            }
-          } catch (retryError) {
-            toast.error('Login failed. Please try again later.');
-          }
-        }
+        toast.error('Login failed. Please try again later.');
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Google Login Handler
+  const handleGoogleLogin = async () => {
+    try {
+      // Clear any existing tokens before starting the OAuth flow
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Redirect to backend's Google OAuth route
+      window.location.href = `${process.env.REACT_APP_BACKEND_URL}/api/v1/google_auth/login/google`;
+    } catch (error) {
+      console.error('Google Login Error:', error);
+      toast.error('Google login failed. Please try again.');
     }
   };
 
@@ -81,6 +110,28 @@ function SignInPage() {
             <div className="signin-form">
               <h2>Sign In</h2>
               <p className="description">Access your PayForMe account</p>
+              
+              {/* Google Sign-In Button */}
+              <div className="google-signin-container">
+                <Button 
+                  onClick={handleGoogleLogin}
+                  className="google-btn"
+                  disabled={isLoading}
+                >
+                  <img 
+                    src="https://developers.google.com/identity/images/g-logo.png" 
+                    alt="Google logo" 
+                    className="google-icon"
+                  />
+                  Sign in with Google
+                </Button>
+              </div>
+
+              <div className="or-divider">
+                <span>OR</span>
+              </div>
+
+              {/* Email Login Form */}
               <Form onSubmit={handleSubmit}>
                 <Form.Group controlId="formBasicEmail">
                   <Form.Label>Email address</Form.Label>
@@ -110,6 +161,7 @@ function SignInPage() {
                   {isLoading ? 'Signing In...' : 'Sign In'}
                 </Button>
               </Form>
+
               <div className="footer-links">
                 <p>
                   <a href="/forgot-password">Forgot password?</a>

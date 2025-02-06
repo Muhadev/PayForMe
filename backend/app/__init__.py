@@ -26,9 +26,15 @@ def configure_logging():
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 def create_app():
-    app = Flask(__name__)
+    app = Flask(__name__, static_folder='static', static_url_path='/static')
     app.config.from_object(Config)
+
+    app.config['UPLOAD_FOLDER'] = 'app/static/uploads/profiles'
     
+    # In your app initialization
+    upload_dir = os.path.join(app.root_path, 'static', 'uploads', 'profiles')
+    os.makedirs(upload_dir, exist_ok=True)
+
     # Ensure upload folders are properly configured
     upload_folders = [
         app.config['UPLOADED_PHOTOS_DEST'],
@@ -58,47 +64,8 @@ def create_app():
     jwt.init_app(app)
     limiter.init_app(app)
     # Configure CORS
-    
-    # Configure CORS properly with all options in one place
-    CORS(app, 
-         resources={r"/api/v1/*": {
-             "origins": ["http://localhost:3000"],
-             "allow_credentials": True,
-             "expose_headers": ["Content-Type", "Authorization"],
-             "methods": ["GET", "PUT", "POST", "DELETE", "OPTIONS"],
-             "supports_credentials": True,
-             "allow_headers": ["Content-Type", "Authorization"]  # Add this line
-         }}
-    )
-    # Configure CORS
-    # CORS(app, 
-    #     resources={
-    #         r"/api/v1/*": {
-    #             "origins": ["http://localhost:3000"],
-    #             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    #             "allow_headers": [
-    #                 "Content-Type", 
-    #                 "Authorization",
-    #                 "Access-Control-Allow-Headers",
-    #                 "Access-Control-Allow-Origin",
-    #                 "Access-Control-Allow-Methods",
-    #                 "Access-Control-Allow-Credentials"
-    #             ],
-    #             "expose_headers": ["Content-Type", "Authorization"],
-    #             "supports_credentials": True,
-    #             "send_wildcard": False,
-    #             "max_age": 86400  # Cache preflight response for 24 hours
-    #         }
-    #     }
-    # )
 
-    # # Add CORS headers to all responses
-    # @app.after_request
-    # def after_request(response):
-    #     response.headers.add('Access-Control-Allow-Credentials', 'true')
-    #     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    #     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-    #     return response
+    CORS(app, supports_credentials=True)  # Allow credentials
 
     configure_logging()
 
@@ -108,7 +75,7 @@ def create_app():
 
     # auth/google-related routes
     from app.routes.google_auth import google_auth
-    app.register_blueprint(google_auth, url_prefix='/api/v1/auth/google')
+    app.register_blueprint(google_auth, url_prefix='/api/v1/google_auth/')
 
     # User-related routes
     from app.routes.profile_routes import profile_bp

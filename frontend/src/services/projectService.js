@@ -8,7 +8,7 @@ const api = axios.create({
     withCredentials: true,
     headers: {
         'Accept': 'application/json', // Fixed typo in 'json'
-        'Content-Type': 'application/json'
+        // 'Content-Type': 'application/json'
     }
 });
 
@@ -18,6 +18,8 @@ api.interceptors.request.use((config) => {
     
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
+    } else {
+        console.error('No access token found!');
     }
 
     // Don't set Content-Type for FormData
@@ -44,6 +46,11 @@ export const createProject = async (formData, isDraft = false) => {
         const response = await api.post(endpoint, formData);
         return response.data;
     } catch (error) {
+        console.error('Full error details:', {
+            status: error.response?.status,
+            data: error.response?.data,
+            headers: error.response?.headers
+        });
         throw error;
     }
 };

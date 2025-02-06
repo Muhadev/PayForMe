@@ -75,7 +75,6 @@ class ProjectValidator:
             except ValueError:
                 raise ValidationError("Invalid date format. Use YYYY-MM-DD")
 
-
     @staticmethod
     def validate_category(category_id: Any, is_draft: bool) -> None:
         if not is_draft and not category_id:
@@ -133,77 +132,6 @@ class ProjectValidator:
     def validate_image_url(image_url: str) -> None:
         if image_url and not (validators.url(image_url) or image_url.startswith('/uploads/')):
             raise ValidationError("Invalid image URL")
-
-# def validate_project_data(data: Dict[str, Any], is_draft: bool = False) -> Dict[str, Any]:
-#     required_fields = ['title', 'description', 'goal_amount', 'end_date', 'category_id']
-
-#     # Check if all required fields are provided
-#     all_required_fields_present = all(field in data and data[field] for field in required_fields)
-
-#     # Handle status
-#     if 'status' in data:
-#         status_value = data['status']
-#         if isinstance(status_value, ProjectStatus):
-#             status = status_value
-#         else:
-#             try:
-#                 status = ProjectStatus.from_string(status_value)
-#             except ValueError:
-#                 raise ValidationError(f"Invalid status. Must be one of: {', '.join([s.value for s in ProjectStatus])}")
-#     else:
-#         if is_draft or not all_required_fields_present:
-#             status = ProjectStatus.DRAFT
-#         else:
-#             status = ProjectStatus.PENDING  # Default to PENDING for new complete projects
-
-#     data['status'] = status
-    
-#     # Only validate required fields if not a draft
-#     if not is_draft:
-#         required_fields = ['title', 'description', 'goal_amount', 'end_date', 'category_id']
-#         missing_fields = [field for field in required_fields if field not in data or not data[field]]
-#         if missing_fields:
-#             raise ValidationError(f"Missing required fields: {', '.join(missing_fields)}")
-#     else:
-#         # For drafts, only title is required
-#         if not data.get('title'):
-#             raise ValidationError("Title is required even for drafts")
-
-
-#     # Validate fields
-#     if 'title' in data:
-#         ProjectValidator.validate_title(data['title'])
-#     if 'description' in data:
-#         ProjectValidator.validate_description(data['description'], is_draft)
-#     if 'goal_amount' in data and not is_draft:
-#         ProjectValidator.validate_goal_amount(data['goal_amount'], is_draft)
-#     if 'end_date' in data and not is_draft:
-#         ProjectValidator.validate_end_date(data['end_date'], is_draft)
-#     if 'category_id' in data:
-#         ProjectValidator.validate_category(data['category_id'], is_draft)
-    
-#     # Optional fields
-#     if 'start_date' in data:
-#         ProjectValidator.validate_start_date(data.get('start_date'), data.get('end_date'), is_draft)
-#     # Handle featured field conversion
-#     if 'featured' in data:
-#         try:
-#             if isinstance(data['featured'], str):
-#                 data['featured'] = data['featured'].lower() == 'true'
-#             elif not isinstance(data['featured'], bool):
-#                 raise ValidationError("Featured must be a boolean value")
-#         except Exception as e:
-#             raise ValidationError(f"Invalid featured value: {str(e)}")
-#     if 'risk_and_challenges' in data:
-#         ProjectValidator.validate_risk_and_challenges(data['risk_and_challenges'])
-#     if 'video_url' in data:
-#         ProjectValidator.validate_video_url(data['video_url'])
-#     if 'image_url' in data:
-#         ProjectValidator.validate_image_url(data['image_url'])
-
-#     ProjectValidator.validate_status(status, is_draft)
-
-#     return data
 
 def validate_project_data(data: Dict[str, Any], is_draft: bool = False) -> Dict[str, Any]:
     logger.info(f"Validating project data (is_draft: {is_draft})")

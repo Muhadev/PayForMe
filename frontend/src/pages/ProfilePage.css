@@ -5,19 +5,21 @@
 
 .profile-sidebar {
   text-align: center;
+  margin-top: 2rem;
   margin-bottom: 2rem;
 }
 
 .profile-picture-container {
   position: relative;
   display: inline-block;
-  margin-bottom: 1.5rem;
+  margin-bottom: 3.0rem;
 }
 
 .profile-picture {
   width: 150px;
-  height: 150px;
-  object-fit: cover;
+  height: 150px; /* Make it square */
+  object-fit: cover; /* Ensures image covers entire area */
+  border-radius: 50%; /* Makes it a perfect circle */
   border: 3px solid #fff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
