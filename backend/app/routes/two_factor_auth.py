@@ -101,3 +101,18 @@ def revoke_2fa():
     except Exception as e:
         current_app.logger.error(f"Error in 2FA revocation: {str(e)}")
         return api_response(message="An error occurred during 2FA revocation", status_code=500)
+
+@two_factor_auth_bp.route('/status', methods=['GET'])
+@jwt_required()
+def get_2fa_status():
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+
+    if not user:
+        return api_response(message="User not found", status_code=404)
+
+    return api_response(
+        message="2FA status retrieved",
+        data={"is_enabled": bool(user.two_factor_secret)},
+        status_code=200
+    )

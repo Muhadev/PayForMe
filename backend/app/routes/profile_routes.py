@@ -97,3 +97,11 @@ def get_public_profile(user_id):
             message="User not found",
             status_code=404
         )
+
+@profile_bp.route('/', methods=['DELETE'])
+@jwt_required()
+def delete_account():
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    user.soft_delete()  # Or implement hard delete based on your requirements
+    return api_response(message="Account deleted successfully", status_code=200)

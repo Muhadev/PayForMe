@@ -1,0 +1,25 @@
+.faqs-page {
+    background-color: #f8f9fa;
+    min-height: 100vh;
+  }
+  
+  .faqs-page h1 {
+    color: #343a40;
+    font-weight: bold;
+  }
+  
+  .faqs-page h3 {
+    color: #495057;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 10px;
+  }
+  
+  .accordion-button {
+    background-color: #e9ecef;
+    font-weight: 600;
+  }
+  
+  .accordion-button:not(.collapsed) {
+    background-color: #f1f3f5;
+    color: #007bff;
+  }

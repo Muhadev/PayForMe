@@ -2,14 +2,20 @@
 import React from 'react';
 import { Container, Row, Col, Card, Button } from 'react-bootstrap';
 import './AboutPage.css';
+import { Link } from 'react-router-dom';
 import Footer from '../components/layout/Footer';
+// import StatsIcon from './StatsSection';
 
 const AboutUs = () => {
   const stats = [
     { number: "500K+", label: "Backers", icon: "bi-people" },
     { number: "$50M+", label: "Funds Raised", icon: "bi-graph-up" },
     { number: "15K+", label: "Projects Funded", icon: "bi-trophy" },
-    { number: "98%", label: "Success Rate", icon: "bi-shield-check" }
+    { number: "98%", label: "Success Rate", icon: "bi-shield-check" },
+    { number: "180+", label: "Countries", icon: "bi-globe" },
+    { number: "25K+", label: "Active Campaigns", icon: "bi-rocket" },
+    { number: "1M+", label: "Community Members", icon: "bi-heart" },
+    { number: "4.9/5", label: "User Rating", icon: "bi-star" }
   ];
 
   const teamMembers = [
@@ -42,7 +48,10 @@ const AboutUs = () => {
               <p className="hero-subtitle">
                 PayForMe connects visionary creators with passionate backers to bring extraordinary ideas to life.
               </p>
-              <button className="cta-button">Start Your Journey</button>
+              <Link to="/projects/create" className="cta-button">
+                Start Your Journey
+              </Link>
+              {/* <button ></button> */}
             </Col>
           </Row>
         </Container>
@@ -63,13 +72,14 @@ const AboutUs = () => {
           ))}
         </Row>
       </Container>
+      {/* <StatsIcon /> */}
 
       {/* Mission Section */}
       <div className="mission-section">
         <Container>
           <Row className="justify-content-center">
             <Col md={8} className="text-center">
-              <h2 className="section-title">Our Mission</h2>
+              <h2 className="mission-title">Our Mission</h2>
               <p className="mission-text">
                 At PayForMe, we believe everyone deserves a chance to turn their innovative ideas into reality. 
                 Our platform provides the tools, resources, and community support needed to launch successful 
@@ -137,14 +147,16 @@ const AboutUs = () => {
       </div>
 
       {/* CTA Section */}
+      <div className='CTA-section'>
       <Container className="section-padding text-center">
-        <h2 className="section-title">Ready to Bring Your Ideas to Life?</h2>
+        <h2 className="cta-title">Ready to Bring Your Ideas to Life?</h2>
         <p className="cta-text mb-4">Join our community of creators and backers today.</p>
         <div className="cta-buttons">
           <Button variant="primary" className="me-3">Start a Project</Button>
           <Button variant="outline-primary">Explore Projects</Button>
         </div>
       </Container>
+      </div>
     </div>
     <Footer />
   </>

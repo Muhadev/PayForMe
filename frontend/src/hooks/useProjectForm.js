@@ -208,25 +208,33 @@ export const useProjectForm = (projectId, isDraftEdit) => {
           const response = await projectService.fetchDraft(projectId);
           if (response?.data) {
             const draftData = response.data;
-            // Reset form with draft data
-            formMethods.reset({
-              title: draftData.title,
-              category_id: draftData.category_id?.toString(),
-              goal_amount: draftData.goal_amount,
-              start_date: draftData.start_date?.split('T')[0],
-              end_date: draftData.end_date?.split('T')[0],
-              description: draftData.description,
-              risk_and_challenges: draftData.risk_and_challenges,
-              featured: draftData.featured,
-              imageUrl: draftData.image_url || '',
-              videoUrl: draftData.video_url || '',
-              imageType: draftData.image_url ? 'url' : 'file',
-              videoType: draftData.video_url ? 'url' : 'file'
-            });
             
-            // Set previews if they exist
-            if (draftData.image_url) setImagePreview(draftData.image_url);
-            if (draftData.video_url) setVideoPreview(draftData.video_url);
+            // Determine if the image/video are uploaded files or external URLs
+            const isUploadedImage = draftData.image_url?.startsWith('/uploads/') || 
+                                  draftData.image_url?.startsWith('uploads/');
+            const isUploadedVideo = draftData.video_url?.startsWith('/uploads/') || 
+                                  draftData.video_url?.startsWith('uploads/');
+  
+            formMethods.reset({
+              ...draftData,
+              imageType: isUploadedImage ? 'file' : 'url',
+              videoType: isUploadedVideo ? 'file' : 'url',
+              imageUrl: !isUploadedImage ? draftData.image_url : '',
+              videoUrl: !isUploadedVideo ? draftData.video_url : ''
+            });
+  
+            // Set preview URLs with full path for uploaded files
+            if (isUploadedImage) {
+              setImagePreview(`${process.env.REACT_APP_BACKEND_URL}/${draftData.image_url.replace(/^\//, '')}`);
+            } else if (draftData.image_url) {
+              setImagePreview(draftData.image_url);
+            }
+  
+            if (isUploadedVideo) {
+              setVideoPreview(`${process.env.REACT_APP_BACKEND_URL}/${draftData.video_url.replace(/^\//, '')}`);
+            } else if (draftData.video_url) {
+              setVideoPreview(draftData.video_url);
+            }
           }
         } catch (error) {
           toast.error('Failed to load draft data');
@@ -275,82 +283,121 @@ export const useProjectForm = (projectId, isDraftEdit) => {
     };
   }, [videoPreview]);
 
-  const handleFormSubmit = async (data, isDraft = false) => {
-    setIsSubmitting(true);
-    try {
-      const formData = createFormData(data, isDraft);
-      
-      const response = isDraftEdit
-        ? await projectService.updateDraft(projectId, formData)
-        : await projectService.createProject(formData, isDraft);
-      
-      if (response?.data) {
-        toast.success(isDraft ? 'Draft saved' : 'Project created');
-        return true;
-      }
-      return false;
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Operation failed');
-      return false;
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const handleImageUrlChange = (url) => {
     if (validateMediaUrl(url, 'image')) {
-      setImagePreview(url);
+      // For uploaded files, construct the correct URL
+      const fullUrl = url.startsWith('/uploads/') 
+        ? `${process.env.REACT_APP_BACKEND_URL}/api/v1/projects${url}`
+        : url;
+      setImagePreview(fullUrl);
       formMethods.setValue('imageUrl', url);
     } else {
       toast.error('Please enter a valid image URL');
     }
   };
 
+  
   const handleVideoUrlChange = (url) => {
     if (validateMediaUrl(url, 'video')) {
-      // For YouTube videos, convert to embed URL
+      // For uploaded files, construct the correct URL
+      const fullUrl = url.startsWith('/uploads/') 
+        ? `${process.env.REACT_APP_BACKEND_URL}/api/v1/projects${url}`
+        : url;
+        
+      // Handle YouTube/Vimeo URLs
       if (url.includes('youtube.com') || url.includes('youtu.be')) {
         const videoId = url.includes('youtube.com') 
           ? url.split('v=')[1]
           : url.split('youtu.be/')[1];
         const embedUrl = `https://www.youtube.com/embed/${videoId}`;
         setVideoPreview(embedUrl);
-        formMethods.setValue('videoUrl', url);
       } else if (url.includes('vimeo.com')) {
-        // Handle Vimeo videos
         const videoId = url.split('vimeo.com/')[1];
         const embedUrl = `https://player.vimeo.com/video/${videoId}`;
         setVideoPreview(embedUrl);
-        formMethods.setValue('videoUrl', url);
       } else {
-        setVideoPreview(url);
-        formMethods.setValue('videoUrl', url);
+        setVideoPreview(fullUrl);
       }
+      formMethods.setValue('videoUrl', url);
     } else {
       toast.error('Please enter a valid video URL (YouTube or Vimeo)');
     }
   };
 
+  // Update the handlers in CreateProjectForm to include proper URL construction
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
       setIsUploading(true);
       try {
-        handleFilePreview(file, 'image');
+        // Create preview
+        const objectUrl = URL.createObjectURL(file);
+        setImagePreview(objectUrl);
+
+        // Set form value
         formMethods.setValue('image', [file]);
+        formMethods.setValue('imageType', 'file');
       } catch (error) {
         toast.error('Failed to process image');
+        console.error('Image processing error:', error);
       } finally {
         setIsUploading(false);
       }
     }
   };
 
-  const handleVideoChange = (e) => {
+  const handleVideoChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      handleFilePreview(file, 'video');
-      formMethods.setValue('video', [file]);
+      setIsUploading(true);
+      try {
+        // Check file size
+        const maxSize = 100 * 1024 * 1024; // 100MB
+        if (file.size > maxSize) {
+          toast.error('Video must be less than 100MB');
+          return;
+        }
+
+        // Create preview
+        const objectUrl = URL.createObjectURL(file);
+        setVideoPreview(objectUrl);
+
+        // Set form value
+        formMethods.setValue('video', [file]);
+        formMethods.setValue('videoType', 'file');
+      } catch (error) {
+        toast.error('Failed to process video');
+        console.error('Video processing error:', error);
+      } finally {
+        setIsUploading(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (imagePreview?.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreview);
+      }
+      if (videoPreview?.startsWith('blob:')) {
+        URL.revokeObjectURL(videoPreview);
+      }
+    };
+  }, [imagePreview, videoPreview]);
+
+  const handleFormSubmit = async (data, isDraft = false) => {
+    setIsSubmitting(true);
+    try {
+      const formData = createFormData(data, isDraft);
+      const response = await projectService.createProject(formData, isDraft);
+      toast.success(isDraft ? 'Draft saved' : 'Project created');
+      return true;
+    } catch (error) {
+      console.error('Form submission error:', error);
+      toast.error(error.response?.data?.message || 'Operation failed');
+      return false;
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -366,6 +413,7 @@ export const useProjectForm = (projectId, isDraftEdit) => {
     handleImageChange,
     handleVideoChange,
     handleImageUrlChange,
-    handleVideoUrlChange
+    handleVideoUrlChange,
+    isUploading
   };
 };

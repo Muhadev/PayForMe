@@ -16,15 +16,20 @@ class Config:
     SENDGRID_DEFAULT_FROM = os.environ.get('SENDGRID_DEFAULT_FROM', 'noreply@yourdomain.com')
     GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
     GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET')
-    # UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', './uploads')
     FRONTEND_URL = os.environ.get('FRONTEND_URL')  # React app URL
-    UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', os.path.join(os.getcwd(), 'uploads'))
+
+    # Base upload folder
+    UPLOAD_FOLDERS = os.path.abspath(os.path.join(os.getcwd(), 'uploads'))
+
     UPLOADS_DEFAULT_URL = os.getenv('UPLOADS_DEFAULT_URL', 'http://localhost:5000/uploads/')
-    MAX_CONTENT_LENGTH = int(os.getenv('MAX_CONTENT_LENGTH', 16 * 1024 * 1024))  # Default 16 MB
+    MAX_CONTENT_LENGTH = int(os.getenv('MAX_CONTENT_LENGTH', 100 * 1024 * 1024))  # Increase to 100 MB
     ALLOWED_EXTENSIONS = set(os.getenv('ALLOWED_EXTENSIONS', 'png,jpg,jpeg,gif').split(','))
     ALLOWED_VIDEO_EXTENSIONS = set(os.getenv('ALLOWED_VIDEO_EXTENSIONS', 'mp4,avi,mov').split(','))
-    # Use a relative path for UPLOAD_FOLDER
-    # UPLOAD_FOLDER = os.path.join(str(Path.home()), 'payforme_uploads')
+    
+    # Specific upload destinations
+    UPLOADED_PHOTOS_DEST = os.path.abspath(os.path.join(UPLOAD_FOLDERS, 'photos'))
+    UPLOADED_VIDEOS_DEST = os.path.abspath(os.path.join(UPLOAD_FOLDERS, 'videos'))
+
     FIRST_ADMIN_SECRET_KEY = os.environ.get('FIRST_ADMIN_SECRET_KEY')
 
     # Set JWT expiration times
@@ -46,10 +51,6 @@ class Config:
     CACHE_TYPE = 'redis'
     CACHE_REDIS_URL = REDIS_URL  # Use the same URL for caching
     
-    # Set specific upload destinations for photos and videos
-    UPLOADED_PHOTOS_DEST = os.path.join(UPLOAD_FOLDER, 'photos')
-    UPLOADED_VIDEOS_DEST = os.path.join(UPLOAD_FOLDER, 'videos')
-
     # SECRET_KEY = os.getenv('SECRET_KEY')
     STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
     STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')

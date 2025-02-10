@@ -83,21 +83,29 @@
   
   /* Mission Section */
   .mission-section {
-    background-color: #f8f9fa;
-    padding: 80px 0;
+    /* color: white; */
+    background-color: #003366;
+    padding: 80px;
+    /* text-align: center; */
+    align-items: center;
   }
   
   .section-title {
-    font-size: 2rem;
+    font-size: 2.5rem;
     font-weight: bold;
     color: #003366;
     margin-bottom: 2rem;
   }
+
+  .mission-title{
+    color: white;
+  }
   
   .mission-text {
+    text-align: center;
     font-size: 1.1rem;
-    line-height: 1.8;
-    color: #555;
+    line-height: 2.5;
+    color: whitesmoke;
   }
   
   /* Team Section */
@@ -164,14 +172,24 @@
   }
   
   /* CTA Section */
+  .CTA-section{
+    background-color: #003366;
+    color: whitesmoke;
+    align-items: center;
+    padding: 50px;
+
+  }
+  .cta-title{
+    color: white;
+  }
   .cta-text {
     font-size: 1.25rem;
-    color: #666;
-    
+    text-align: center;
+    color: whitesmoke;
   }
   
-  .cta-buttons .btn {
-    padding: 12px 30px;
+  .cta-button {
+    padding: 15px 30px;
     font-weight: 500;
   }
   

@@ -1,0 +1,84 @@
+/* StatsSection.css */
+/* .stats-icon {
+    background-color: #f8f9fa;
+    padding: 60px 0;
+    overflow: hidden;
+    position: relative;
+  }
+  
+  .stats-scroll-container {
+    overflow-x: hidden;
+    width: 100%;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .stats-scroll-container::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .stats-inner-container {
+    display: flex;
+    white-space: nowrap;
+    padding: 20px 0;
+  }
+  
+  .stat-item {
+    flex: 0 0 300px;
+    padding: 20px;
+    transition: transform 0.3s ease;
+  }
+  
+  .stat-content {
+    background: white;
+    border-radius: 15px;
+    padding: 30px;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+  }
+  
+  .stat-content:hover {
+    transform: translateY(-10px);
+  }
+  
+  .stat-icon {
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+    display: block;
+  }
+  
+  .stat-number {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin: 10px 0;
+    opacity: 0;
+    animation: countUp 2s ease-out forwards;
+  }
+  
+  .stat-label {
+    color: #666;
+    font-size: 1.1rem;
+    margin: 0;
+  }
+  
+  @keyframes countUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .stat-item {
+      flex: 0 0 250px;
+    }
+    
+    .stat-number {
+      font-size: 2rem;
+    }
+  } */

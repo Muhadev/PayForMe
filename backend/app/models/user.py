@@ -136,7 +136,7 @@ class User(db.Model):
         try:
             token = jwt.encode(
                 {'reset_password': self.id, 'exp': time() + expires_in},
-                current_app.config['SECRET_KEY'], 
+                current_app.config['SECRET_KEY'],
                 algorithm='HS256'
             )
             current_app.logger.info(f"Generated reset token: {token}")

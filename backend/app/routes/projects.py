@@ -1,6 +1,6 @@
 # app/routes/projects.py
 
-from flask import Blueprint, request, current_app, send_from_directory
+from flask import Blueprint, request, current_app, send_from_directory, abort
 from app import jwt, limiter
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 import logging
@@ -19,7 +19,7 @@ from app.utils.decorators import permission_required
 from app.services.notification_service import NotificationService
 from app.services.email_service import send_templated_email
 from app.utils.rate_limit import rate_limit
-
+import os
 
 # logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -32,9 +32,53 @@ def handle_preflight():
         response = current_app.make_default_options_response()
         return response
 
-@projects_bp.route('/uploads/<filename>', methods=['GET'])
+@projects_bp.route('/uploads/<path:filename>/')
+# @jwt_required()
 def uploaded_file(filename):
-    return send_from_directory(current_app.config['UPLOAD_FOLDER'], filename)
+    """Serve uploaded files with proper MIME types"""
+    try:
+        logger.info(f"Attempting to serve file: {filename}")
+        
+        # Split the path to get subfolder and actual filename
+        parts = filename.split('/')
+        if len(parts) != 2:
+            logger.error(f"Invalid file path format: {filename}")
+            return api_response(message="Invalid file path", status_code=400)
+            
+        subfolder, actual_filename = parts
+        
+        # Determine the correct upload directory based on subfolder
+        if subfolder == 'photos':
+            upload_dir = current_app.config['UPLOADED_PHOTOS_DEST']
+        elif subfolder == 'videos':
+            upload_dir = current_app.config['UPLOADED_VIDEOS_DEST']
+        else:
+            logger.error(f"Invalid subfolder requested: {subfolder}")
+            return api_response(message="Invalid subfolder", status_code=400)
+        
+        if not os.path.exists(os.path.join(upload_dir, actual_filename)):
+            logger.error(f"File not found: {actual_filename} in {upload_dir}")
+            abort(404)
+            
+        logger.info(f"Serving file from directory: {upload_dir}")
+        logger.info(f"File name: {actual_filename}")
+        
+        response = send_from_directory(
+            upload_dir,
+            actual_filename,
+            as_attachment=False
+        )
+        
+        # Add CORS headers
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Origin, Accept, Content-Type'
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error serving uploaded file {filename}: {str(e)}")
+        return api_response(message="File not found", status_code=404)
 
 @projects_bp.before_request
 @limiter.limit("100 per minute")
@@ -45,52 +89,71 @@ def limit_blueprint_requests():
 @jwt_required()
 @permission_required('create_draft')
 def create_draft_project():
-    # if request.method == 'OPTIONS':
-    #     return api_response(message="OK", status_code=200)
     try:
-        # For multipart/form-data
+        data = {}
         if request.content_type and request.content_type.startswith('multipart/form-data'):
+            # Handle form data
             data = request.form.to_dict()
-            # Handle files if present
-            if request.files:
-                for key in request.files:
-                    file = request.files[key]
-                    # Handle file upload and add URL to data
+            
+            # Handle image
+            if 'image_file' in request.files:
+                image_file = request.files['image_file']
+                if image_file and image_file.filename:
+                    data['image_url'] = handle_file_upload(
+                        image_file,
+                        current_app.config['ALLOWED_EXTENSIONS'],
+                        current_app.config['UPLOADED_PHOTOS_DEST'],
+                        is_draft=True
+                    )
+            elif 'image_url' in data:
+                # Validate image URL if provided
+                ProjectValidator.validate_image_url(data['image_url'])
+            
+            # Handle video
+            if 'video_file' in request.files:
+                video_file = request.files['video_file']
+                if video_file and video_file.filename:
+                    data['video_url'] = handle_file_upload(
+                        video_file,
+                        current_app.config['ALLOWED_VIDEO_EXTENSIONS'],
+                        current_app.config['UPLOADED_VIDEOS_DEST'],
+                        is_draft=True
+                    )
+            elif 'video_url' in data:
+                # Validate video URL if provided
+                ProjectValidator.validate_video_url(data['video_url'])
         else:
-            # For JSON content
-            data = request.json
+            # Handle JSON data
+            data = request.get_json()
 
         if not data:
             return api_response(message="No data received", status_code=400)
 
-        data['status'] = ProjectStatus.DRAFT  # Enum instance, not the value
+        # Set draft status
+        data['status'] = ProjectStatus.DRAFT
         data['creator_id'] = get_jwt_identity()
 
-        # Log the data before validation
-        logger.info(f"Data before validation: {data}")
-
-        # Validate project data
+        # Validate and create project
         validated_data = validate_project_data(data, is_draft=True)
-        logger.info(f"Validated data: {validated_data}")  # Log the validated data
-
-        # Create the new project using validated data
         new_project = create_project(validated_data)
 
-        project_dict = new_project.to_dict()
-        
-        logger.info(f"Sending response with project data: {project_dict}")  # Add this log
-        
         return api_response(
-            data=project_dict,
+            data=new_project.to_dict(),
             message="Draft project created successfully",
             status_code=201
         )
 
     except ValidationError as e:
-        logger.warning(f"Validation error in create_draft_project: {e}")
+        logger.error(f"Validation error in create_draft_project: {str(e)}")
         return api_response(message=str(e), status_code=400)
+    except RequestEntityTooLarge:
+        logger.error("File size too large")
+        return api_response(
+            message="File size exceeds the maximum allowed limit", 
+            status_code=413
+        )
     except Exception as e:
-        logger.error(f"Error in create_draft_project: {str(e)}")
+        logger.error(f"Error in create_draft_project: {str(e)}", exc_info=True)
         return api_response(message="An unexpected error occurred", status_code=500)
 
 @projects_bp.route('/', methods=['POST'])

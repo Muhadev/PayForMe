@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import MainLayout from './components/layout/MainLayout';
 import HomePage from './pages/HomePage';
 import AboutPage from './pages/AboutPage';
+import FAQsPage from './pages/FAQsPage';
 import ProjectsPage from './pages/ProjectsPage';
 import ProjectDetailsPage from './pages/ProjectDetailsPage';  // Added for project details page
 import CreateProjectPage from './pages/CreateProjectPage';  // Added for create project page
@@ -46,6 +47,7 @@ function App() {
         <Route path="/" element={<MainLayout />}>
           <Route index element={<HomePage />} />
           <Route path="about" element={<AboutPage />} />
+          <Route path="faqs" element={<FAQsPage />} />
           <Route path="projects" element={<ProjectsPage />} />
           <Route path="project/:id" element={<ProjectDetailsPage />} /> {/* Dynamic route for project details */}
           <Route path="projects/create" element={<CreateProjectPage />} />

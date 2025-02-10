@@ -158,3 +158,18 @@ def protected():
     except JWTException as e:
         logger.error(f"JWT error in protected route: {str(e)}")
         return jsonify({"msg": "Invalid token"}), 401
+
+# In your auth routes
+@bp.route('/change-password', methods=['POST'])
+@jwt_required()
+def change_password():
+    current_user_id = get_jwt_identity()
+    data = request.get_json()
+
+    response = AuthService.change_user_password(
+        current_user_id, 
+        data.get('current_password'), 
+        data.get('new_password')
+    )
+
+    return api_response(message=response["message"], status_code=response["status_code"])

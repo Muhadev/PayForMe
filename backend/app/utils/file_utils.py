@@ -1,51 +1,109 @@
-# app/utils/file_utils.py
-
 import os
+import logging
+from typing import Optional, Set, Union, Tuple
 from werkzeug.utils import secure_filename
+from werkzeug.exceptions import RequestEntityTooLarge
 from flask import current_app
+from werkzeug.datastructures import FileStorage
 from .exceptions import ValidationError
 
-def allowed_file(filename: str, allowed_extensions: set) -> bool:
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
+# Set up logging
+logger = logging.getLogger(__name__)
 
-def handle_file_upload(file, allowed_extensions: set, upload_folder: str, is_draft: bool) -> str:
-    if is_draft:
-        return ''  # Skip file upload for draft projects
+def allowed_file(filename: str, allowed_extensions: Set[str]) -> bool:
+    """
+    Check if a filename has an allowed extension.
+    
+    Args:
+        filename (str): The name of the file to check
+        allowed_extensions (set): Set of allowed file extensions
+    
+    Returns:
+        bool: True if file extension is allowed, False otherwise
+    """
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in allowed_extensions
 
-    if not file:
-        raise ValidationError("File is required")
-
-    if not allowed_file(file.filename, allowed_extensions):
-        raise ValidationError(f"Invalid file format. Allowed formats: {', '.join(allowed_extensions)}")
-
-    try:
-        file.seek(0, os.SEEK_END)
-        file_size = file.tell()
-        file.seek(0)  # Reset file pointer to beginning
+def get_file_subfolder(extension: str) -> Tuple[str, str]:
+    """
+    Determine the correct subfolder and base path for a file based on its extension.
+    
+    Args:
+        extension (str): The file extension
         
-        if file_size > current_app.config['MAX_CONTENT_LENGTH']:
-            raise ValidationError("File size exceeds the limit")
+    Returns:
+        Tuple[str, str]: (subfolder name, base path)
+        
+    Raises:
+        ValidationError: If the file type is not supported
+    """
+    if extension in ['jpg', 'jpeg', 'png', 'gif']:
+        return 'photos', current_app.config['UPLOADED_PHOTOS_DEST']
+    elif extension in ['mp4', 'avi', 'mov', 'webm']:
+        return 'videos', current_app.config['UPLOADED_VIDEOS_DEST']
+    else:
+        raise ValidationError(f"Unsupported file type: {extension}")
 
-        filename = save_file(file, upload_folder)
-        return f"/uploads/{filename}"
-    except IOError as e:
-        current_app.logger.error(f"Error handling file upload: {e}")
-        raise ValidationError("Error processing file upload")
-
-def save_file(file, upload_folder: str) -> str:
-    filename = secure_filename(file.filename)
-    file_path = os.path.join(upload_folder, filename)
-
-    # Ensure the directory exists
-    if not os.path.exists(upload_folder):
-        os.makedirs(upload_folder)
+def handle_file_upload(file: FileStorage, allowed_extensions: Set[str], upload_folder: str, is_draft: bool = False) -> Optional[str]:
+    """
+    Handle file upload based on file type.
     
-    if not os.path.commonpath([file_path, upload_folder]) == os.path.abspath(upload_folder):
-        raise ValidationError("Invalid file path")
-    
+    Args:
+        file (FileStorage): The uploaded file
+        allowed_extensions (Set[str]): Set of allowed file extensions
+        upload_folder (str): Base upload folder path
+        is_draft (bool): Whether this is a draft upload
+        
+    Returns:
+        Optional[str]: The URL path for the uploaded file, or None if no file
+        
+    Raises:
+        ValidationError: If there's an error with the file or upload process
+        RequestEntityTooLarge: If the file size exceeds the limit
+    """
+    if not file or file.filename == '':
+        return None
+        
     try:
-        file.save(file_path)
-        return filename
-    except IOError as e:
-        current_app.logger.error(f"Error saving file: {e}")
-        raise ValidationError("Error saving file")
+        # Get the extension and validate it
+        if '.' not in file.filename:
+            raise ValidationError("No file extension found")
+            
+        extension = file.filename.rsplit('.', 1)[1].lower()
+        if not allowed_file(file.filename, allowed_extensions):
+            raise ValidationError(f"File type .{extension} is not supported")
+
+        filename = secure_filename(file.filename)
+        
+        # Get the correct subfolder and base path
+        subfolder, base_path = get_file_subfolder(extension)
+        
+        # Create full save path
+        save_path = os.path.join(base_path, filename)
+        
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        
+        # Check file size before saving
+        file.seek(0, os.SEEK_END)
+        size = file.tell()
+        file.seek(0)
+        
+        max_size = current_app.config.get('MAX_CONTENT_LENGTH', 16 * 1024 * 1024)  # Default 16MB
+        if size > max_size:
+            raise RequestEntityTooLarge()
+        
+        # Save the file
+        file.save(save_path)
+        
+        logger.info(f"File uploaded successfully: {save_path}")
+        
+        # Return the URL path that will be stored in database
+        return f'/uploads/{subfolder}/{filename}'
+        
+    except RequestEntityTooLarge:
+        logger.error(f"File size exceeds limit: {file.filename}")
+        raise
+    except Exception as e:
+        logger.error(f"File upload error: {str(e)}")
+        raise ValidationError(f"Failed to upload file: {str(e)}")

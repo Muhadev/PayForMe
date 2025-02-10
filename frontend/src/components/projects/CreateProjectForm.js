@@ -1,12 +1,13 @@
-// components/projects/CreateProjectForm.jsx
+// components/projects/CreateProjectForm.js
 import React, { useState } from 'react';
-import { Form, Button, Row, Col, Image, Modal, Spinner } from 'react-bootstrap';
+import { Form, Button, Row, Col, Modal, Spinner } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import ReactQuill from 'react-quill';
-import { toast } from 'react-toastify';
+// import { toast } from 'react-toastify';
 import 'react-quill/dist/quill.snow.css';
 import './CreateProjectForm.css';
 import { useProjectForm } from '../../hooks/useProjectForm';
+import MediaPreview from './MediaPreview';
 
 function CreateProjectForm({ projectId, isDraftEdit }) {
   const navigate = useNavigate();
@@ -19,7 +20,7 @@ function CreateProjectForm({ projectId, isDraftEdit }) {
     formState: { errors },
     watch,
     setValue,
-    control,
+    // control,
     categories,
     isSubmitting,
     imagePreview,
@@ -27,36 +28,25 @@ function CreateProjectForm({ projectId, isDraftEdit }) {
     videoPreview,
     setVideoPreview,
     handleFormSubmit,
-    handleImageUrlChange,  // Add these two
-    handleVideoUrlChange   // functions here
+    handleImageChange,
+    handleVideoChange,
+    handleImageUrlChange,
+    handleVideoUrlChange
   } = useProjectForm(projectId, isDraftEdit);
 
-  // const watchImageType = watch('imageType');
-  // const watchVideoType = watch('videoType');
-
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setImagePreview(reader.result);
-      reader.readAsDataURL(file);
-      setValue('image', [file]);
-    }
+  // Add handlers for removing media
+  const handleRemoveImage = () => {
+    setImagePreview(null);
+    setValue('imageUrl', '');
+    setValue('imageType', null);
   };
 
-  const handleVideoChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const maxSize = 100 * 1024 * 1024; // 100MB
-      if (file.size > maxSize) {
-        toast.error('Video file size must be less than 100MB');
-        return;
-      }
-      const videoUrl = URL.createObjectURL(file);
-      setVideoPreview(videoUrl);
-      setValue('video', [file]);
-    } 
+  const handleRemoveVideo = () => {
+    setVideoPreview(null);
+    setValue('videoUrl', '');
+    setValue('videoType', null);
   };
+
 
   const handleSaveDraft = async (data) => {
     const success = await handleFormSubmit(data, true);
@@ -71,13 +61,6 @@ function CreateProjectForm({ projectId, isDraftEdit }) {
       navigate('/my-projects');
     }
   };
-
-  // const onSubmit = async (data, isDraft = false) => {
-  //   const success = await handleFormSubmit(data, isDraft);
-  //   if (success) {
-  //     navigate('/my-projects');
-  //   }
-  // };
 
   // Preview Modal Content Component
   const ProjectPreview = () => {
@@ -117,28 +100,16 @@ function CreateProjectForm({ projectId, isDraftEdit }) {
         <div className="mb-4">
           <h4>Project Media</h4>
           {imagePreview && (
-            <Image 
-              src={imagePreview} 
-              alt="Preview" 
-              fluid 
-              style={{ maxWidth: '300px' }}
-              onError={(e) => {
-                e.target.onerror = null;
-                setImagePreview(null);
-                toast.error('Failed to load image preview');
-              }}
+            <MediaPreview 
+              type="image" 
+              preview={imagePreview}
             />
           )}
 
           {videoPreview && (
-            <video 
-              src={videoPreview} 
-              controls 
-              style={{ maxWidth: '300px' }}
-              onError={() => {
-                setVideoPreview(null);
-                toast.error('Failed to load video preview');
-              }}
+            <MediaPreview 
+              type="video" 
+              preview={videoPreview}
             />
           )}
         </div>
@@ -283,7 +254,7 @@ function CreateProjectForm({ projectId, isDraftEdit }) {
           )}
         </Form.Group>
 
-        {/* Image Field */}
+        {/* Updated Image Field */}
         <Form.Group className="mb-3">
           <Form.Label>Project Image</Form.Label>
           <div className="mb-2">
@@ -321,13 +292,15 @@ function CreateProjectForm({ projectId, isDraftEdit }) {
           )}
 
           {imagePreview && (
-            <div className="mt-2">
-              <Image src={imagePreview} alt="Preview" fluid style={{ maxWidth: '300px' }} />
-            </div>
+            <MediaPreview 
+              type="image" 
+              preview={imagePreview}
+              onRemove={handleRemoveImage}
+            />
           )}
         </Form.Group>
 
-        {/* Video Field */}
+        {/* Updated Video Field */}
         <Form.Group className="mb-3">
           <Form.Label>Project Video</Form.Label>
           <div className="mb-2">
@@ -365,9 +338,11 @@ function CreateProjectForm({ projectId, isDraftEdit }) {
           )}
 
           {videoPreview && (
-            <div className="mt-2">
-              <video src={videoPreview} controls style={{ maxWidth: '300px' }} />
-            </div>
+            <MediaPreview 
+              type="video" 
+              preview={videoPreview}
+              onRemove={handleRemoveVideo}
+            />
           )}
         </Form.Group>
 

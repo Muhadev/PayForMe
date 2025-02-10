@@ -215,3 +215,37 @@ class AuthService:
         token = db.session.query(TokenBlocklist.id).filter_by(jti=jti).scalar()
         logger.info(f"Token with jti: {jti} is revoked")
         return token is not None
+
+    @staticmethod
+    def change_user_password(user_id, current_password, new_password):
+        user = User.query.get(user_id)
+        
+        if not user:
+            logger.error(f"User not found for ID: {user_id}")
+            return {"message": "User not found", "status_code": 404}
+        
+        if not user.check_password(current_password):
+            logger.warning(f"Invalid current password attempt for user ID: {user_id}")
+            return {"message": "Current password is incorrect", "status_code": 400}
+
+        # Validate new password security
+        if not validate_password(new_password):
+            logger.warning(f"Password change failed: Weak new password for user ID {user_id}")
+            return {"message": "New password does not meet security requirements", "status_code": 400}
+
+        user.set_password(new_password)
+        
+        try:
+            db.session.commit()
+            logger.info(f"Password successfully changed for user {user.username}")
+
+            # Revoke all JWT tokens
+            db.session.add(TokenBlocklist(jti=str(uuid.uuid4()), created_at=datetime.utcnow()))
+            db.session.commit()
+            
+            return {"message": "Password changed successfully", "status_code": 200}
+
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error changing password for user {user.username}: {str(e)}")
+            return {"message": "Server error occurred", "status_code": 500}

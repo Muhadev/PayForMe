@@ -1,12 +1,30 @@
-// formUtils.js
+// utils/formUtils.js
 export const createFormData = (data, isDraft) => {
   const formData = new FormData();
   
   // Basic fields
   formData.append('status', isDraft ? 'DRAFT' : 'PENDING');
   formData.append('title', data.title);
-  
-  // Handle other fields
+
+  // Handle image
+  if (data.imageType === 'file' && data.image?.[0]) {
+    formData.append('image_file', data.image[0]);
+    formData.delete('image_url'); // Remove URL if exists
+  } else if (data.imageType === 'url' && data.imageUrl) {
+    formData.append('image_url', data.imageUrl);
+    formData.delete('image_file'); // Remove file if exists
+  }
+
+  // Handle video
+  if (data.videoType === 'file' && data.video?.[0]) {
+    formData.append('video_file', data.video[0]);
+    formData.delete('video_url'); // Remove URL if exists
+  } else if (data.videoType === 'url' && data.videoUrl) {
+    formData.append('video_url', data.videoUrl);
+    formData.delete('video_file'); // Remove file if exists
+  }
+
+  // Add other fields
   const fields = {
     description: data.description,
     risk_and_challenges: data.risk_and_challenges,
@@ -19,29 +37,9 @@ export const createFormData = (data, isDraft) => {
 
   Object.entries(fields).forEach(([key, value]) => {
     if (value !== undefined && value !== null) {
-      formData.append(key, value);
+      formData.append(key, value.toString());
     }
   });
-
-  // Robust media handling
-  if (data.imageType === 'file' && data.image?.[0]) {
-    formData.append('image_file', data.image[0]);
-    formData.append('image_url', '');
-  } else if (data.imageType === 'url' && data.imageUrl) {
-    formData.append('image_url', data.imageUrl);
-  }
-
-  if (data.videoType === 'file' && data.video?.[0]) {
-    formData.append('video_file', data.video[0]);
-    formData.append('video_url', '');
-  } else if (data.videoType === 'url' && data.videoUrl) {
-    formData.append('video_url', data.videoUrl);
-  }
-
-  // Log formData contents for debugging
-  for (let pair of formData.entries()) {
-    console.log(pair[0] + ': ' + pair[1]);
-  }
 
   return formData;
 };

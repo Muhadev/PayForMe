@@ -4,6 +4,7 @@ import axiosInstance from '../helper/axiosConfig';
 import { Container, Form, Button, Row, Col, Card, Alert, Nav } from 'react-bootstrap';
 import { toast } from 'react-toastify';
 import './ProfilePage.css';
+import AccountSettingsPanel from './AccountSettingsPanel';
 import placeholderImage from '../assets/image.png';
 
 
@@ -311,7 +312,8 @@ const ProfilePage = () => {
                         <Form.Label>Website</Form.Label>
                         <Form.Control 
                           type="url" 
-                          defaultValue={userData.website}
+                          value={profileData.website} // Change to value instead of defaultValue
+                          onChange={handleInputChange}
                         />
                       </Form.Group>
                     </Col>
@@ -320,7 +322,8 @@ const ProfilePage = () => {
                         <Form.Label>Twitter</Form.Label>
                         <Form.Control 
                           type="text" 
-                          defaultValue={userData.twitter}
+                          value={profileData.twitter} // Change to value instead of defaultValue
+                          onChange={handleInputChange}
                         />
                       </Form.Group>
                     </Col>
@@ -337,43 +340,7 @@ const ProfilePage = () => {
                 </Form>
               )}
 
-              {activeTab === 'account' && (
-                <div className="account-settings">
-                  <h5 className="mb-4">Account Settings</h5>
-                  <Form>
-                    <Form.Group className="mb-4">
-                      <Form.Label>Change Password</Form.Label>
-                      <Form.Control 
-                        type="password" 
-                        placeholder="Current password" 
-                        className="mb-2"
-                      />
-                      <Form.Control 
-                        type="password" 
-                        placeholder="New password" 
-                        className="mb-2"
-                      />
-                      <Form.Control 
-                        type="password" 
-                        placeholder="Confirm new password" 
-                      />
-                    </Form.Group>
-
-                    <Form.Group className="mb-4">
-                      <Form.Label>Two-Factor Authentication</Form.Label>
-                      <div className="d-flex align-items-center">
-                        <Form.Check 
-                          type="switch"
-                          id="2fa-switch"
-                          label="Enable two-factor authentication"
-                        />
-                      </div>
-                    </Form.Group>
-
-                    <Button variant="danger">Delete Account</Button>
-                  </Form>
-                </div>
-              )}
+              {activeTab === 'account' && <AccountSettingsPanel />}
 
               {activeTab === 'notifications' && (
                 <div className="notification-settings">
