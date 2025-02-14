@@ -1,34 +1,19 @@
-import React, { useState, useEffect } from 'react';
+// ProjectDetailsPage.js
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Card, Button, ProgressBar, Tabs, Tab, Badge, Alert, Image } from 'react-bootstrap';
 import { toast } from 'react-toastify';
-import axios from 'axios';
+import { 
+  PencilIcon, GiftIcon, BellIcon, Cog, ShareIcon, BookmarkIcon, 
+  Calendar, Users, Star, Clock, CheckCircle, XCircle, PlayCircle,
+  ExternalLink, MapPin, MessageSquare
+} from 'lucide-react';
+import ShareModal from './ShareModal';
+import axiosInstance from '../helper/axiosConfig';
+import { shareProject, activateProject } from '../services/projectService';
 import './ProjectDetailPage.css';
 
-import { PencilIcon, GiftIcon, BellIcon, Cog, ShareIcon, BookmarkIcon } from 'lucide-react';
-
-// Create axios instance with default config
-const api = axios.create({
-  baseURL: process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000',
-  withCredentials: true,
-  headers: {
-    'Accept': 'application/json',
-    'Content-Type': 'application/json'
-  }
-});
-
-// Add request interceptor to add token
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-}, (error) => {
-  return Promise.reject(error);
-});
-
-const ProjectDetailsPage = () => {
+const ProjectDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [project, setProject] = useState(null);
@@ -37,262 +22,407 @@ const ProjectDetailsPage = () => {
   const [isCreator, setIsCreator] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isDraft, setIsDraft] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareInfo, setShareInfo] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const videoRef = useRef(null);
+  const [isSaved, setIsSaved] = useState(false);
+
+
+  // Add these calculations
+  const calculateProjectMetrics = () => {
+    if (!project) return { daysLeft: 0, percentFunded: 0 };
+    
+    // Calculate days left
+    const endDate = new Date(project.end_date);
+    const today = new Date();
+    const timeLeft = endDate - today;
+    const daysLeft = Math.max(0, Math.ceil(timeLeft / (1000 * 60 * 60 * 24)));
+
+    // Calculate funding percentage
+    const percentFunded = project.goal_amount 
+      ? Math.min(100, (project.current_amount / project.goal_amount) * 100)
+      : 0;
+
+    return { daysLeft, percentFunded };
+  };
+
+  const { daysLeft, percentFunded } = calculateProjectMetrics();
+
 
   useEffect(() => {
     const fetchProjectDetails = async () => {
       try {
         setIsLoading(true);
-        let projectResponse;
+        setError(null); // Reset error state
         
-        // First try to fetch as a draft
-        try {
-          const draftResponse = await api.get(`/api/v1/projects/drafts/${id}`);
-          projectResponse = draftResponse;
-          setProject(draftResponse.data.data);
-          setIsDraft(true);
-        } catch (draftError) {
-          // If not found as draft, try regular project endpoint
-          const response = await api.get(`/api/v1/projects/${id}`);
-          projectResponse = response;
-          setProject(response.data.data);
-          setIsDraft(false);
-        }
-        
-        // Check if current user is creator
-        const userId = localStorage.getItem('userId');
-        setIsCreator(projectResponse.data.data.creator_id === parseInt(userId));
-        
-        // Check if user is admin
+        // Check user role and draft status
         const userRole = localStorage.getItem('userRole');
+        const userId = localStorage.getItem('userId');
         setIsAdmin(userRole === 'admin');
+        const isDraftRoute = window.location.pathname.includes('/drafts/');
+    
+        // Fetch project data
+        const response = await axiosInstance.get(
+          isDraftRoute ? `/api/v1/projects/drafts/${id}` : `/api/v1/projects/${id}`
+        );
+        
+        const projectData = response.data.data;
+        setProject(projectData);
+        setIsDraft(isDraftRoute);
+        setIsCreator(projectData.creator_id === parseInt(userId));
+    
+        // Fetch creator profile with error handling
+        if (projectData.creator_id) {
+          try {
+            const creatorResponse = await axiosInstance.get(`/api/v1/profile/${projectData.creator_id}/profile`);
+            setProject(prev => ({
+              ...prev,
+              creator: creatorResponse.data.data.user
+            }));
+          } catch (error) {
+            console.error('Error fetching creator profile:', error);
+            // Set a default creator object or handle the error as needed
+          }
+        }
       } catch (error) {
-        setError(error.response?.data?.message || 'Failed to fetch project details');
-        toast.error('Failed to fetch project details');
+        const errorMessage = error.response?.data?.message || 'Failed to fetch project details';
+        setError(errorMessage);
+        toast.error(errorMessage);
       } finally {
         setIsLoading(false);
       }
     };
-  
+
     fetchProjectDetails();
   }, [id]);
 
-  const handleEditDraft = () => {
-    navigate(`/projects/drafts/edit/${id}`);
+  const handleVideoToggle = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
   };
 
-  const handleEditProject = () => {
-    navigate(`/projects/edit/${id}`);
+  const handleShare = async () => {
+    try {
+      const response = await shareProject(id);
+      setShareInfo(response.data);
+      setShowShareModal(true);
+    } catch (error) {
+      toast.error('Failed to generate share information');
+    }
+  };
+
+  const handleSaveProject = async () => {
+    try {
+      await axiosInstance.post(`/api/v1/users/saved-projects/${id}`);
+      setIsSaved(!isSaved);
+      toast.success(isSaved ? 'Project removed from saved items' : 'Project saved successfully');
+    } catch (error) {
+      toast.error('Failed to save project');
+    }
   };
 
   const handleProjectAction = async (action) => {
     try {
-      await api.post(`/api/v1/projects/${id}/${action}`);
-      toast.success(`Project ${action} successful`);
-      const response = await api.get(`/api/v1/projects/${id}`);
+      const actions = {
+        activate: () => activateProject(id),
+        reject: () => axiosInstance.post(`/api/v1/projects/${id}/reject`),
+        feature: () => axiosInstance.post(`/api/v1/projects/${id}/feature`)
+      };
+
+      await actions[action]();
+      const actionMessages = {
+        activate: 'Project activated successfully',
+        reject: 'Project rejected',
+        feature: project?.featured ? 'Project unfeatured' : 'Project featured'
+      };
+
+      toast.success(actionMessages[action]);
+      
+      // Refresh project data
+      const response = await axiosInstance.get(`/api/v1/projects/${id}`);
       setProject(response.data.data);
     } catch (error) {
       toast.error(`Failed to ${action} project`);
     }
   };
-
-  if (isLoading) {
-    return <div className="project-detail-page">Loading...</div>;
-  }
-
-  if (error) {
-    return <Alert variant="danger">{error}</Alert>;
-  }
-
-  if (!project) {
-    return <Alert variant="warning">Project not found</Alert>;
-  }
-
-  const percentFunded = Math.min((project.current_amount / project.goal_amount) * 100, 100);
-  const daysLeft = Math.max(0, Math.ceil((new Date(project.end_date) - new Date()) / (1000 * 60 * 60 * 24)));
-
-  return (
-    <div className="project-detail-page">
-      {project.status === 'PENDING' && (
-        <Alert variant="warning" className="mb-4">
-          Your project is currently under review and not yet visible to others.
-        </Alert>
-      )}
-
-      {isAdmin && (
-        <Card className="mb-4">
-          <Card.Body>
-            <h5>Admin Controls</h5>
-            <div className="creator-controls">
-              <Button variant="success" onClick={() => handleProjectAction('approve')}>
-                Approve Project
-              </Button>
-              <Button variant="danger" onClick={() => handleProjectAction('reject')}>
-                Reject Project
-              </Button>
-              <Button 
-                variant={project.featured ? "warning" : "primary"}
-                onClick={() => handleProjectAction(project.featured ? 'unfeature' : 'feature')}
-              >
-                {project.featured ? 'Unfeature Project' : 'Feature Project'}
-              </Button>
-            </div>
-          </Card.Body>
-        </Card>
-      )}
-
-      <Container>
-        <Row>
-          <Col md={8}>
-            <Card className="mb-4">
-              <Card.Body>
-                <div className="d-flex justify-content-between align-items-start">
-                  <div>
-                    <h2>{project.title}</h2>
-                    <h5 className="text-muted">{project.tagline}</h5>
-                    <Badge bg="primary" className="mt-2">{project.category?.name}</Badge>
-                  </div>
-                  {/* {isCreator && ( */}
-                    <div className="creator-controls">
-                      <Button variant="outline-primary" className="me-2" onClick={isDraft ? handleEditDraft : handleEditProject}>
-                      <PencilIcon size={16} /> {isDraft ? 'Edit Draft' : 'Edit Project'}
-                      </Button>
-                      <Button variant="outline-primary" className="me-2">
-                        <GiftIcon size={16} /> Add Reward
-                      </Button>
-                      <Button variant="outline-primary" className="me-2">
-                        <BellIcon size={16} /> Post Update
-                      </Button>
-                      <Button variant="outline-secondary">
-                        <Cog size={16} /> Manage Project
-                      </Button>
-                    </div>
-                  {/* )} */}
-                </div>
-
-                <div className="d-flex justify-content-between align-items-center mt-4">
-                  <div>
-                    <h3>${project.current_amount?.toLocaleString()}</h3>
-                    <p className="text-muted">raised of ${project.goal_amount?.toLocaleString()} goal</p>
-                  </div>
-                  <div>
-                    <h3>{daysLeft}</h3>
-                    <p className="text-muted">days left</p>
-                  </div>
-                  <div>
-                    <Button 
-                      variant="primary" 
-                      size="lg"
-                      onClick={() => navigate(`/projects/${id}/back`)}
-                    >
-                      Back This Project
-                    </Button>
+  {isDraft && (
+    <Alert variant="warning" className="mb-4">
+      This project is currently under review and not yet visible to others.
+    </Alert>
+  )}
+  // Render functions
+  const renderHeaderSection = () => (
+    <div className="project-header mb-4">
+      <Card className="border-0 shadow-sm">
+        <Card.Body>
+          <Row className="align-items-center">
+            <Col md={8}>
+              <div className="d-flex align-items-center mb-3">
+                <div>
+                  <h1 className="display-5 mb-2">{project.title}</h1>
+                  <p className="lead text-muted mb-3">{project.tagline}</p>
+                  <div className="d-flex gap-2 flex-wrap">
+                    <Badge bg="primary" className="badge-lg">{project.category?.name}</Badge>
+                    {project.featured && <Badge bg="warning">Featured</Badge>}
+                    <Badge bg={project.status === 'ACTIVE' ? 'success' : 'secondary'}>
+                      {project.status}
+                    </Badge>
                   </div>
                 </div>
-
-                <ProgressBar now={percentFunded} className="my-4" />
-
-                <div className="d-flex justify-content-between">
-                  <Button variant="outline-primary">
-                    <ShareIcon size={16} className="me-2" /> Share
+              </div>
+            </Col>
+            <Col md={4} className="text-md-end">
+              {(isCreator || isAdmin) && (
+                <div className="creator-controls">
+                  <Button variant="outline-primary" className="me-2">
+                    <PencilIcon size={16} /> Edit
                   </Button>
                   <Button variant="outline-secondary">
-                    <BookmarkIcon size={16} className="me-2" /> Save
+                    <Cog size={16} /> Manage
                   </Button>
                 </div>
-              </Card.Body>
-            </Card>
+              )}
+            </Col>
+          </Row>
+        </Card.Body>
+      </Card>
+    </div>
+  );
 
-            <Card className="mb-4">
-              <Card.Body>
-                {project.video_url && (
-                  <div className="embed-responsive embed-responsive-16by9 mb-4">
-                    <iframe 
-                      className="embed-responsive-item"
-                      src={project.video_url}
-                      allowFullScreen
-                      title="Project video"
-                    ></iframe>
-                  </div>
-                )}
-                {project.image_url && (
-                  <Image 
-                    src={project.image_url} 
-                    alt="Project main image" 
-                    fluid 
-                    className="mb-4"
-                  />
-                )}
-              </Card.Body>
-            </Card>
+  const renderMediaSection = () => (
+    <div className="project-media mb-4">
+      <Card className="border-0 shadow-sm overflow-hidden">
+        {project.image_url && (
+          <div className="project-image position-relative">
+            <img
+              src={project.image_url.startsWith('/uploads') 
+                ? `${process.env.REACT_APP_BACKEND_URL}${project.image_url}`
+                : project.image_url}
+              alt={project.title}
+              className="img-fluid w-100"
+              style={{ maxHeight: '500px', objectFit: 'cover' }}
+            />
+          </div>
+        )}
 
-            <Tabs defaultActiveKey="overview" className="mb-4">
-              <Tab eventKey="overview" title="Overview">
-                <Card>
-                  <Card.Body>
-                    <div className="description" dangerouslySetInnerHTML={{ __html: project.description }} />
-                    <h4>Risks & Challenges</h4>
-                    <p className="description">{project.risk_and_challenges}</p>
-                  </Card.Body>
-                </Card>
-              </Tab>
-              {/* Other tabs remain the same */}
-            </Tabs>
+        {project.video_url && (
+          <div className="project-video-container">
+            {project.video_url.includes('youtube.com') || project.video_url.includes('vimeo.com') ? (
+              <div className="embed-responsive embed-responsive-16by9">
+                <iframe
+                  src={project.video_url}
+                  title="Project Video"
+                  allowFullScreen
+                  className="embed-responsive-item"
+                />
+              </div>
+            ) : (
+              <div className="position-relative">
+                <video
+                  ref={videoRef}
+                  className="w-100"
+                  controls
+                  poster={project.image_url}
+                >
+                  <source src={project.video_url} type="video/mp4" />
+                </video>
+                <Button 
+                  variant="primary" 
+                  className="video-play-button"
+                  onClick={handleVideoToggle}
+                >
+                  <PlayCircle size={48} />
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+
+  const renderProjectStats = () => (
+    <Card className="border-0 shadow-sm mb-4">
+      <Card.Body>
+        <Row className="text-center">
+          <Col md={4} className="mb-3 mb-md-0">
+            <h2 className="display-6">${project.current_amount?.toLocaleString() || 0}</h2>
+            <p className="text-muted mb-0">of ${project.goal_amount?.toLocaleString() || 0} goal</p>
           </Col>
-
+          <Col md={4} className="mb-3 mb-md-0">
+            <h2 className="display-6">{project.backers_count || 0}</h2>
+            <p className="text-muted mb-0">
+              <Users size={16} className="me-1" />
+              backers
+            </p>
+          </Col>
           <Col md={4}>
-            <Card className="mb-4">
-              <Card.Body>
-                <h5>About the Creator</h5>
-                <Row className="align-items-center">
-                  <Col xs={3}>
-                    <Image
-                      width={64}
-                      height={64}
-                      className="rounded-circle"
-                      src={project.creator?.avatar_url || '/default-avatar.png'}
-                      alt={project.creator?.name}
-                    />
-                  </Col>
-                  <Col xs={9}>
-                    <h6>{project.creator?.name}</h6>
-                    <p className="text-muted">{project.creator?.bio}</p>
-                  </Col>
-                </Row>
-              </Card.Body>
-            </Card>
-
-            <Card className="mb-4">
-              <Card.Body>
-                <h5>Rewards</h5>
-                <div className="rewards-list">
-                  {project.rewards?.length > 0 ? (
-                    project.rewards.map((reward) => (
-                      <div key={reward.id} className="reward-item border rounded p-3 mb-3">
-                        <div className="d-flex justify-content-between">
-                          <strong>{reward.title}</strong>
-                          <span>${reward.amount}</span>
-                        </div>
-                        <p className="text-muted mb-2">{reward.description}</p>
-                        <Button 
-                          variant="outline-primary" 
-                          className="w-100"
-                          onClick={() => navigate(`/projects/${id}/back?reward=${reward.id}`)}
-                        >
-                          Select Reward
-                        </Button>
-                      </div>
-                    ))
-                  ) : (
-                    <p>No rewards available yet</p>
-                  )}
-                </div>
-              </Card.Body>
-            </Card>
+            <h2 className="display-6">{daysLeft}</h2>
+            <p className="text-muted mb-0">
+              <Clock size={16} className="me-1" />
+              days to go
+            </p>
           </Col>
         </Row>
+        <ProgressBar 
+          now={percentFunded} 
+          className="mt-4"
+          variant="success"
+          style={{ height: '10px' }}
+        />
+      </Card.Body>
+    </Card>
+  );
+
+  const renderCreatorInfo = () => (
+    <Card className="border-0 shadow-sm mb-4">
+      <Card.Body>
+        <h5 className="border-bottom pb-2 mb-3">About the Creator</h5>
+        <div className="d-flex align-items-center">
+          <Image
+            src={project.creator?.profile_image || '/default-avatar.png'}
+            alt={project.creator?.name}
+            roundedCircle
+            width={80}
+            height={80}
+            className="me-3 border"
+          />
+          <div>
+            <h6 className="mb-1">{project.creator?.name}</h6>
+            {project.creator?.location && (
+              <p className="text-muted mb-2">
+                <MapPin size={16} className="me-1" />
+                {project.creator.location}
+              </p>
+            )}
+            <Button 
+              variant="link" 
+              className="p-0 text-decoration-none"
+              onClick={() => navigate(`/profile/${project.creator?.username}`)}
+            >
+              View Profile <ExternalLink size={16} />
+            </Button>
+          </div>
+        </div>
+        {project.creator?.bio && (
+          <p className="mt-3 mb-0">{project.creator.bio}</p>
+        )}
+      </Card.Body>
+    </Card>
+  );
+
+  const renderProjectContent = () => (
+    <Tabs defaultActiveKey="overview" className="mb-4 nav-tabs-custom">
+      <Tab eventKey="overview" title="Overview">
+        <Card className="border-0 shadow-sm">
+          <Card.Body className="p-4">
+            <div 
+              className="project-description mb-4"
+              dangerouslySetInnerHTML={{ __html: project.description }}
+            />
+            
+            <h4 className="border-bottom pb-2 mb-3">Risks and Challenges</h4>
+            <div
+              className="risks-description"
+              dangerouslySetInnerHTML={{ __html: project.risks_and_challenges }}
+            />
+          </Card.Body>
+        </Card>
+      </Tab>
+      <Tab eventKey="updates" title="Updates">
+        <Card className="border-0 shadow-sm">
+          <Card.Body className="p-4 text-center">
+            <MessageSquare size={48} className="mb-3 text-muted" />
+            <p className="text-muted">No updates yet</p>
+          </Card.Body>
+        </Card>
+      </Tab>
+      <Tab eventKey="comments" title="Comments">
+        <Card className="border-0 shadow-sm">
+          <Card.Body className="p-4 text-center">
+            <MessageSquare size={48} className="mb-3 text-muted" />
+            <p className="text-muted">No comments yet</p>
+          </Card.Body>
+        </Card>
+      </Tab>
+    </Tabs>
+  );
+
+  const renderRewards = () => (
+    <Card className="border-0 shadow-sm">
+      <Card.Body>
+        <h5 className="border-bottom pb-2 mb-3">Select a Reward</h5>
+        <div className="rewards-list">
+          {project.rewards?.map((reward) => (
+            <div 
+              key={reward.id} 
+              className="reward-item mb-3 p-3 border rounded hover-shadow"
+            >
+              <h6 className="text-primary mb-2">${reward.amount} or more</h6>
+              <h5 className="mb-2">{reward.title}</h5>
+              <p className="text-muted mb-3">{reward.description}</p>
+              <Button 
+                variant="outline-primary" 
+                size="sm" 
+                className="w-100"
+                disabled={project.status !== 'ACTIVE'}
+              >
+                Select this reward
+              </Button>
+            </div>
+          ))}
+        </div>
+      </Card.Body>
+    </Card>
+  );
+
+  if (isLoading) return (
+    <div className="text-center p-5">
+      <div className="spinner-border text-primary" role="status">
+        <span className="visually-hidden">Loading...</span>
+      </div>
+    </div>
+  );
+  
+  if (error) return <Alert variant="danger" className="m-4">{error}</Alert>;
+  if (!project) return <Alert variant="warning" className="m-4">Project not found</Alert>;
+
+  return (
+    <div className="project-detail-page bg-light min-vh-100 py-4">
+      <Container>
+        {renderHeaderSection()}
+        
+        <Row>
+          <Col lg={8}>
+            
+            {renderProjectStats()}
+            {renderMediaSection()}
+            {renderProjectContent()}
+          </Col>
+          
+          <Col lg={4}>
+            <div className="sticky-top" style={{ top: '20px' }}>
+              {renderCreatorInfo()}
+              {project.rewards?.length > 0 && renderRewards()}
+            </div>
+          </Col>
+        </Row>
+
+        <ShareModal 
+          show={showShareModal}
+          onHide={() => setShowShareModal(false)}
+          shareInfo={shareInfo}
+        />
       </Container>
     </div>
   );
 };
 
-export default ProjectDetailsPage;
+export default ProjectDetailPage;

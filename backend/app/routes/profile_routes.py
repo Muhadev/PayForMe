@@ -1,3 +1,4 @@
+# profile_routes.py
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.services.user_service import UserService  # Update this import
@@ -10,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 # Create a Blueprint for the profile routes
 profile_bp = Blueprint('profile', __name__)
+
 
 @profile_bp.route('/', methods=['GET'])
 @jwt_required()
@@ -83,21 +85,22 @@ def update_profile():
 @profile_bp.route('/<int:user_id>', methods=['GET'])
 @permission_required('view_public_profile')  # Restrict access to users with the 'view_public_profile' permission
 def get_public_profile(user_id):
-    user_profile = UserService.get_user_public_profile(user_id)
-    if user_profile:
-        logger.info(f"Public profile retrieved for user ID {user_id}")
-        return api_response(
-            data={'user': user_profile},
-            message="User public profile retrieved successfully",
-            status_code=200
-        )
-    else:
-        logger.warning(f"Public profile retrieval failed: User not found for ID {user_id}")
+    try:
+        user_profile = UserService.get_user_public_profile(user_id)
+        if user_profile:
+            return api_response(
+                data={'user': user_profile},
+                message="User profile retrieved successfully",
+                status_code=200
+            )
         return api_response(
             message="User not found",
             status_code=404
         )
-
+    except Exception as e:
+        logger.error(f"Error fetching profile for user {user_id}: {str(e)}")
+        return api_response(message="Failed to fetch user profile", status_code=500)
+        
 @profile_bp.route('/', methods=['DELETE'])
 @jwt_required()
 def delete_account():

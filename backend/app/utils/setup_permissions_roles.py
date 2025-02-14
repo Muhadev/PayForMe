@@ -54,7 +54,12 @@ def setup_permissions_and_roles():
                 ('get_reward', 'Can view a specific reward'),
                 ('update_reward', 'Can update rewards for a project'),  # Fixed capitalization
                 ('delete_reward', 'Can delete rewards for a project'),
-                ('claim_reward', 'Can claim a reward')
+                ('claim_reward', 'Can claim a reward'),
+                ('view_pending_projects', 'Can view projects pending approval'),
+                ('edit_project', 'Can edit any project'),
+                ('delete_project', 'Can delete any project'),
+                ('share_project', 'Can share projects on social media')
+
             ]
 
             for name, description in permissions:
@@ -83,7 +88,8 @@ def setup_permissions_and_roles():
                     'get_reward',
                     'update_reward',
                     'claim_reward',
-                    'delete_reward'
+                    'delete_reward',
+                    'share_project',
                 ])
             ]
 

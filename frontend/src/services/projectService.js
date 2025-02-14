@@ -32,28 +32,92 @@ api.interceptors.request.use((config) => {
     return Promise.reject(error);
 });
 
+// Add this to your api interceptor in projectService.js
 api.interceptors.response.use(
-    (response) => response,
+    (response) => {
+      // Transform image_url in the response to include full API path
+      if (response.data && response.data.data) {
+        const transformData = (item) => {
+          if (item.image_url && !item.image_url.startsWith('http')) {
+            item.image_url = `${process.env.REACT_APP_BACKEND_URL}/api/v1/projects${item.image_url}`;
+          }
+          return item;
+        };
+  
+        if (Array.isArray(response.data.data)) {
+          response.data.data = response.data.data.map(transformData);
+        } else if (response.data.data.projects) {
+          response.data.data.projects = response.data.data.projects.map(transformData);
+        }
+      }
+      return response;
+    },
     (error) => {
-        console.error('API Error:', error);
-        return Promise.reject(error);
+      return Promise.reject(error);
     }
-);
+  );
 
 export const createProject = async (formData, isDraft = false) => {
     try {
-        const endpoint = `/api/v1/${isDraft ? 'projects/drafts' : 'projects'}`;
+        const endpoint = isDraft ? '/api/v1/projects/drafts' : '/api/v1/projects';
+        
+        // Ensure dates are in the correct format
+
+        // Format dates to YYYY-MM-DD
+        if (formData instanceof FormData) {
+            const startDate = formData.get('start_date');
+            const endDate = formData.get('end_date');
+            
+            if (startDate) {
+                const formattedStartDate = new Date(startDate).toISOString().split('T')[0];
+                formData.set('start_date', formattedStartDate);
+            }
+            if (endDate) {
+                const formattedEndDate = new Date(endDate).toISOString().split('T')[0];
+                formData.set('end_date', formattedEndDate);
+            }
+
+            // Convert boolean values
+            if (formData.has('featured')) {
+                formData.set('featured', formData.get('featured') === 'true');
+            }
+
+            // Convert numeric values
+            if (formData.has('goal_amount')) {
+                formData.set('goal_amount', parseFloat(formData.get('goal_amount')));
+            }
+            if (formData.has('category_id')) {
+                formData.set('category_id', parseInt(formData.get('category_id')));
+            }
+        }
+
+        // Log the exact data being sent
+        if (formData instanceof FormData) {
+            console.log('Sending form data:');
+            for (let pair of formData.entries()) {
+                console.log(`${pair[0]}: ${pair[1]}`);
+            }
+        }
+
         const response = await api.post(endpoint, formData);
         return response.data;
     } catch (error) {
-        console.error('Full error details:', {
+        console.error('Project creation error:', {
             status: error.response?.status,
             data: error.response?.data,
-            headers: error.response?.headers
+            errorMessage: error.response?.data?.message,
+            validationErrors: error.response?.data?.errors,
+            message: error.message
         });
-        throw error;
+        // Rethrow with more details
+        throw new Error(error.response?.data?.message || error.message);
     }
 };
+
+export const getProjectStatus = (project) => {
+    if (!project) return 'unknown';
+    return project.status?.toLowerCase() || 'unknown';
+  };
 
 export const updateDraft = async (draftId, formData) => {
     try {
@@ -80,6 +144,38 @@ export const fetchCategories = async () => {
         return response.data.data ? { data: response.data.data } : { data: [] };
     } catch (error) {
         console.error('Error fetching categories:', error);
+        throw error;
+    }
+};
+
+export const shareProject = async (projectId) => {
+    try {
+        const response = await api.post(`/api/v1/projects/${projectId}/share`);
+        return response.data;
+    } catch (error) {
+        console.error('Error sharing project:', error);
+        throw error;
+    }
+};
+
+export const getPendingProjects = async (page = 1, perPage = 10) => {
+    try {
+        const response = await api.get('/api/v1/projects/pending', {
+            params: { page, per_page: perPage }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching pending projects:', error);
+        throw error;
+    }
+};
+
+export const activateProject = async (projectId) => {
+    try {
+        const response = await api.post(`/api/v1/projects/${projectId}/activate`);
+        return response.data;
+    } catch (error) {
+        console.error('Error activating project:', error);
         throw error;
     }
 };

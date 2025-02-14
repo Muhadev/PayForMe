@@ -64,22 +64,15 @@ def create_app():
         
         # Configure CORS
 
-        CORS(app, supports_credentials=True)  # Allow credentials
+        # CORS(app, supports_credentials=True)  # Allow credentials
 
-        # CORS(app, 
-        #     supports_credentials=True,
-        #     resources={
-        #         r"/api/v1/projects/uploads/*": {
-        #             "origins": ["http://localhost:3000", "https://yourdomain.com"],
-        #             "methods": ["GET"],
-        #             "allow_headers": ["Content-Type", "Authorization"]
-        #         },
-        #         r"/api/*": {
-        #             "origins": ["http://localhost:3000", "https://yourdomain.com"],
-        #             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        #             # "allow_headers": ["Content-Type", "Authorization"]
-        #         }
-        #     })
+        CORS(app, supports_credentials=True, resources={
+            r"/api/*": {
+                "origins": ["http://localhost:3000"],  # Add your frontend URL
+                "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+                "allow_headers": ["Content-Type", "Authorization"]
+            }
+        })
         # auth-related routes
         from app.routes.auth import bp as auth_bp
         app.register_blueprint(auth_bp, url_prefix='/api/v1/auth')

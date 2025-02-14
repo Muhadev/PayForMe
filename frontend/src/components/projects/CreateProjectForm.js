@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Form, Button, Row, Col, Modal, Spinner } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import ReactQuill from 'react-quill';
-// import { toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-quill/dist/quill.snow.css';
 import './CreateProjectForm.css';
 import { useProjectForm } from '../../hooks/useProjectForm';
@@ -31,7 +31,9 @@ function CreateProjectForm({ projectId, isDraftEdit }) {
     handleImageChange,
     handleVideoChange,
     handleImageUrlChange,
-    handleVideoUrlChange
+    handleVideoUrlChange,
+    imageFile,  // Add this line
+    videoFile,  // Add this line
   } = useProjectForm(projectId, isDraftEdit);
 
   // Add handlers for removing media
@@ -56,9 +58,14 @@ function CreateProjectForm({ projectId, isDraftEdit }) {
   };
 
   const handleCreateProject = async (data) => {
-    const success = await handleFormSubmit(data, false);
-    if (success) {
-      navigate('/my-projects');
+    try {
+        const success = await handleFormSubmit(data, false);
+        if (success) {
+            navigate('/my-projects');
+        }
+    } catch (error) {
+        toast.error(`Failed to create project: ${error.message}`);
+        console.error('Project creation failed:', error);
     }
   };
 
@@ -295,6 +302,7 @@ function CreateProjectForm({ projectId, isDraftEdit }) {
             <MediaPreview 
               type="image" 
               preview={imagePreview}
+              file={imageFile} // Pass the actual file
               onRemove={handleRemoveImage}
             />
           )}
@@ -341,6 +349,7 @@ function CreateProjectForm({ projectId, isDraftEdit }) {
             <MediaPreview 
               type="video" 
               preview={videoPreview}
+              file={videoFile} // Pass the actual file
               onRemove={handleRemoveVideo}
             />
           )}

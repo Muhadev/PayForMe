@@ -80,6 +80,8 @@ const MyProjectsPage = () => {
         return 'bg-primary';
       case 'draft':
         return 'bg-secondary';
+      case 'pending':
+        return 'bg-warning';
       default:
         return 'bg-danger';
     }
@@ -97,8 +99,39 @@ const MyProjectsPage = () => {
     navigate(`/projects/drafts/edit/${projectId}`);
   };
 
+  const getProjectTimeStatus = (project) => {
+    if (project.status?.toLowerCase() === 'draft') {
+      return 'Draft';
+    }
+    if (project.status?.toLowerCase() === 'pending') {
+      return 'Awaiting Approval';
+    }
+    if (!project.start_date) {
+      return 'Start date not set';
+    }
+
+    const startDate = new Date(project.start_date);
+    const endDate = new Date(project.end_date);
+    const now = new Date();
+
+    if (now < startDate) {
+      const daysToStart = Math.ceil((startDate - now) / (1000 * 60 * 60 * 24));
+      return `Starts in ${daysToStart} days`;
+    }
+
+    if (now > endDate) {
+      return 'Ended';
+    }
+
+    const daysLeft = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
+    return `${daysLeft} days left`;
+  };
+
   const renderProjectCard = (project) => {
     const isDraft = project?.status?.toUpperCase() === 'DRAFT';
+    const isPending = project?.status?.toLowerCase() === 'pending';
+    const timeStatus = getProjectTimeStatus(project);
+
   
     // Format the date properly
     const formatDate = (dateString) => {
@@ -118,12 +151,34 @@ const MyProjectsPage = () => {
 
     const getImageUrl = (project) => {
       if (project.image_url) {
-        return project.image_url.startsWith('http') 
-          ? project.image_url 
-          : `${process.env.REACT_APP_BACKEND_URL}${project.image_url}`;
+        // Check if it's already a full URL
+        if (project.image_url.startsWith('http')) {
+          return project.image_url;
+        }
+        // Add the correct API endpoint path
+        return `${process.env.REACT_APP_BACKEND_URL}/api/v1/projects${project.image_url}`;
       }
       return placeholderImage;
     };
+
+    // Show project details for both draft and non-draft projects
+    const projectDetails = (
+      <div className="project-details mt-3">
+        <div className="mb-2">
+          <strong>Goal Amount:</strong> {formatCurrency(project.goal_amount || 0)}
+        </div>
+        {project.start_date && (
+          <div className="mb-2">
+            <strong>Start Date:</strong> {new Date(project.start_date).toLocaleDateString()}
+          </div>
+        )}
+        {project.end_date && (
+          <div className="mb-2">
+            <strong>End Date:</strong> {new Date(project.end_date).toLocaleDateString()}
+          </div>
+        )}
+      </div>
+    );
 
     return (
       <Col md={4} key={project.id} className="mb-4">
@@ -142,7 +197,7 @@ const MyProjectsPage = () => {
               <div>
                 <Card.Title>{project.title || 'Untitled Project'}</Card.Title>
                 <Card.Subtitle className="mb-2 text-muted">
-                  {project.category}
+                {getCategoryName(project)}
                 </Card.Subtitle>
               </div>
               <Badge className={getStatusBadgeClass(project.status)}>
@@ -154,30 +209,10 @@ const MyProjectsPage = () => {
               {stripHtml(project.description || '')}
             </Card.Text>
 
-            {/* Show draft details */}
-            {isDraft && (
-              <div className="draft-details mt-3">
-                <div className="mb-2">
-                  <strong>Category:</strong>{getCategoryName(project)}
+            {/* Show project details for all projects */}
+            {projectDetails}
 
-                </div>
-                <div className="mb-2">
-                  <strong>Goal Amount:</strong> {formatCurrency(project.goal_amount || 0)}
-                </div>
-                {project.start_date && (
-                  <div className="mb-2">
-                    <strong>Start Date:</strong> {new Date(project.start_date).toLocaleDateString()}
-                  </div>
-                )}
-                {project.end_date && (
-                  <div className="mb-2">
-                    <strong>End Date:</strong> {new Date(project.end_date).toLocaleDateString()}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {!isDraft && (
+            {!isDraft && !isPending && (
               <div className="progress-section">
                 <div className="progress">
                   <div 
@@ -196,7 +231,7 @@ const MyProjectsPage = () => {
             )}
 
             <div className="project-stats">
-              {!isDraft ? (
+              {!isDraft && !isPending ? (
                 <>
                   <div className="stat-item">
                     <i className="bi bi-people"></i>
@@ -204,13 +239,13 @@ const MyProjectsPage = () => {
                   </div>
                   <div className="stat-item">
                     <i className="bi bi-clock"></i>
-                    <span>{project.days_left > 0 ? `${project.days_left} days left` : 'Ended'}</span>
+                    <span>{timeStatus}</span>
                   </div>
                 </>
               ) : (
                 <div className="stat-item">
                   <i className="bi bi-pencil"></i>
-                  <span>Draft saved</span>
+                  <span>{isPending ? 'Pending Approval' : 'Draft saved'}</span>
                 </div>
               )}
             </div>
@@ -218,10 +253,10 @@ const MyProjectsPage = () => {
           <Card.Footer>
             <div className="card-footer-content">
               <small className="text-muted">
-                {isDraft
-                  ? `Last edited: ${formatDate(project.updated_at || project.created_at)}`
-                  : `Launched: ${formatDate(project.created_at)}`
-                }
+                  {isDraft || isPending
+                    ? `Last edited: ${formatDate(project.updated_at || project.created_at)}`
+                    : `Launched: ${formatDate(project.created_at)}`
+                  }
               </small>
               <div className="button-group">
                 {isDraft && (
@@ -281,6 +316,14 @@ const MyProjectsPage = () => {
             onClick={() => setFilter('draft')}
           >
             Drafts
+          </Nav.Link>
+        </Nav.Item>
+        <Nav.Item>
+          <Nav.Link 
+            active={filter === 'pending'} 
+            onClick={() => setFilter('pending')}
+          >
+            Pending
           </Nav.Link>
         </Nav.Item>
         <Nav.Item>

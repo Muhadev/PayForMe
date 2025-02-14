@@ -1,92 +1,190 @@
-/* .project-detail-page {
-    padding: 20px;
-  }
-  
-  .description {
-    margin-bottom: 20px;
-  }
-   */
+/* ProjectDetailPage.css */
+.project-detail-page {
+  background-color: #f8f9fa;
+}
 
-   .project-detail-page {
-    padding: 20px;
+/* Warning Banner */
+.alert {
+  margin: 0;
+  border-radius: 0;
+  border: none;
+  padding: 0.5rem 1rem;
+}
+
+/* Header Styles */
+.project-header h1 {
+  font-weight: 600;
+  color: #2d3436;
+}
+
+.badge-lg {
+  font-size: 0.9rem;
+  padding: 0.5rem 1rem;
+}
+
+/* Card Styles */
+.card {
+  transition: all 0.3s ease;
+}
+
+.shadow-sm {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
+}
+
+.hover-shadow:hover {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
+}
+
+/* Media Section */
+.project-media {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.project-video-container {
+  position: relative;
+  background-color: #000;
+}
+
+.video-play-button {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 50%;
+  padding: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.video-play-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+/* Progress Bar */
+.progress {
+  height: 10px;
+  border-radius: 5px;
+  background-color: #e9ecef;
+}
+
+.progress-bar {
+  border-radius: 5px;
+}
+
+/* Tabs Customization */
+.nav-tabs-custom {
+  border-bottom: 2px solid #dee2e6;
+}
+
+.nav-tabs-custom .nav-link {
+  border: none;
+  color: #6c757d;
+  padding: 1rem 1.5rem;
+  font-weight: 500;
+  position: relative;
+}
+
+.nav-tabs-custom .nav-link.active {
+  color: #0d6efd;
+  background: none;
+}
+
+.nav-tabs-custom .nav-link.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: #0d6efd;
+}
+
+/* Rewards Section */
+.rewards-list {
+  max-height: 600px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #0d6efd #f8f9fa;
+}
+
+.rewards-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.rewards-list::-webkit-scrollbar-track {
+  background: #f8f9fa;
+}
+
+.rewards-list::-webkit-scrollbar-thumb {
+  background-color: #0d6efd;
+  border-radius: 3px;
+}
+
+.reward-item {
+  transition: all 0.3s ease;
+  border-radius: 8px;
+}
+
+.reward-item:hover {
+  border-color: #0d6efd !important;
+  transform: translateY(-2px);
+}
+
+/* Creator Section */
+.creator-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Rich Text Content */
+.project-description,
+.risks-description {
+  line-height: 1.8;
+  color: #2d3436;
+}
+
+.project-description h1,
+.project-description h2,
+.project-description h3,
+.risks-description h1,
+.risks-description h2,
+.risks-description h3 {
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.project-description p,
+.risks-description p {
+  margin-bottom: 1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 992px) {
+  .sticky-top {
+    position: static !important;
   }
   
-  .description {
-    margin-bottom: 20px;
-    line-height: 1.6;
+  .project-header h1 {
+    font-size: 2rem;
   }
-  
-  /* Project Header Styles */
+}
+
+@media (max-width: 768px) {
   .creator-controls {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
+    margin-top: 1rem;
+    flex-direction: column;
   }
   
   .creator-controls button {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  
-  /* Progress Bar Customization */
-  .progress {
-    height: 12px;
-    border-radius: 6px;
-  }
-  
-  /* Rewards Section */
-  .rewards-list {
-    max-height: 600px;
-    overflow-y: auto;
-  }
-  
-  .reward-item {
-    transition: all 0.3s ease;
-  }
-  
-  .reward-item:hover {
-    border-color: #0d6efd !important;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  }
-  
-  /* Media Section */
-  .embed-responsive {
-    position: relative;
-    padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
-    height: 0;
-    overflow: hidden;
-  }
-  
-  .embed-responsive iframe {
-    position: absolute;
-    top: 0;
-    left: 0;
     width: 100%;
-    height: 100%;
-    border: 0;
   }
   
-  /* Tabs Customization */
-  .nav-tabs .nav-link {
-    color: #6c757d;
+  .badge-lg {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.8rem;
   }
-  
-  .nav-tabs .nav-link.active {
-    font-weight: 500;
-  }
-  
-  /* Responsive Adjustments */
-  @media (max-width: 768px) {
-    .creator-controls {
-      flex-direction: column;
-      width: 100%;
-      margin-top: 1rem;
-    }
-  
-    .creator-controls button {
-      width: 100%;
-      justify-content: center;
-      margin-bottom: 0.5rem;
-    }
-  }
+}

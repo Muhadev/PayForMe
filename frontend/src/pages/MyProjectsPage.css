@@ -1,124 +1,171 @@
-/* MyProjectsPage.css */
-.my-projects-page {
+.project-detail-page {
   padding: 2rem 0;
 }
 
-.header-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.project-header {
   margin-bottom: 2rem;
 }
 
-.title-section {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.project-count {
-  font-size: 1rem;
-  padding: 0.5rem 1rem;
-}
-
-.project-tabs {
+.project-media {
+  position: relative;
   margin-bottom: 2rem;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
-.project-grid {
-  margin-top: 1.5rem;
+.project-image {
+  width: 100%;
+  height: 400px;
+  object-fit: cover;
 }
 
-.project-card {
-  transition: transform 0.2s ease-in-out;
+.project-video-container {
+  position: relative;
+  padding-bottom: 56.25%; /* 16:9 aspect ratio */
+  height: 0;
+  overflow: hidden;
+}
+
+.project-video-container iframe,
+.project-video-container video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
   height: 100%;
 }
 
-.project-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+.video-play-button {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  padding: 1rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-.card-header-content {
+.video-play-button:hover {
+  background: rgba(255, 255, 255, 1);
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+.project-stats {
+  padding: 2rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #2c3e50;
+  display: block;
+}
+
+.stat-label {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.progress-bar {
+  height: 8px;
+  border-radius: 4px;
+}
+
+.creator-info {
+  padding: 1.5rem;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.creator-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.reward-card {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.reward-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.project-tabs {
+  margin-top: 2rem;
+}
+
+.tab-content {
+  padding: 2rem;
+  background: #fff;
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.creator-controls {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  gap: 1rem;
+}
+
+.project-badges {
+  display: flex;
+  gap: 0.5rem;
   margin-bottom: 1rem;
 }
 
 .project-description {
-  min-height: 3rem;
-  color: #6c757d;
+  font-size: 1.1rem;
+  line-height: 1.6;
 }
 
-.progress-section {
-  margin: 1.5rem 0;
+.risks-section {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid #dee2e6;
 }
 
-.progress {
-  height: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.progress-stats {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.875rem;
-  color: #6c757d;
-}
-
-.project-stats {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.stat-item {
+.media-placeholder {
+  background: #f8f9fa;
+  height: 400px;
   display: flex;
   align-items: center;
-  font-size: 0.875rem;
+  justify-content: center;
   color: #6c757d;
 }
 
-.stat-item i {
-  margin-right: 0.5rem;
-}
-
-.card-footer-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.button-group {
-  display: flex;
-  gap: 0.5rem;
+.loading-spinner {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
 }
 
 @media (max-width: 768px) {
-  .header-section {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-
-  .project-stats {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
+  .project-image,
+  .project-video-container {
+    height: 300px;
   }
   
-  .card-footer-content {
+  .stat-item {
+    margin-bottom: 1rem;
+  }
+  
+  .creator-controls {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
-  }
-
-  .button-group {
-    width: 100%;
-  }
-
-  .button-group button {
-    flex: 1;
   }
 }

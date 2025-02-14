@@ -52,9 +52,14 @@ class ProjectValidator:
     def validate_end_date(end_date: str, is_draft: bool) -> None:
         if not is_draft:
             try:
-                end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
-                today = date.today()
+                # First try the simple YYYY-MM-DD format
+                try:
+                    end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+                except ValueError:
+                    # If that fails, try parsing ISO format and convert to date
+                    end_date = datetime.fromisoformat(end_date.replace('Z', '+00:00')).date()
 
+                today = date.today()
                 if end_date <= today:
                     raise ValidationError("End date must be in the future")
             except ValueError:
@@ -64,10 +69,19 @@ class ProjectValidator:
     def validate_start_date(start_date: str, end_date: str, is_draft: bool) -> None:
         if not is_draft and start_date:
             try:
-                start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
-                end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
-                today = date.today()
+                # Parse start date
+                try:
+                    start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+                except ValueError:
+                    start_date = datetime.fromisoformat(start_date.replace('Z', '+00:00')).date()
 
+                # Parse end date
+                try:
+                    end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+                except ValueError:
+                    end_date = datetime.fromisoformat(end_date.replace('Z', '+00:00')).date()
+
+                today = date.today()
                 if start_date < today:
                     raise ValidationError("Start date cannot be in the past")
                 if start_date >= end_date:

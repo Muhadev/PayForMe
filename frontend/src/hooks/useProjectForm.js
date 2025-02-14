@@ -11,6 +11,10 @@ export const useProjectForm = (projectId, isDraftEdit) => {
   const [videoPreview, setVideoPreview] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
 
+  const [imageFile, setImageFile] = useState(null);
+  const [videoFile, setVideoFile] = useState(null);
+
+
   // Helper function to validate URLs
   const isValidUrl = (url) => {
     try {
@@ -246,35 +250,6 @@ export const useProjectForm = (projectId, isDraftEdit) => {
     loadDraftData();
   }, [projectId, isDraftEdit, formMethods]);
 
-  const handleFilePreview = (file, type) => {
-    if (!file) return;
-    
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      try {
-        if (type === 'image') {
-          setImagePreview(reader.result);
-        } else if (type === 'video') {
-          setVideoPreview(reader.result);
-        }
-      } catch (error) {
-        console.error(`Error creating ${type} preview:`, error);
-        toast.error(`Failed to preview ${type}`);
-      }
-    };
-    
-    reader.onerror = () => {
-      toast.error(`Failed to read ${type} file`);
-    };
-    
-    try {
-      reader.readAsDataURL(file);
-    } catch (error) {
-      console.error('Error reading file:', error);
-      toast.error('Failed to read file');
-    }
-  };
-
   useEffect(() => {
     return () => {
       if (videoPreview) {
@@ -330,10 +305,13 @@ export const useProjectForm = (projectId, isDraftEdit) => {
     if (file) {
       setIsUploading(true);
       try {
-        // Create preview
+        // Create preview URL
         const objectUrl = URL.createObjectURL(file);
         setImagePreview(objectUrl);
-
+        
+        // Store the actual file
+        setImageFile(file);
+  
         // Set form value
         formMethods.setValue('image', [file]);
         formMethods.setValue('imageType', 'file');
@@ -345,7 +323,7 @@ export const useProjectForm = (projectId, isDraftEdit) => {
       }
     }
   };
-
+  
   const handleVideoChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -357,11 +335,14 @@ export const useProjectForm = (projectId, isDraftEdit) => {
           toast.error('Video must be less than 100MB');
           return;
         }
-
+  
         // Create preview
         const objectUrl = URL.createObjectURL(file);
         setVideoPreview(objectUrl);
 
+        // Store the actual file
+        setVideoFile(file);
+  
         // Set form value
         formMethods.setValue('video', [file]);
         formMethods.setValue('videoType', 'file');
@@ -376,6 +357,7 @@ export const useProjectForm = (projectId, isDraftEdit) => {
 
   useEffect(() => {
     return () => {
+      // Revoke blob URLs to free up memory
       if (imagePreview?.startsWith('blob:')) {
         URL.revokeObjectURL(imagePreview);
       }
@@ -391,7 +373,7 @@ export const useProjectForm = (projectId, isDraftEdit) => {
       const formData = createFormData(data, isDraft);
       const response = await projectService.createProject(formData, isDraft);
       toast.success(isDraft ? 'Draft saved' : 'Project created');
-      return true;
+      return response;
     } catch (error) {
       console.error('Form submission error:', error);
       toast.error(error.response?.data?.message || 'Operation failed');

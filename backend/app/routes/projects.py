@@ -20,6 +20,8 @@ from app.services.notification_service import NotificationService
 from app.services.email_service import send_templated_email
 from app.utils.rate_limit import rate_limit
 import os
+from app.utils.sharing import generate_share_link, validate_share_link
+from sqlalchemy import or_
 
 # logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -156,7 +158,7 @@ def create_draft_project():
         logger.error(f"Error in create_draft_project: {str(e)}", exc_info=True)
         return api_response(message="An unexpected error occurred", status_code=500)
 
-@projects_bp.route('/', methods=['POST'])
+@projects_bp.route('', methods=['POST'], strict_slashes=False)
 @jwt_required()
 @permission_required('create_project')
 @rate_limit(limit=5, per=60)  # 5 requests per minute
@@ -220,14 +222,16 @@ def create_new_project():
         is_draft = data.get('is_draft', False)
         # data['status'] = data.get('status', ProjectStatus.DRAFT.value if is_draft else ProjectStatus.PENDING.value)
 
-        # Validate project data
+        # Add detailed logging before validation
+        logger.info(f"About to validate data: {data}")
         validated_data = validate_project_data(data, is_draft=is_draft)
-        logger.info(f"Validated data: {validated_data}")  # Log the validated data
+        logger.info(f"Validation passed, validated data: {validated_data}")
 
         new_project = create_project(validated_data)
         return api_response(data=new_project.to_dict(), message="Project created successfully", status_code=201)
     except ValidationError as e:
-        return api_response(message=str(e), status_code=400)
+        logger.error(f"Validation error in create_new_project: {str(e)}")
+        return api_response(message=str(e), errors=e.errors if hasattr(e, 'errors') else None, status_code=400)
     except Exception as e:
         logger.error(f'Error creating project: {str(e)}', exc_info=True)
         return api_response(message=f"An unexpected error occurred: {str(e)}", status_code=500)
@@ -392,6 +396,20 @@ def delete_existing_project(project_id):
         logger.error(f'Error soft deleting project with ID {project_id}: {e}')
         return api_response(message="An unexpected error occurred", status_code=500)
 
+@projects_bp.route('/<int:project_id>', methods=['GET'])
+@jwt_required()
+@permission_required('view_projects')
+def get_project(project_id):
+    """Get a single project by ID"""
+    try:
+        project = get_project_by_id(project_id)
+        return api_response(data=project.to_dict(), status_code=200)
+    except ProjectNotFoundError as e:
+        return api_response(message=str(e), status_code=404)
+    except Exception as e:
+        logger.error(f"Error fetching project {project_id}: {str(e)}")
+        return api_response(message="Failed to fetch project", status_code=500)
+
 @projects_bp.route('/', methods=['GET'])
 @jwt_required()
 @permission_required('view_projects')
@@ -420,36 +438,107 @@ def get_projects():
         logger.error(f'Error retrieving projects: {e}')
         return api_response(message="An unexpected error occurred", status_code=500)
 
+@projects_bp.route('/<int:project_id>/share', methods=['POST'])
+@jwt_required()
+def share_project(project_id):
+    """Generate sharing information for a project"""
+    try:
+        project = get_project_by_id(project_id)
+        
+        # Allow sharing of active, funded, successful, and completed projects
+        allowed_statuses = [
+            ProjectStatus.ACTIVE, 
+            ProjectStatus.FUNDED,
+            ProjectStatus.SUCCESSFUL, 
+            ProjectStatus.COMPLETED
+        ]
+        
+        if project.status not in allowed_statuses:
+            return api_response(
+                message="Only active, funded, successful, or completed projects can be shared", 
+                status_code=400
+            )
+        
+        # Get current user ID from JWT token
+        current_user_id = get_jwt_identity()
+        
+        # Generate sharing links and information
+        share_info = generate_share_link(project_id, current_user_id)
+        
+        return api_response(
+            data=share_info, 
+            message="Share information generated successfully", 
+            status_code=200
+        )
+        
+    except ProjectNotFoundError as e:
+        return api_response(message=str(e), status_code=404)
+    except jwt.InvalidTokenError as e:
+        return api_response(message=str(e), status_code=400)
+    except Exception as e:
+        logger.error(f"Error generating share information for project {project_id}: {str(e)}")
+        return api_response(message="Failed to generate share information", status_code=500)
+        
+@projects_bp.route('/pending', methods=['GET'])
+@jwt_required()
+@permission_required('view_pending_projects')
+def get_pending_projects():
+    """Get all pending projects for admin review"""
+    try:
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        
+        pending_projects = Project.query.filter_by(status=ProjectStatus.PENDING)\
+            .paginate(page=page, per_page=per_page, error_out=False)
+        
+        return api_response(
+            data={
+                'projects': [project.to_dict() for project in pending_projects.items],
+                'total': pending_projects.total,
+                'pages': pending_projects.pages,
+                'current_page': page
+            },
+            status_code=200
+        )
+    except Exception as e:
+        logger.error(f"Error fetching pending projects: {str(e)}")
+        return api_response(message="Failed to fetch pending projects", status_code=500)
+
 @projects_bp.route('/<int:project_id>/activate', methods=['POST'])
 @jwt_required()
 @permission_required('activate_project')
 def activate_project(project_id):
+    """Activate a pending project"""
     try:
         project = get_project_by_id(project_id)
         
         if project.status != ProjectStatus.PENDING:
             return api_response(message="Only pending projects can be activated", status_code=400)
-        
+            
         # Update project status
         project.status = ProjectStatus.ACTIVE
         db.session.commit()
         
-        # Send email notification to project creator
-        creator_email = project.creator.email  # Assuming you have a relationship to the creator
-        send_templated_email(creator_email, 'project_activated', project=project)
+        # Send notification to project creator
+        NotificationService.create_notification(
+            user_id=project.creator_id,
+            title="Project Activated",
+            message=f"Your project '{project.title}' has been approved and is now active!"
+        )
         
-        # Create notification for admin on successful activation
-        NotificationService.create_admin_notification(f"Project '{project.title}' has been activated.")
-
+        # Send email notification
+        send_templated_email(
+            project.creator.email,
+            'project_activated',
+            project=project
+        )
+        
         return api_response(message="Project activated successfully", status_code=200)
-
     except ProjectNotFoundError as e:
         return api_response(message=str(e), status_code=404)
-    except PermissionError as e:
-        return api_response(message="You do not have permission to activate this project", status_code=403)
     except Exception as e:
-        logger.error(f"Error activating project with ID {project_id}: {e}")
-        return api_response(message="An unexpected error occurred", status_code=500)
+        logger.error(f"Error activating project {project_id}: {str(e)}")
+        return api_response(message="Failed to activate project", status_code=500)
 
 @projects_bp.route('/admin/pending-projects', methods=['GET'])
 @jwt_required()
