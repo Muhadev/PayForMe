@@ -1,7 +1,7 @@
 # sharing.py
 from urllib.parse import quote
 from flask import current_app
-from flask_jwt_extended import decode_token
+from flask_jwt_extended import create_access_token, decode_token
 from datetime import datetime, timedelta
 
 def generate_share_link(project_id: int, user_id: int = None, expiry_days: int = 7) -> dict:
@@ -15,7 +15,7 @@ def generate_share_link(project_id: int, user_id: int = None, expiry_days: int =
         'exp': datetime.utcnow() + timedelta(days=expiry_days)
     }
     
-    share_token = current_app.extensions['flask-jwt-extended'].create_access_token(
+    share_token = create_access_token(
         identity=user_id,
         additional_claims=token_payload
     )

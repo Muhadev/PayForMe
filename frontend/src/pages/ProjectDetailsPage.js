@@ -711,22 +711,49 @@ const ProjectDetailPage = () => {
 
   const handleShare = async () => {
     try {
-      // If you don't have shareProject service, create a simple share info object
-      const shareData = {
-        title: project.title,
-        description: project.description?.replace(/<[^>]*>/g, '').substring(0, 100) + '...',
-        url: window.location.href
+      // Call the backend share endpoint
+      const response = await shareProject(id);
+      
+      // If the backend returns social links, use them
+      if (response && response.data) {
+        setShareInfo(response.data);
+      } else {
+        // Fallback if backend doesn't return expected data
+        const shareUrl = window.location.href;
+        const encodedUrl = encodeURIComponent(shareUrl);
+        
+        const shareData = {
+          url: shareUrl,
+          social_links: {
+            twitter: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodeURIComponent(project.title)}`,
+            facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+            linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`
+          }
+        };
+        
+        setShareInfo(shareData);
+      }
+      
+      setShowShareModal(true);
+    } catch (error) {
+      console.error('Share error:', error);
+      
+      // Fallback if API call fails
+      const shareUrl = window.location.href;
+      const encodedUrl = encodeURIComponent(shareUrl);
+      
+      const fallbackShareData = {
+        url: shareUrl,
+        social_links: {
+          twitter: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodeURIComponent(project.title)}`,
+          facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+          linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`
+        }
       };
       
-      setShareInfo(shareData);
+      setShareInfo(fallbackShareData);
       setShowShareModal(true);
-      
-      // If you do have the shareProject service:
-      // const response = await shareProject(id);
-      // setShareInfo(response.data);
-      // setShowShareModal(true);
-    } catch (error) {
-      toast.error('Failed to generate share information');
+      toast.warning('Using local share links - some features may be limited');
     }
   };
 

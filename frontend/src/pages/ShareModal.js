@@ -1,4 +1,3 @@
-// ShareModal.js
 import React, { useState } from 'react';
 import { Modal, Button } from 'react-bootstrap';
 import { Twitter, Facebook, Linkedin, Link, Check } from 'lucide-react';
@@ -18,6 +17,16 @@ const ShareModal = ({ show, onHide, shareInfo }) => {
 
   if (!shareInfo) return null;
 
+  // Generate fallback social links if they don't exist
+  const url = shareInfo.url || window.location.href;
+  const encodedUrl = encodeURIComponent(url);
+  
+  const socialLinks = shareInfo.social_links || {
+    twitter: `https://twitter.com/intent/tweet?url=${encodedUrl}`,
+    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+    linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`
+  };
+
   return (
     <Modal show={show} onHide={onHide} centered>
       <Modal.Header closeButton>
@@ -29,7 +38,7 @@ const ShareModal = ({ show, onHide, shareInfo }) => {
           <div className="d-flex gap-2">
             <Button 
               variant="outline-primary" 
-              href={shareInfo.social_links?.twitter}
+              href={socialLinks.twitter}
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -38,7 +47,7 @@ const ShareModal = ({ show, onHide, shareInfo }) => {
             </Button>
             <Button 
               variant="outline-primary"
-              href={shareInfo.social_links?.facebook}
+              href={socialLinks.facebook}
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -47,7 +56,7 @@ const ShareModal = ({ show, onHide, shareInfo }) => {
             </Button>
             <Button 
               variant="outline-primary"
-              href={shareInfo.social_links?.linkedin}
+              href={socialLinks.linkedin}
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -62,7 +71,7 @@ const ShareModal = ({ show, onHide, shareInfo }) => {
           <div className="d-flex gap-2">
             <input 
               type="text" 
-              value={shareInfo.url} 
+              value={url} 
               className="form-control" 
               readOnly
             />
