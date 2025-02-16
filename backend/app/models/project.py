@@ -38,6 +38,9 @@ class Project(db.Model):
     rewards = relationship("Reward", back_populates="project")
     category = relationship("Category", back_populates="projects")
     donations = relationship("Donation", back_populates="project")
+    saved_by_users = db.relationship("SavedProject", 
+                                back_populates="project", 
+                                cascade="all, delete-orphan")
     # updates = relationship("ProjectUpdate", back_populates="project")
     comments = relationship("Comment", back_populates="project")
     backers = relationship("User", secondary=project_backers, back_populates="backed_projects")

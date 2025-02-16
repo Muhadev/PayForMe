@@ -1,6 +1,6 @@
 # app/routes/projects.py
 
-from flask import Blueprint, request, url_for, current_app, send_from_directory, abort
+from flask import Blueprint, jsonify, request, url_for, current_app, send_from_directory, abort
 from app import jwt, limiter
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt, verify_jwt_in_request
 import logging
@@ -11,6 +11,7 @@ from app.utils.exceptions import ProjectNotFoundError, ValidationError
 from app.utils.response import api_response
 from app.models.enums import ProjectStatus
 from app.utils.file_utils import handle_file_upload
+from app.models.saved_project import SavedProject
 from app import db
 from datetime import datetime
 from app.utils.project_utils import validate_project_data
@@ -666,3 +667,137 @@ def admin_pending_projects():
     except Exception as e:
         logger.error(f"Error fetching pending projects: {str(e)}")
         return api_response(message="Failed to fetch pending projects", status_code=500)
+
+@projects_bp.route('/<int:project_id>/save', methods=['POST'])
+@jwt_required()
+def save_project(project_id):
+    """Save a project for a user"""
+    try:
+        current_user_id = get_jwt_identity()
+        
+        # Check if project exists
+        project = get_project_by_id(project_id)
+        
+        # Check if already saved
+        existing_save = SavedProject.query.filter_by(
+            user_id=current_user_id,
+            project_id=project_id
+        ).first()
+        
+        if existing_save:
+            return api_response(
+                message="Project already saved",
+                status_code=200
+            )
+        
+        # Create new saved project entry
+        saved_project = SavedProject(
+            user_id=current_user_id,
+            project_id=project_id
+        )
+        
+        db.session.add(saved_project)
+        db.session.commit()
+        
+        return api_response(
+            message="Project saved successfully",
+            status_code=201
+        )
+        
+    except ProjectNotFoundError as e:
+        return api_response(message=str(e), status_code=404)
+    except Exception as e:
+        logger.error(f"Error saving project {project_id}: {str(e)}")
+        db.session.rollback()
+        return api_response(
+            message="Failed to save project",
+            status_code=500
+        )
+
+@projects_bp.route('/<int:project_id>/save', methods=['DELETE'])
+@jwt_required()
+def unsave_project(project_id):
+    """Unsave a project for a user"""
+    try:
+        current_user_id = get_jwt_identity()
+        
+        # Find the saved project
+        saved_project = SavedProject.query.filter_by(
+            user_id=current_user_id,
+            project_id=project_id
+        ).first()
+        
+        if not saved_project:
+            return api_response(
+                message="Project was not saved",
+                status_code=404
+            )
+        
+        # Delete the saved project entry
+        db.session.delete(saved_project)
+        db.session.commit()
+        
+        return api_response(
+            message="Project unsaved successfully",
+            status_code=200
+        )
+        
+    except Exception as e:
+        logger.error(f"Error unsaving project {project_id}: {str(e)}")
+        db.session.rollback()
+        return api_response(
+            message="Failed to unsave project",
+            status_code=500
+        )
+
+@projects_bp.route('/saved', methods=['GET'])
+@jwt_required()
+def get_saved_projects():
+    """Get all saved projects for the current user"""
+    try:
+        current_user_id = get_jwt_identity()
+        
+        # Get pagination parameters
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        
+        # Query saved projects with pagination
+        saved_projects_query = SavedProject.query.filter_by(user_id=current_user_id)
+        saved_projects_paginated = saved_projects_query.paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+        
+        # Get the actual project data for each saved project
+        projects = []
+        for saved_project in saved_projects_paginated.items:
+            try:
+                project = get_project_by_id(saved_project.project_id)
+                project_dict = project.to_dict()
+                
+                # Add the saved_at date from the SavedProject model
+                project_dict['saved_at'] = saved_project.created_at.isoformat()
+                
+                # Include category information if it exists
+                if project.category:
+                    project_dict['category_name'] = project.category.name
+                    
+                projects.append(project_dict)
+            except ProjectNotFoundError:
+                continue
+        
+        return api_response(
+            data={
+                'projects': projects,
+                'total': saved_projects_paginated.total,
+                'pages': saved_projects_paginated.pages,
+                'current_page': page
+            },
+            status_code=200
+        )
+        
+    except Exception as e:
+        logger.error(f"Error retrieving saved projects: {str(e)}")
+        return api_response(
+            message="Failed to retrieve saved projects",
+            status_code=500
+        )

@@ -52,6 +52,9 @@ class User(db.Model):
     sent_messages = db.relationship("Message", foreign_keys='Message.sender_id', back_populates="sender")
     received_messages = db.relationship("Message", foreign_keys='Message.receiver_id', back_populates="receiver")
 
+    saved_projects = db.relationship("SavedProject", 
+                                back_populates="user", 
+                                cascade="all, delete-orphan")
     # Add verification_token column
     verification_token = db.Column(db.String(256), unique=True)
 
