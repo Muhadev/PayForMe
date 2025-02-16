@@ -58,7 +58,8 @@ def setup_permissions_and_roles():
                 ('view_pending_projects', 'Can view projects pending approval'),
                 ('edit_project', 'Can edit any project'),
                 ('delete_project', 'Can delete any project'),
-                ('share_project', 'Can share projects on social media')
+                ('share_project', 'Can share projects on social media'),
+                ('view_users', 'Can view list of all users'),
 
             ]
 

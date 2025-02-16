@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Badge, Button, Nav } from 'react-bootstrap';
+import { Container, Row, Col, Card, Badge, Button, Nav, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
@@ -11,26 +11,10 @@ const MyProjectsPage = () => {
   const [filter, setFilter] = useState('all');
   const [projects, setProjects] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [categories, setCategories] = useState([]); // Add this state
+  const [categories, setCategories] = useState([]);
   const navigate = useNavigate();
 
-  const stripHtml = (html) => {
-    const tmp = document.createElement('div');
-    tmp.innerHTML = html;
-    return tmp.textContent || tmp.innerText || '';
-  };
-
-  const formatCurrency = (amount) => {
-    const number = parseFloat(amount);
-    return isNaN(number) ? "$0" : `$${number.toLocaleString()}`;
-  };
-
-  const calculateProgress = (raised, goal) => {
-    const progress = (raised / goal) * 100;
-    return isNaN(progress) ? 0 : Math.min(progress, 100);
-  };
-
-  // Add useEffect for fetching categories
+  // Fetch categories
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -47,6 +31,7 @@ const MyProjectsPage = () => {
     fetchCategories();
   }, []);
 
+  // Fetch projects
   useEffect(() => {
     const fetchProjects = async () => {
       try {
@@ -71,6 +56,22 @@ const MyProjectsPage = () => {
 
     fetchProjects();
   }, [filter]);
+
+  const stripHtml = (html) => {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || '';
+  };
+
+  const formatCurrency = (amount) => {
+    const number = parseFloat(amount);
+    return isNaN(number) ? "$0" : `$${number.toLocaleString()}`;
+  };
+
+  const calculateProgress = (raised, goal) => {
+    const progress = (raised / goal) * 100;
+    return isNaN(progress) ? 0 : Math.min(progress, 100);
+  };
 
   const getStatusBadgeClass = (status) => {
     switch (status?.toLowerCase()) {
@@ -127,154 +128,158 @@ const MyProjectsPage = () => {
     return `${daysLeft} days left`;
   };
 
+  const getCategoryName = (project) => {
+    if (!project) return 'Not set';
+    return project.category?.name || 
+          project.category_name || 
+          categories.find(c => c.id === project.category_id)?.name || 
+          'Not set';
+  };
+
+  const getImageUrl = (project) => {
+    if (project.image_url) {
+      // Check if it's already a full URL
+      if (project.image_url.startsWith('http')) {
+        return project.image_url;
+      }
+      // Add the correct API endpoint path
+      return `${process.env.REACT_APP_BACKEND_URL}/api/v1/projects${project.image_url}`;
+    }
+    return placeholderImage;
+  };
+
+  const truncateText = (text, maxLength = 80) => {
+    if (!text) return '';
+    text = stripHtml(text);
+    if (text.length <= maxLength) return text;
+    return text.substr(0, maxLength) + '...';
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Not available';
+    const date = new Date(dateString);
+    return !isNaN(date.getTime()) ? date.toLocaleDateString() : 'Not available';
+  };
+
   const renderProjectCard = (project) => {
     const isDraft = project?.status?.toUpperCase() === 'DRAFT';
     const isPending = project?.status?.toLowerCase() === 'pending';
     const timeStatus = getProjectTimeStatus(project);
-
-  
-    // Format the date properly
-    const formatDate = (dateString) => {
-      if (!dateString) return 'Not available';
-      const date = new Date(dateString);
-      return !isNaN(date.getTime()) ? date.toLocaleDateString() : 'Not available';
-    };
-
-    // Get category name
-    const getCategoryName = (project) => {
-      if (!project) return 'Not set';
-      return project.category?.name || 
-            project.category_name || 
-            categories.find(c => c.id === project.category_id)?.name || 
-            'Not set';
-    };
-
-    const getImageUrl = (project) => {
-      if (project.image_url) {
-        // Check if it's already a full URL
-        if (project.image_url.startsWith('http')) {
-          return project.image_url;
-        }
-        // Add the correct API endpoint path
-        return `${process.env.REACT_APP_BACKEND_URL}/api/v1/projects${project.image_url}`;
-      }
-      return placeholderImage;
-    };
-
-    // Show project details for both draft and non-draft projects
-    const projectDetails = (
-      <div className="project-details mt-3">
-        <div className="mb-2">
-          <strong>Goal Amount:</strong> {formatCurrency(project.goal_amount || 0)}
-        </div>
-        {project.start_date && (
-          <div className="mb-2">
-            <strong>Start Date:</strong> {new Date(project.start_date).toLocaleDateString()}
-          </div>
-        )}
-        {project.end_date && (
-          <div className="mb-2">
-            <strong>End Date:</strong> {new Date(project.end_date).toLocaleDateString()}
-          </div>
-        )}
-      </div>
-    );
+    const progress = calculateProgress(project.total_pledged || 0, project.goal_amount);
 
     return (
       <Col md={4} key={project.id} className="mb-4">
-        <Card className="project-card h-100">
-        <Card.Img 
-          variant="top" 
-          src={getImageUrl(project)}
-          onError={(e) => {
-            e.target.onerror = null;
-            e.target.src = placeholderImage;
-          }}
-          style={{ height: '200px', objectFit: 'cover' }}
-        />
+        <Card className="project-card h-100 shadow-sm">
+          <div className="project-image-container">
+            <Card.Img 
+              variant="top" 
+              src={getImageUrl(project)}
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = placeholderImage;
+              }}
+            />
+            <Badge 
+              className={`status-badge ${getStatusBadgeClass(project.status)}`}
+            >
+              {project.status ? project.status.charAt(0).toUpperCase() + project.status.slice(1).toLowerCase() : 'Unknown'}
+            </Badge>
+          </div>
+          
           <Card.Body>
-            <div className="card-header-content">
-              <div>
-                <Card.Title>{project.title || 'Untitled Project'}</Card.Title>
-                <Card.Subtitle className="mb-2 text-muted">
-                {getCategoryName(project)}
-                </Card.Subtitle>
-              </div>
-              <Badge className={getStatusBadgeClass(project.status)}>
-                {project.status ? project.status.charAt(0).toUpperCase() + project.status.slice(1).toLowerCase() : 'Unknown'}
-              </Badge>
+            <div className="category-label">
+              {getCategoryName(project)}
             </div>
-
-            <Card.Text className="project-description">
-              {stripHtml(project.description || '')}
+            
+            <Card.Title className="project-title">
+              {project.title || 'Untitled Project'}
+            </Card.Title>
+            
+            <Card.Text className="project-brief">
+              {truncateText(project.description || '')}
             </Card.Text>
-
-            {/* Show project details for all projects */}
-            {projectDetails}
-
+            
             {!isDraft && !isPending && (
-              <div className="progress-section">
+              <div className="funding-progress">
                 <div className="progress">
                   <div 
                     className="progress-bar" 
                     role="progressbar"
-                    style={{ 
-                      width: `${calculateProgress(project.total_pledged || 0, project.goal_amount)}%` 
-                    }}
+                    style={{ width: `${progress}%` }}
                   />
                 </div>
-                <div className="progress-stats">
-                  <span>{formatCurrency(project.total_pledged || 0)} raised</span>
-                  <span>{calculateProgress(project.total_pledged || 0, project.goal_amount).toFixed(0)}%</span>
+                <div className="funding-stats">
+                  <div className="funding-raised">
+                    {formatCurrency(project.total_pledged || 0)}
+                    <span className="funding-label">raised</span>
+                  </div>
+                  <div className="funding-percentage">
+                    {progress.toFixed(0)}%
+                  </div>
                 </div>
               </div>
             )}
-
-            <div className="project-stats">
+            
+            <div className="project-meta">
               {!isDraft && !isPending ? (
                 <>
-                  <div className="stat-item">
+                  <div className="meta-item backers">
                     <i className="bi bi-people"></i>
-                    <span>{project.backers_count || 0} backers</span>
+                    <span>{project.backers_count || 0}</span>
                   </div>
-                  <div className="stat-item">
-                    <i className="bi bi-clock"></i>
-                    <span>{timeStatus}</span>
+                  
+                  <OverlayTrigger
+                    placement="top"
+                    overlay={<Tooltip>{timeStatus}</Tooltip>}
+                  >
+                    <div className="meta-item time-status">
+                      <i className="bi bi-clock"></i>
+                      <span>{timeStatus.includes('days') ? timeStatus.replace(' days left', '') : '—'}</span>
+                    </div>
+                  </OverlayTrigger>
+                  
+                  <div className="meta-item goal">
+                    <i className="bi bi-bullseye"></i>
+                    <span>{formatCurrency(project.goal_amount || 0)}</span>
                   </div>
                 </>
               ) : (
-                <div className="stat-item">
-                  <i className="bi bi-pencil"></i>
-                  <span>{isPending ? 'Pending Approval' : 'Draft saved'}</span>
+                <div className="meta-item draft-status">
+                  <i className={isPending ? "bi bi-hourglass" : "bi bi-pencil"}></i>
+                  <span>{isPending ? 'Pending Approval' : 'Draft'}</span>
                 </div>
               )}
             </div>
           </Card.Body>
-          <Card.Footer>
+          
+          <Card.Footer className="bg-white">
             <div className="card-footer-content">
-              <small className="text-muted">
-                  {isDraft || isPending
-                    ? `Last edited: ${formatDate(project.updated_at || project.created_at)}`
-                    : `Launched: ${formatDate(project.created_at)}`
-                  }
+              <small className="text-muted last-updated">
+                {isDraft || isPending
+                  ? `Updated: ${formatDate(project.updated_at || project.created_at)}`
+                  : `Launched: ${formatDate(project.created_at)}`
+                }
               </small>
-              <div className="button-group">
+              
+              <div className="action-buttons">
                 {isDraft && (
                   <Button 
                     variant="outline-primary" 
                     size="sm"
-                    className="me-2"
+                    className="edit-button"
                     onClick={() => handleEditDraft(project.id)}
                   >
-                    Edit Draft
+                    <i className="bi bi-pencil-fill me-1"></i>Edit
                   </Button>
                 )}
+                
                 <Button 
-                  variant="outline-secondary" 
+                  variant={isDraft ? "light" : "outline-secondary"}
                   size="sm"
+                  className="view-button"
                   onClick={() => handleViewDetails(project)}
                 >
-                  View Details
+                  {isDraft ? "Preview" : "View"}
                 </Button>
               </div>
             </div>
@@ -285,23 +290,24 @@ const MyProjectsPage = () => {
   };
 
   return (
-    <Container className="my-projects-page">
-      <div className="header-section">
+    <Container className="my-projects-page py-4">
+      <div className="header-section mb-4">
         <div className="title-section">
-          <h1>My Projects</h1>
+          <h1 className="mb-0">My Projects</h1>
           <Badge bg="primary" className="project-count">
             {projects.length} Projects
           </Badge>
         </div>
         <Button 
           variant="primary" 
+          className="create-button"
           onClick={() => navigate('/projects/create')}
         >
-          <i className="bi bi-plus-lg"></i> Create New Project
+          <i className="bi bi-plus-lg me-2"></i> Create New Project
         </Button>
       </div>
 
-      <Nav variant="tabs" className="project-tabs">
+      <Nav variant="tabs" className="project-tabs mb-4">
         <Nav.Item>
           <Nav.Link 
             active={filter === 'all'} 
@@ -345,7 +351,28 @@ const MyProjectsPage = () => {
       </Nav>
 
       {isLoading ? (
-        <div className="text-center mt-4">Loading...</div>
+        <div className="text-center mt-4">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+          <p className="mt-2">Loading your projects...</p>
+        </div>
+      ) : projects.length === 0 ? (
+        <div className="empty-state text-center py-5">
+          <i className="bi bi-clipboard-x empty-icon mb-3"></i>
+          <h3>No projects found</h3>
+          <p className="text-muted">
+            {filter === 'all' 
+              ? "You haven't created any projects yet." 
+              : `You don't have any ${filter} projects.`}
+          </p>
+          <Button 
+            variant="primary" 
+            onClick={() => navigate('/projects/create')}
+          >
+            Create Your First Project
+          </Button>
+        </div>
       ) : (
         <Row className="project-grid">
           {projects.map(project => renderProjectCard(project))}

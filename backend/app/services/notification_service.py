@@ -12,6 +12,27 @@ logger = logging.getLogger(__name__)
 
 class NotificationService:
     @staticmethod
+    def create_notification(user_id: int, message: str, project_id: int = None) -> Notification:
+        try:
+            notification = Notification(
+                user_id=user_id,
+                # title=title,
+                message=message,
+                project_id=project_id,
+                type=NotificationType.PROJECT_UPDATE,  # Assuming you have this type
+                created_at=datetime.utcnow(),
+                read_at=None
+            )
+            db.session.add(notification)
+            db.session.commit()
+            logger.info(f"Created notification for user {user_id}: {message}")
+            return notification
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error creating notification: {e}")
+            raise
+
+    @staticmethod
     def create_admin_notification(message: str, project_id: int = None) -> List[Notification]:
         try:
             admin_role = Role.query.filter_by(name='Admin').first()
@@ -58,7 +79,7 @@ class NotificationService:
         try:
             notification = Notification.query.get(notification_id)
             if notification:
-                notification.is_read = True
+                notification.read_at = datetime.utcnow()  # Set timestamp when read
                 db.session.commit()
                 logger.info(f"Marked notification {notification_id} as read")
                 return True

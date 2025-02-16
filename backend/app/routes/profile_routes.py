@@ -83,6 +83,7 @@ def update_profile():
         )
 
 @profile_bp.route('/<int:user_id>', methods=['GET'])
+@jwt_required()
 @permission_required('view_public_profile')  # Restrict access to users with the 'view_public_profile' permission
 def get_public_profile(user_id):
     try:

@@ -1,11 +1,11 @@
 # app/routes/projects.py
 
-from flask import Blueprint, request, current_app, send_from_directory, abort
+from flask import Blueprint, request, url_for, current_app, send_from_directory, abort
 from app import jwt, limiter
-from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt, verify_jwt_in_request
 import logging
 from app.services.project_service import (
-    create_project, get_project_by_id, update_project, delete_project, get_all_projects, get_user_drafts
+    create_project, get_project_by_id, update_project, delete_project, get_all_projects, get_user_drafts, activate_project
 )
 from app.utils.exceptions import ProjectNotFoundError, ValidationError
 from app.utils.response import api_response
@@ -504,36 +504,141 @@ def get_pending_projects():
         logger.error(f"Error fetching pending projects: {str(e)}")
         return api_response(message="Failed to fetch pending projects", status_code=500)
 
+@projects_bp.route('/<int:project_id>', methods=['GET'])
+def view_project(project_id):
+    """
+    Get detailed information about a specific project.
+    Public endpoint that handles both authenticated and unauthenticated access.
+    """
+    try:
+        # Get the project from database
+        project = get_project_by_id(project_id)
+        
+        # Check if project exists and is in a viewable state
+        if not project:
+            return api_response(message="Project not found", status_code=404)
+            
+        # Define viewable statuses
+        viewable_statuses = [
+            ProjectStatus.ACTIVE,
+            ProjectStatus.FUNDED,
+            ProjectStatus.SUCCESSFUL,
+            ProjectStatus.COMPLETED
+        ]
+        
+        # Get current user if authenticated
+        current_user_id = None
+        try:
+            current_user_id = get_jwt_identity()
+        except Exception:
+            # User is not authenticated
+            pass
+            
+        # Check viewing permissions
+        if project.status not in viewable_statuses:
+            # If project is not in viewable status, only creator and admins can view it
+            if not current_user_id:
+                return api_response(
+                    message="You don't have permission to view this project",
+                    status_code=403
+                )
+                
+            # Check if user has admin role or is the creator
+            jwt_data = get_jwt()
+            user_roles = jwt_data.get('roles', [])
+            
+            if current_user_id != project.creator_id and 'Admin' not in user_roles:
+                return api_response(
+                    message="You don't have permission to view this project",
+                    status_code=403
+                )
+        
+        # Prepare the response data
+        project_data = project.to_dict()
+        
+        # Add additional fields for authenticated users
+        if current_user_id:
+            project_data['is_owner'] = (current_user_id == project.creator_id)
+            
+            # Add edit/delete permissions based on user role
+            jwt_data = get_jwt()
+            user_roles = jwt_data.get('roles', [])
+            project_data['can_edit'] = (
+                current_user_id == project.creator_id or 
+                'Admin' in user_roles
+            )
+            project_data['can_delete'] = (
+                current_user_id == project.creator_id or 
+                'Admin' in user_roles
+            )
+            
+            # Add backing information if user has backed the project
+            # Assuming you have a Backing model and relationship
+            if hasattr(project, 'backings'):
+                user_backing = next(
+                    (backing for backing in project.backings 
+                     if backing.backer_id == current_user_id),
+                    None
+                )
+                project_data['user_backing'] = user_backing.to_dict() if user_backing else None
+        
+        # Increment view count
+        project.view_count = project.view_count + 1 if project.view_count else 1
+        db.session.commit()
+        
+        # Add share URL
+        project_data['share_url'] = url_for(
+            'projects.view_project',
+            project_id=project.id,
+            _external=True
+        )
+        
+        return api_response(
+            data=project_data,
+            status_code=200
+        )
+        
+    except ProjectNotFoundError as e:
+        return api_response(message=str(e), status_code=404)
+    except Exception as e:
+        logger.error(f"Error viewing project {project_id}: {str(e)}")
+        return api_response(
+            message="An error occurred while retrieving the project",
+            status_code=500
+        )
+
+# Then in the activation route, modify the email sending part:
 @projects_bp.route('/<int:project_id>/activate', methods=['POST'])
 @jwt_required()
 @permission_required('activate_project')
-def activate_project(project_id):
-    """Activate a pending project"""
+def activate_project_route(project_id):
     try:
-        project = get_project_by_id(project_id)
+        project = activate_project(project_id)
         
-        if project.status != ProjectStatus.PENDING:
-            return api_response(message="Only pending projects can be activated", status_code=400)
+        try:
+            # Send notification to project creator
+            NotificationService.create_notification(
+                user_id=project.creator_id,
+                message=f"Your project '{project.title}' has been approved and is now active!",
+                project_id=project.id
+            )
             
-        # Update project status
-        project.status = ProjectStatus.ACTIVE
-        db.session.commit()
-        
-        # Send notification to project creator
-        NotificationService.create_notification(
-            user_id=project.creator_id,
-            title="Project Activated",
-            message=f"Your project '{project.title}' has been approved and is now active!"
-        )
-        
-        # Send email notification
-        send_templated_email(
-            project.creator.email,
-            'project_activated',
-            project=project
-        )
-        
+            # Send email notification with additional context
+            project_url = url_for('projects.view_project', project_id=project.id, _external=True)
+            send_templated_email(
+                project.creator.email,
+                'project_activated',
+                project=project,
+                project_url=project_url,
+                project_title=project.title,
+                creator_name=project.creator.full_name or project.creator.username
+            )
+        except Exception as notification_error:
+            logger.error(f"Error sending notifications for project {project_id}: {notification_error}")
+            
         return api_response(message="Project activated successfully", status_code=200)
+    except ValidationError as e:
+        return api_response(message=str(e), status_code=400)
     except ProjectNotFoundError as e:
         return api_response(message=str(e), status_code=404)
     except Exception as e:
@@ -544,14 +649,20 @@ def activate_project(project_id):
 @jwt_required()
 @permission_required('activate_project')
 def admin_pending_projects():
-    page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 10, type=int)
-    
-    pending_projects = Project.query.filter_by(status=ProjectStatus.PENDING).paginate(page=page, per_page=per_page, error_out=False)
-    
-    return api_response(data={
-        'projects': [project.to_dict() for project in pending_projects.items],
-        'total': pending_projects.total,
-        'pages': pending_projects.pages,
-        'current_page': page
-    }, status_code=200)
+    try:
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        
+        # Use filters to get only pending projects
+        filters = {'status': ProjectStatus.PENDING}
+        projects_pagination = get_all_projects(page, per_page, 'created_at', 'desc', filters)
+        
+        return api_response(data={
+            'projects': [project.to_dict() for project in projects_pagination.items],
+            'total': projects_pagination.total,
+            'pages': projects_pagination.pages,
+            'current_page': page
+        }, status_code=200)
+    except Exception as e:
+        logger.error(f"Error fetching pending projects: {str(e)}")
+        return api_response(message="Failed to fetch pending projects", status_code=500)

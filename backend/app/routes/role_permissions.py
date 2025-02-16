@@ -122,6 +122,19 @@ def get_permissions(id):
         logger.warning(f"Failed to retrieve permissions for user {id}: {result['message']}")
         return api_response(message=result["message"], status_code=404)
 
+@role_permissions_bp.route('/users', methods=['GET'])
+@jwt_required()
+@permission_required('view_users')
+def get_users():
+    """Retrieve a list of users with their IDs and names."""
+    users = User.query.all()
+    
+    if not users:
+        return api_response(message="No users found", status_code=404)
+    
+    user_list = [{"id": user.id, "name": user.full_name, "email": user.email} for user in users]
+    
+    return api_response(data={"users": user_list}, status_code=200)
 
 @role_permissions_bp.route('/<int:id>/roles', methods=['GET'])
 @jwt_required()
