@@ -16,6 +16,7 @@
     "bootstrap-icons": "^1.11.3",
     "customize-cra": "^1.0.0",
     "lucide-react": "^0.471.1",
+    "jwt-decode": "^4.0.0",
     "react": "^18.2.0",
     "react-app-rewired": "^2.2.1",
     "react-bootstrap": "^2.10.4",

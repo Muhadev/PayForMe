@@ -8,12 +8,13 @@ import {
   ExternalLink, MapPin, MessageSquare, AlertCircle, Award, Heart,
   Image as ImageIcon, Globe, Twitter
 } from 'lucide-react';
-// import { useState } from 'react';
+// import jwtDecode from 'jwt-decode';
 import { Modal } from 'react-bootstrap';
 import ShareModal from './ShareModal';
 import axiosInstance from '../helper/axiosConfig';
-import { shareProject, activateProject } from '../services/projectService';
+import { shareProject, activateProject, saveProject, unsaveProject, getSavedProjects } from '../services/projectService';
 import './ProjectDetailPage.css';
+import { usePermission } from '../hooks/usePermission'
 
 // Utility function to handle media URLs
 const getMediaUrl = (url) => {
@@ -41,56 +42,72 @@ const getMediaUrl = (url) => {
 };
 
 // Modular Components
-const ProjectHeader = ({ project, isCreator, isAdmin, navigate }) => (
-  <div className="project-header mb-4">
-    <Card className="border-0 shadow-sm">
-      <Card.Body>
-        <Row className="align-items-center">
-          <Col md={8}>
-            <div className="d-flex align-items-center mb-3">
-              <div>
-                <h1 className="display-5 mb-2">{project.title}</h1>
-                {/* <p className="lead text-muted mb-3">{project.tagline || 'No tagline provided'}</p> */}
-                <div className="d-flex gap-2 flex-wrap">
-                  <Badge bg="primary" className="badge-lg">{project.category?.name || 'Uncategorized'}</Badge>
-                  <Badge bg={project.featured ? "warning" : "secondary"}>
-                    {project.featured ? "Featured" : "Not Featured"}
-                  </Badge>
-                  <Badge bg={project.status === 'ACTIVE' ? 'success' : 'warning'}>
-                    {project.status || 'DRAFT'}
-                  </Badge>
+const ProjectHeader = ({ project, isCreator, isAdmin, navigate }) => {
+
+  // Move permission check functions inside the component
+  const canEditProject = () => {
+    return isAdmin || (isCreator && project.status !== 'ACTIVE');
+  };
+
+  const canManageProject = () => {
+    return isAdmin || isCreator;
+  };
+  return (
+
+    <div className="project-header mb-4">
+      <Card className="border-0 shadow-sm">
+        <Card.Body>
+          <Row className="align-items-center">
+            <Col md={8}>
+              <div className="d-flex align-items-center mb-3">
+                <div>
+                  <h1 className="display-5 mb-2">{project.title}</h1>
+                  <div className="d-flex gap-2 flex-wrap">
+                    <Badge bg="primary" className="badge-lg">{project.category?.name || 'Uncategorized'}</Badge>
+                    {isAdmin && (
+                        <Badge bg={project.featured ? "warning" : "secondary"}>
+                          {project.featured ? "Featured" : "Not Featured"}
+                        </Badge>
+                      )}
+                    <Badge bg={project.status === 'ACTIVE' ? 'success' : 'warning'}>
+                      {project.status || 'DRAFT'}
+                    </Badge>
+                  </div>
                 </div>
               </div>
-            </div>
-          </Col>
-          <Col md={4} className="text-md-end">
-            {(isCreator || isAdmin) && (
-              <div className="creator-controls">
-                <Button 
-                  variant="outline-primary" 
-                  className="me-2"
-                  onClick={() => navigate(`/projects/edit/${project.id}`)}
-                >
-                  <PencilIcon size={16} className="me-1" /> Edit
-                </Button>
-                <Button 
-                  variant="outline-secondary"
-                  onClick={() => navigate(`/projects/manage/${project.id}`)}
-                >
-                  <Cog size={16} className="me-1" /> Manage
-                </Button>
-              </div>
-            )}
-          </Col>
-        </Row>
-      </Card.Body>
-    </Card>
-  </div>
-);
+            </Col>
+            <Col md={4} className="text-md-end">
+              {/* Show edit/manage buttons for both creator and admin */}
+              {canEditProject() && (
+                <div className="creator-controls">
+                  <Button 
+                    variant="outline-primary" 
+                    className="me-2"
+                    onClick={() => navigate(`/projects/edit/${project.id}`)}
+                  >
+                    <PencilIcon size={16} className="me-1" /> Edit
+                  </Button>
+                  {canManageProject() && (
+                  <Button 
+                    variant="outline-secondary"
+                    onClick={() => navigate(`/projects/manage/${project.id}`)}
+                  >
+                    <Cog size={16} className="me-1" /> Manage
+                  </Button>
+                  )}
+                </div>
+              )}
+            </Col>
+          </Row>
+        </Card.Body>
+      </Card>
+    </div>
+  );
+};
 
-const ProjectMedia = ({ project, videoRef, isPlaying, handleVideoToggle }) => {
+const ProjectMedia = ({ project, videoRef, isPlaying, handleVideoToggle, activeMedia, setActiveMedia }) => {
   // State to track active media type
-  const [activeMedia, setActiveMedia] = useState('image');
+  // const [activeMedia, setActiveMedia] = useState('image');
   
   // Only show tabs if both image and video exist
   const showMediaTabs = project.image_url && project.video_url;
@@ -191,7 +208,7 @@ const ProjectMedia = ({ project, videoRef, isPlaying, handleVideoToggle }) => {
   );
 };
 
-const ProjectStats = ({ project, daysLeft, percentFunded, handleShare, isSaved, handleSaveProject }) => (
+const ProjectStats = ({ project, daysLeft, percentFunded, handleShare, isSaved, handleSaveProject, canBackProject, isCreator }) => (
   <Card className="border-0 shadow-sm mb-4">
     <Card.Body>
       <Row className="text-center">
@@ -221,24 +238,26 @@ const ProjectStats = ({ project, daysLeft, percentFunded, handleShare, isSaved, 
         style={{ height: '10px' }}
       />
       <div className="d-flex justify-content-between mt-4">
-        {project.status === 'ACTIVE' && (
-          <Button variant="primary" size="lg" className="btn-back-project">
-            <GiftIcon size={18} className="me-2" />
-            Back This Project
-          </Button>
-        )}
+        {canBackProject() && (
+              <Button variant="primary" size="lg" className="btn-back-project">
+                <GiftIcon size={18} className="me-2" />
+                Back This Project
+              </Button>
+            )}
         <div className="d-flex gap-2">
           <Button variant="outline-primary" onClick={handleShare}>
             <ShareIcon size={16} className="me-1" />
             Share
           </Button>
-          <Button 
-            variant={isSaved ? "outline-success" : "outline-secondary"}
-            onClick={handleSaveProject}
-          >
-            <BookmarkIcon size={16} className="me-1" />
-            {isSaved ? 'Saved' : 'Save'}
-          </Button>
+          {!isCreator && (
+              <Button 
+                variant={isSaved ? "outline-success" : "outline-secondary"}
+                onClick={handleSaveProject}
+              >
+                <BookmarkIcon size={16} className="me-1" />
+                {isSaved ? 'Saved' : 'Save'}
+              </Button>
+            )}
         </div>
       </div>
     </Card.Body>
@@ -251,7 +270,7 @@ const CreatorInfo = ({ project }) => {
   return (
     <>
       <Card className="border-0 shadow-sm mb-4">
-      <Card.Header className="bg-white border-bottom pb-2">
+        <Card.Header className="bg-white border-bottom pb-2">
           <h5 className="mb-0">
             <Users size={16} className="me-2 text-primary" />
             About the Creator
@@ -301,14 +320,14 @@ const CreatorInfo = ({ project }) => {
               <p className="text-muted small mb-0">Joined</p>
             </div>
           </div>
-        {/* Same card content as above, but with this button: */}
-        <Button 
-          variant="link" 
-          className="p-0 text-decoration-none mt-2"
-          onClick={() => setShowProfileModal(true)}
-        >
-          View more about this creator <ExternalLink size={14} className="ms-1" />
-        </Button>
+          
+          <Button 
+            variant="link" 
+            className="p-0 text-decoration-none mt-2"
+            onClick={() => setShowProfileModal(true)}
+          >
+            View more about this creator <ExternalLink size={14} className="ms-1" />
+          </Button>
         </Card.Body>
       </Card>
       
@@ -390,7 +409,7 @@ const CreatorInfo = ({ project }) => {
   );
 };
 
-const ProjectContent = ({ project }) => (
+const ProjectContent = ({ project, isCreator }) => (
   <Tabs defaultActiveKey="overview" className="mb-4 nav-tabs-custom">
     <Tab eventKey="overview" title="Overview">
       <Card className="border-0 shadow-sm">
@@ -438,7 +457,7 @@ const ProjectContent = ({ project }) => (
         <Card.Body className="p-4 text-center">
           <MessageSquare size={48} className="mb-3 text-muted" />
           <p className="text-muted">No updates yet</p>
-          {project.creator_id === parseInt(localStorage.getItem('userId')) && (
+          {isCreator && (
             <Button variant="outline-primary" size="sm">
               Post an Update
             </Button>
@@ -536,6 +555,7 @@ const AdminControls = ({ project, handleProjectAction }) => (
   </Card>
 );
 
+
 // Main Component
 const ProjectDetailPage = () => {
   const { id } = useParams();
@@ -543,15 +563,63 @@ const ProjectDetailPage = () => {
   const [project, setProject] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isCreator, setIsCreator] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [isDraft, setIsDraft] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareInfo, setShareInfo] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const videoRef = useRef(null);
   const [isSaved, setIsSaved] = useState(false);
+  const [userRoles, setUserRoles] = useState([]);
   const [activeMedia, setActiveMedia] = useState('image');
+
+  // Use our custom permission hook
+  const { 
+    hasRole, 
+    hasPermission, 
+    isCreatorOf, 
+    userId, 
+    isLoaded 
+  } = usePermission();
+
+  // Derived state
+  const isAdmin = hasRole('Admin');
+  const isProjectCreator = hasRole('Project Creator');
+  const isCreator = project ? isCreatorOf(project.creator_id) : false;
+  const isUser = !isAdmin && !isProjectCreator;
+
+  // Function to check if user can edit project
+  const canEditProject = () => {
+    return isAdmin || (isCreator && project.status !== 'ACTIVE');
+  };
+
+  // Function to check if user can manage project
+  const canManageProject = () => {
+    return isAdmin || isCreator;
+  };
+
+  // Function to check if user can back project
+  const canBackProject = () => {
+    return project.status === 'ACTIVE' && !isCreator;
+  };
+
+  // Check specific permissions
+  const canViewProject = () => {
+    return hasPermission('view_projects') || isAdmin || isCreator;
+  };
+
+  const canCreateReward = () => {
+    return hasPermission('create_reward') && (isCreator || isAdmin);
+  };
+
+  // Pass these functions to child components
+  const projectHeaderProps = {
+    project,
+    isCreator,
+    isAdmin,
+    canEditProject,
+    canManageProject,
+    navigate
+  };
 
   useEffect(() => {
     // Only update activeMedia if project data has been loaded
@@ -584,17 +652,13 @@ const ProjectDetailPage = () => {
 
   const { daysLeft, percentFunded } = calculateProjectMetrics();
 
-  useEffect(() => {
+  // useEffect(() => {
     const fetchProjectDetails = async () => {
       try {
         setIsLoading(true);
         setError(null);
         
-        // Get user info
-        const userRole = localStorage.getItem('userRole');
-        const userId = localStorage.getItem('userId');
-        setIsAdmin(userRole === 'ADMIN');
-        
+  
         // Check if we're viewing a draft
         const isDraftRoute = window.location.pathname.includes('/drafts/');
     
@@ -607,7 +671,6 @@ const ProjectDetailPage = () => {
 
         console.log("Project data:", projectData);
         console.log("Featured status:", projectData.featured);
-
         // Properly handle media URLs
         if (projectData.image_url) {
           projectData.image_url = getMediaUrl(projectData.image_url);
@@ -624,7 +687,6 @@ const ProjectDetailPage = () => {
 
         setProject(projectData);
         setIsDraft(isDraftRoute);
-        setIsCreator(projectData.creator_id === parseInt(userId));
     
         // Try to get category information if needed
         if (projectData.category_id && !projectData.category) {
@@ -682,9 +744,15 @@ const ProjectDetailPage = () => {
           }
         }
         
-        // Since we don't have the saved projects endpoint, we'll use localStorage as a workaround
-        const savedProjects = JSON.parse(localStorage.getItem('savedProjects') || '[]');
-        setIsSaved(savedProjects.includes(parseInt(id)));
+        try {
+          const savedProjectsResponse = await getSavedProjects();
+          const savedProjectIds = savedProjectsResponse.data.projects.map(p => p.id);
+          setIsSaved(savedProjectIds.includes(parseInt(id)));
+        } catch (err) {
+          console.error('Failed to fetch saved projects status:', err);
+          // Fallback to not saved
+          setIsSaved(false);
+        }
         
       } catch (error) {
         const errorMessage = error.response?.data?.message || 'Failed to fetch project details';
@@ -695,8 +763,17 @@ const ProjectDetailPage = () => {
       }
     };
 
-    fetchProjectDetails();
-  }, [id]);
+  //   fetchProjectDetails();
+  // }, [id]);
+
+
+
+  useEffect(() => {
+    // Only fetch project data once permission data is loaded
+    if (isLoaded) {
+      fetchProjectDetails();
+    }
+  }, [id, isLoaded]);
 
   const handleVideoToggle = () => {
     if (videoRef.current) {
@@ -759,69 +836,40 @@ const ProjectDetailPage = () => {
 
   const handleSaveProject = async () => {
     try {
-      // Get current saved projects from localStorage
-      const savedProjects = JSON.parse(localStorage.getItem('savedProjects') || '[]');
-      
       if (isSaved) {
-        // Remove from saved
-        const updatedProjects = savedProjects.filter(projectId => projectId !== parseInt(id));
-        localStorage.setItem('savedProjects', JSON.stringify(updatedProjects));
+        // Unsave the project
+        await unsaveProject(id);
+        setIsSaved(false);
+        toast.success('Project removed from saved items');
       } else {
-        // Add to saved
-        savedProjects.push(parseInt(id));
-        localStorage.setItem('savedProjects', JSON.stringify(savedProjects));
+        // Save the project
+        await saveProject(id);
+        setIsSaved(true);
+        toast.success('Project saved successfully');
       }
-      
-      setIsSaved(!isSaved);
-      toast.success(isSaved ? 'Project removed from saved items' : 'Project saved successfully');
     } catch (error) {
-      toast.error('Failed to save project');
+      const errorMessage = error.response?.data?.message || 'Failed to save/unsave project';
+      toast.error(errorMessage);
+      console.error('Save project error:', error);
     }
   };
 
+  // In your API calls:
   const handleProjectAction = async (action) => {
     try {
-      let response;
+      // The server should check if the user has permission to perform this action
+      const response = await axiosInstance.post(`/api/v1/projects/${id}/${action}`);
       
-      switch (action) {
-        case 'activate':
-          response = await activateProject(id);
-          break;
-        case 'reject':
-          response = await axiosInstance.post(`/api/v1/projects/${id}/reject`);
-          break;
-        case 'feature':
-          response = await axiosInstance.post(`/api/v1/projects/${id}/feature`);
-          break;
-        default:
-          throw new Error(`Unknown action: ${action}`);
+      if (response.data.success) {
+        toast.success(response.data.message);
+        // Update the UI based on the server response
+        setProject(response.data.data);
       }
-      
-      const actionMessages = {
-        activate: 'Project activated successfully',
-        reject: 'Project rejected',
-        feature: project?.featured ? 'Project unfeatured' : 'Project featured'
-      };
-
-      toast.success(actionMessages[action]);
-      
-      // Update local state to reflect changes
-      if (action === 'activate') {
-        setProject(prev => ({ ...prev, status: 'ACTIVE' }));
-      } else if (action === 'reject') {
-        setProject(prev => ({ ...prev, status: 'REJECTED' }));
-      } else if (action === 'feature') {
-        setProject(prev => ({ ...prev, featured: !prev.featured }));
-      }
-      
-      // Refresh project data
-      const refreshResponse = await axiosInstance.get(`/api/v1/projects/${id}`);
-      setProject(refreshResponse.data.data);
     } catch (error) {
       toast.error(`Failed to ${action} project: ${error.response?.data?.message || error.message}`);
     }
   };
-  
+ 
   if (isLoading) return (
     <div className="text-center p-5">
       <div className="spinner-border text-primary" role="status">
@@ -836,23 +884,18 @@ const ProjectDetailPage = () => {
   return (
     <div className="project-detail-page bg-light min-vh-100 py-4">
       <Container>
-        {project.status === 'PENDING' && (
+      {project.status === 'PENDING' && (isCreator || isAdmin) && (
           <Alert variant="warning" className="mb-4">
             This project is currently under review and not yet visible to others.
           </Alert>
         )}
         
-        <ProjectHeader 
-          project={project} 
-          isCreator={isCreator} 
-          isAdmin={isAdmin}
-          navigate={navigate}
-        />
+        {project && <ProjectHeader {...projectHeaderProps} />}
         
         {isAdmin && project.status !== 'ACTIVE' && project.status !== 'REJECTED' && (
           <AdminControls 
             project={project} 
-            handleProjectAction={handleProjectAction} 
+            handleProjectAction={handleProjectAction}
           />
         )}
         
@@ -866,22 +909,32 @@ const ProjectDetailPage = () => {
               handleShare={handleShare}
               isSaved={isSaved}
               handleSaveProject={handleSaveProject}
+              canBackProject={canBackProject}
+              isCreator={isCreator}
             />
-
             <ProjectMedia 
               project={project}
               videoRef={videoRef}
               isPlaying={isPlaying}
               handleVideoToggle={handleVideoToggle}
+              activeMedia={activeMedia}
+              setActiveMedia={setActiveMedia}
             />
-            
-            <ProjectContent project={project} />
+            <ProjectContent 
+              project={project} 
+              isCreator={isCreator}
+              canCreateReward={canCreateReward()}
+            />
           </Col>
           
           <Col lg={4}>
-            <div className="sticky-top" style={{ top: '20px' }}>
+          <div className="sticky-top" style={{ top: '20px' }}>
               <CreatorInfo project={project} navigate={navigate} />
-              <ProjectRewards project={project} />
+              <ProjectRewards 
+                project={project}
+                canBackProject={canBackProject()}
+                isCreator={isCreator}
+              />
             </div>
           </Col>
         </Row>

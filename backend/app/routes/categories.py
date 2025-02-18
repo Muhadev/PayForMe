@@ -34,9 +34,7 @@ def create_new_category():
         return jsonify({'error': str(e)}), 500
 
 @categories_bp.route('/<int:category_id>', methods=['GET'])
-@jwt_required()
-@permission_required('view_category')
-def get_category(category_id):
+def get_category(category_id):  # Remove @jwt_required() and @permission_required
     """Retrieve a specific category by ID."""
     try:
         category = get_category_by_id(category_id)

@@ -35,6 +35,39 @@
   margin-right: 16px;
 }
 
+.search-container {
+  flex: 1;
+  max-width: 600px;
+}
+
+.search-results-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  max-height: 400px;
+  overflow-y: auto;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.search-result-item {
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+}
+
+.search-result-image {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.search-result-title {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
 /* Navigation items */
 .navbar-nav {
   align-items: center;

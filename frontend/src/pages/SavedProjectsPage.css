@@ -1,0 +1,194 @@
+.saved-projects-page .header-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+  
+  .saved-projects-page .title-section {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  
+  .saved-projects-page .project-count {
+    font-size: 0.9rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 30px;
+  }
+  
+  .saved-projects-page .project-card {
+    transition: transform 0.3s, box-shadow 0.3s;
+    border: none;
+    overflow: hidden;
+  }
+  
+  .saved-projects-page .project-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+  }
+  
+  .saved-projects-page .project-image-container {
+    position: relative;
+    height: 180px;  /* Reduced height */
+    overflow: hidden;
+  }
+  
+  .saved-projects-page .card-img-top {
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s;
+  }
+  
+  .saved-projects-page .project-card:hover .card-img-top {
+    transform: scale(1.05);
+  }
+  
+  .saved-projects-page .status-badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    font-size: 0.8rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 30px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  .saved-projects-page .category-label {
+    display: inline-block;
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-bottom: 0.25rem;  /* Reduced */
+    background-color: #f8f9fa;
+    padding: 0.2rem 0.5rem;  /* Reduced */
+    border-radius: 30px;
+  }
+  
+  .saved-projects-page .project-title {
+    font-size: 1.1rem;  /* Reduced */
+    font-weight: 600;
+    margin-bottom: 0.35rem;  /* Reduced */
+    line-height: 1.3;
+    min-height: 2.6rem;  /* Reduced */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .saved-projects-page .project-brief {
+    color: #6c757d;
+    font-size: 0.85rem;  /* Reduced */
+    margin-bottom: 0.65rem;  /* Reduced */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;  /* Reduced from 3 to 2 */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 2.5rem;  /* Reduced */
+  }
+  
+  .saved-projects-page .funding-progress {
+    margin-bottom: 0.75rem;  /* Reduced */
+  }
+  
+  .saved-projects-page .progress {
+    height: 5px;  /* Reduced */
+    border-radius: 3px;
+    margin-bottom: 0.3rem;  /* Reduced */
+    background-color: #e9ecef;
+  }
+  
+  .saved-projects-page .progress-bar {
+    background-color: #0d6efd;
+    border-radius: 3px;
+  }
+  
+  .saved-projects-page .funding-stats {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;  /* Reduced */
+  }
+  
+  .saved-projects-page .funding-label {
+    font-size: 0.75rem;  /* Reduced */
+    color: #6c757d;
+    margin-left: 0.25rem;
+  }
+  
+  .saved-projects-page .funding-percentage {
+    font-weight: 600;
+  }
+  
+  .saved-projects-page .project-meta {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.4rem;  /* Reduced */
+  }
+  
+  .saved-projects-page .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;  /* Reduced */
+    font-size: 0.8rem;  /* Reduced */
+    color: #6c757d;
+  }
+  
+  .saved-projects-page .meta-item i,
+  .saved-projects-page .meta-item .bi {
+    font-size: 0.9rem;  /* Reduced */
+  }
+  
+  .saved-projects-page .card-footer-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .saved-projects-page .last-updated {
+    font-size: 0.75rem;  /* Reduced */
+  }
+  
+  .saved-projects-page .action-buttons {
+    display: flex;
+    gap: 0.5rem;
+  }
+  
+  .saved-projects-page .empty-state {
+    background-color: #f8f9fa;
+    border-radius: 0.5rem;
+    padding: 3rem 1rem;
+  }
+  
+  .saved-projects-page .empty-icon {
+    font-size: 3rem;
+    color: #6c757d;
+    display: block;
+  }
+  
+  .saved-projects-page .empty-state h3 {
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+  }
+  
+  .saved-projects-page .empty-state p {
+    max-width: 400px;
+    margin: 0 auto 1.5rem auto;
+  }
+  
+  @media (max-width: 767.98px) {
+    .saved-projects-page .header-section {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    
+    .saved-projects-page .title-section {
+      width: 100%;
+      justify-content: space-between;
+    }
+    
+    .saved-projects-page .discover-button {
+      width: 100%;
+    }
+  }

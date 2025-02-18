@@ -801,3 +801,48 @@ def get_saved_projects():
             message="Failed to retrieve saved projects",
             status_code=500
         )
+
+@projects_bp.route('/search', methods=['GET'])
+def search_projects():
+    """Search for active projects"""
+    try:
+        query = request.args.get('q', '')
+        category_id = request.args.get('category_id')
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        
+        # Base query for active projects
+        projects_query = Project.query.filter_by(status=ProjectStatus.ACTIVE)
+        
+        # Add search filter
+        if query:
+            search_filter = or_(
+                Project.title.ilike(f'%{query}%'),
+                Project.description.ilike(f'%{query}%')
+            )
+            projects_query = projects_query.filter(search_filter)
+            
+        # Add category filter if provided
+        if category_id:
+            projects_query = projects_query.filter_by(category_id=category_id)
+            
+        # Execute query with pagination
+        projects = projects_query.paginate(
+            page=page, 
+            per_page=per_page,
+            error_out=False
+        )
+        
+        return api_response(
+            data={
+                'projects': [p.to_dict() for p in projects.items],
+                'total': projects.total,
+                'pages': projects.pages,
+                'current_page': page
+            },
+            status_code=200
+        )
+        
+    except Exception as e:
+        logger.error(f"Error searching projects: {str(e)}")
+        return api_response(message="Search failed", status_code=500)

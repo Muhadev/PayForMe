@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Navbar, Nav, NavDropdown, Container, Form } from 'react-bootstrap';
 import './Navbar.css';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import axiosInstance from '../../helper/axiosConfig';
 
 function AppNavbar() {
   const [categories, setCategories] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -20,6 +22,13 @@ function AppNavbar() {
     fetchCategories();
   }, []);
 
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/projects?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
   return (
     <Navbar bg="white" expand="lg" fixed="top" className="py-2">
       <Container fluid className="px-4">
@@ -30,11 +39,13 @@ function AppNavbar() {
 
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
-          <Form className="d-flex me-auto">
+          <Form className="d-flex me-auto" onSubmit={handleSearch}>
             <Form.Control
               type="search"
               placeholder="Search projects"
               className="me-2"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               aria-label="Search"
             />
           </Form>

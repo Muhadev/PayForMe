@@ -23,6 +23,8 @@ import BackedProjectsPage from './pages/BackedProjectsPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import AuthCallback from './components/auth/AuthCallback';
+import SavedProjectsPage from './pages/SavedProjectsPage';
+import CategoryProjectsPage from './pages/CategoryProjectsPage';
 // import CreateProjectForm from './components/projects/CreateProjectForm';
 
 // import CreateProjectPage from './pages/CreateProjectPage';
@@ -48,6 +50,8 @@ function App() {
           <Route index element={<HomePage />} />
           <Route path="about" element={<AboutPage />} />
           <Route path="faqs" element={<FAQsPage />} />
+          <Route path="/category/:categoryId" element={<CategoryProjectsPage />} />
+          {/* <Route path="/projects" element={<ProjectsPage />} /> */}
           <Route path="projects" element={<ProjectsPage />} />
           <Route path="projects/:id" element={<ProjectDetailsPage />} /> {/* Dynamic route for project details */}
           <Route path="projects/create" element={<CreateProjectPage />} />
@@ -62,6 +66,7 @@ function App() {
           <Route path="my-projects" element={<MyProjectsPage />} />
           <Route path="backed-projects" element={<BackedProjectsPage />} />
           <Route path="profile" element={<ProfilePage />} />
+          <Route path="/saved-projects" element={<SavedProjectsPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="/password-reset/:token" element={<ResetPassword />} />
           <Route path="projects/drafts/edit/:id" element={<CreateProjectPage />} />

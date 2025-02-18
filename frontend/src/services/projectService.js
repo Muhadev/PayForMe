@@ -1,5 +1,6 @@
 // services/projectService.js
 import axios from 'axios';
+import { AppWindowMacIcon } from 'lucide-react';
 
 // Create axios instance with default config
 const api = axios.create({
@@ -179,3 +180,71 @@ export const activateProject = async (projectId) => {
         throw error;
     }
 };
+
+export const getCategoryProjects = async (categoryId, page = 1, perPage = 12) => {
+    try {
+        // Get projects for category
+        const response = await api.get(`/api/v1/projects`, {
+            params: {
+                category_id: categoryId,
+                page,
+                per_page: perPage,
+                status: 'active'
+            }
+        });
+        
+        // Get category details
+        const categoryResponse = await api.get(`/api/v1/categories/${categoryId}`);
+        
+        // Add category information to each project
+        const projectsWithCategory = (response.data.data.projects || []).map(project => ({
+            ...project,
+            category: categoryResponse.data.name,
+            category_name: categoryResponse.data.name
+        }));
+        
+        return {
+            data: {
+                projects: projectsWithCategory,
+                category: categoryResponse.data,
+                pages: response.data.data.pages || 1,
+                currentPage: page,
+                total: response.data.data.total || 0
+            }
+        };
+    } catch (error) {
+        console.error('Error fetching category projects:', error);
+        throw error;
+    }
+};
+
+export const saveProject = async (projectId) => {
+    try {
+      // Fixed: use api instance instead of AppWindowMacIcon
+      const response = await api.post(`/api/v1/projects/${projectId}/save`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  };
+  
+  export const unsaveProject = async (projectId) => {
+    try {
+      const response = await api.delete(`/api/v1/projects/${projectId}/save`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  };
+  
+  export const getSavedProjects = async (page = 1, perPage = 10) => {
+    try {
+      const response = await api.get(`/api/v1/projects/saved`, {
+        params: { page, per_page: perPage }
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  };
+  

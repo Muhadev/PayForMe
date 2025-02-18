@@ -91,6 +91,17 @@ def setup_permissions_and_roles():
                     'claim_reward',
                     'delete_reward',
                     'share_project',
+                ]),
+                ('Project Creator', 'User who creates and manages projects', [
+                    'view_category', 'view_categories', 'view_projects',
+                    'create_project', 'edit_own_project', 'delete_own_project',
+                    'create_draft', 'view_drafts', 'edit_draft',
+                    'view_backers', 'view_backer_details', 'view_backer_stats',
+                    'send_project_update', 'send_project_milestone',
+                    'view_public_profile', 'create_reward',
+                    'view_rewards', 'list_rewards', 'get_reward',
+                    'update_reward', 'delete_reward',
+                    'share_project',
                 ])
             ]
 

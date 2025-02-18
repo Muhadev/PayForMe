@@ -24,6 +24,7 @@ const Sidebar = () => (
       <Nav className="flex-column">
       <Nav.Link as={NavLink} to="/dashboard" activeclassname="active">Dashboard</Nav.Link>
       <Nav.Link as={NavLink} to="/my-projects" activeclassname="active">My Projects</Nav.Link>
+      <Nav.Link as={NavLink} to="/saved-projects" activeclassname="active">Saved Projects</Nav.Link>
       <Nav.Link as={NavLink} to="/backed-projects" activeclassname="active">Backed Projects</Nav.Link>
       <Nav.Link as={NavLink} to="/profile" activeclassname="active">Profile</Nav.Link>
       <Nav.Link as={NavLink} to="/settings" activeclassname="active">Settings</Nav.Link>

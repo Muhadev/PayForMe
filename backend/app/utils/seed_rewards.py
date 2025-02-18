@@ -14,10 +14,10 @@ def seed_rewards():
 
     # Push the application context to allow database access
     with app.app_context():
-        project = Project.query.get(90)  # Ensure project ID 90 exists in your database
+        project = Project.query.get(43)  # Ensure project ID 43 exists in your database
 
         if project is None:
-            print("Project with ID 90 does not exist.")
+            print("Project with ID 43 does not exist.")
             return
 
         rewards = [
@@ -26,7 +26,7 @@ def seed_rewards():
                 title="Bronze Supporter",
                 description="A thank you note for your contribution.",
                 minimum_amount=10.0,
-                estimated_delivery=datetime(2024, 12, 31),
+                estimated_delivery_date=datetime(2024, 12, 31),  # Changed from estimated_delivery
                 quantity_available=100
             ),
             Reward(
@@ -34,7 +34,7 @@ def seed_rewards():
                 title="Silver Supporter",
                 description="A custom t-shirt for your support.",
                 minimum_amount=50.0,
-                estimated_delivery=datetime(2024, 12, 31),
+                estimated_delivery_date=datetime(2024, 12, 31),  # Changed from estimated_delivery
                 quantity_available=50
             ),
             Reward(
@@ -42,7 +42,7 @@ def seed_rewards():
                 title="Gold Supporter",
                 description="Exclusive invitation to project launch event.",
                 minimum_amount=100.0,
-                estimated_delivery=datetime(2024, 12, 31),
+                estimated_delivery_date=datetime(2024, 12, 31),  # Changed from estimated_delivery
                 quantity_available=20
             )
         ]
