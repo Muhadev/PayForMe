@@ -13,6 +13,7 @@ from app.models.enums import ProjectStatus
 from app.utils.file_utils import handle_file_upload
 from app.models.saved_project import SavedProject
 from app import db
+from app.models.project import Project
 from datetime import datetime
 from app.utils.project_utils import validate_project_data
 from werkzeug.datastructures import CombinedMultiDict
@@ -22,7 +23,7 @@ from app.services.email_service import send_templated_email
 from app.utils.rate_limit import rate_limit
 import os
 from app.utils.sharing import generate_share_link, validate_share_link
-from sqlalchemy import or_
+from sqlalchemy import or_, and_  
 
 # logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -421,13 +422,63 @@ def get_projects():
         sort_by = request.args.get('sort_by', 'created_at')
         sort_order = request.args.get('sort_order', 'desc')
         
-        filters = {k: v for k, v in request.args.items() if k not in ['page', 'per_page', 'sort_by', 'sort_order']}
+        # Get current user info
+        current_user_id = get_jwt_identity()
+        jwt_data = get_jwt()
+        user_roles = jwt_data.get('roles', [])
         
-        projects_pagination = get_all_projects(page, per_page, sort_by, sort_order, filters)
-        projects = projects_pagination.items
+        # Base query
+        query = Project.query
+        
+        # For MyProjectsPage, we want to show only the user's own projects
+        # Check if this is a request for user's own projects
+        is_my_projects = request.args.get('my_projects', 'false').lower() == 'true'
+        
+        if is_my_projects:
+            # Show only the user's own projects
+            query = query.filter(Project.creator_id == current_user_id)
+        else:
+            # For other pages (like CategoryProjectsPage), show only active projects
+            # unless the user is viewing their own project
+            query = query.filter(
+                or_(
+                    Project.status == ProjectStatus.ACTIVE,
+                    and_(
+                        Project.creator_id == current_user_id,
+                        Project.status.in_([ProjectStatus.DRAFT, ProjectStatus.PENDING])
+                    )
+                )
+            )
+        
+        # Apply status filter if provided
+        status_filter = request.args.get('status')
+        if status_filter and status_filter.lower() != 'all':
+            try:
+                status = ProjectStatus.from_string(status_filter)
+                query = query.filter(Project.status == status)
+            except ValueError:
+                pass
+        
+        # Apply additional filters from request
+        filters = {k: v for k, v in request.args.items() 
+                  if k not in ['page', 'per_page', 'sort_by', 'sort_order', 'my_projects', 'status']}
+                  
+        for key, value in filters.items():
+            if hasattr(Project, key):
+                query = query.filter(getattr(Project, key) == value)
+        
+        # Apply sorting
+        if hasattr(Project, sort_by):
+            sort_column = getattr(Project, sort_by)
+            if sort_order == 'desc':
+                sort_column = sort_column.desc()
+            query = query.order_by(sort_column)
+            
+        # Execute query with pagination
+        projects_pagination = query.paginate(page=page, per_page=per_page, error_out=False)
         
         return api_response(data={
-            'projects': [project.to_dict() for project in projects],
+            'projects': [project.to_dict() for project in projects_pagination.items],
             'total': projects_pagination.total,
             'pages': projects_pagination.pages,
             'current_page': page,
@@ -438,7 +489,7 @@ def get_projects():
     except Exception as e:
         logger.error(f'Error retrieving projects: {e}')
         return api_response(message="An unexpected error occurred", status_code=500)
-
+        
 @projects_bp.route('/<int:project_id>/share', methods=['POST'])
 @jwt_required()
 def share_project(project_id):
@@ -814,7 +865,7 @@ def search_projects():
         # Base query for active projects
         projects_query = Project.query.filter_by(status=ProjectStatus.ACTIVE)
         
-        # Add search filter
+        # Add search filter if query is provided
         if query:
             search_filter = or_(
                 Project.title.ilike(f'%{query}%'),
@@ -826,6 +877,9 @@ def search_projects():
         if category_id:
             projects_query = projects_query.filter_by(category_id=category_id)
             
+        # Add order by to ensure consistent results
+        projects_query = projects_query.order_by(Project.created_at.desc())
+            
         # Execute query with pagination
         projects = projects_query.paginate(
             page=page, 
@@ -833,9 +887,19 @@ def search_projects():
             error_out=False
         )
         
+        # Transform the results to include necessary fields for the frontend
+        project_list = [{
+            'id': p.id,
+            'title': p.title,
+            'description': p.description,
+            'image_url': p.image_url,
+            'category_name': p.category.name if p.category else 'Uncategorized',
+            'created_at': p.created_at.isoformat() if p.created_at else None
+        } for p in projects.items]
+        
         return api_response(
             data={
-                'projects': [p.to_dict() for p in projects.items],
+                'projects': project_list,
                 'total': projects.total,
                 'pages': projects.pages,
                 'current_page': page

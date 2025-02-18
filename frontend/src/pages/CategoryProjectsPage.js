@@ -116,6 +116,15 @@ const CategoryProjectsPage = () => {
                 e.target.src = placeholderImage;
               }}
             />
+            {/* Add the status badge */}
+            {project.status === 'ACTIVE' && (
+            <Badge 
+              bg="success" 
+              className="status-badge"
+            >
+              ACTIVE
+            </Badge>
+          )}
           </div>
           
           <Card.Body className="pt-2 pb-2">

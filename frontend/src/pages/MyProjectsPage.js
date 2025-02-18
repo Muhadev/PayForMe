@@ -39,6 +39,7 @@ const MyProjectsPage = () => {
         const token = localStorage.getItem('accessToken');
         const response = await axios.get('/api/v1/projects/', {
           params: {
+            my_projects: true,  // Add this parameter
             status: filter !== 'all' ? filter : undefined
           },
           headers: {
