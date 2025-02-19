@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, current_app, url_for, redirect
-from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt
+from flask_jwt_extended import create_access_token, decode_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt
 from app.models import User
 from app import jwt, limiter
 from app.services.auth_service import AuthService
@@ -77,8 +77,17 @@ def login():
         
         # Fetch the user object and generate a token with roles and permissions
         user = User.query.get(result)  # Assuming result is the user ID
+
+        logger.info(f"User roles at login: {[role.name for role in user.roles]}")
+
         access_token = AuthService.create_token_for_user(user)
         refresh_token = create_refresh_token(identity=result)
+
+        # Decode and log the token for verification
+        
+        decoded = decode_token(access_token)
+        logger.info(f"Generated token roles: {decoded.get('roles')}")
+
         return jsonify({
             "msg": "Login successful",
             "access_token": access_token,

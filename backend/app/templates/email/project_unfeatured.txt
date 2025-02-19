@@ -1,0 +1,15 @@
+# Project Unfeatured Email (project_unfeatured.txt)
+PayForMe - Project Update
+
+Dear {{ user_name }},
+
+We wanted to let you know that your project "{{ project_title }}" has been removed from our featured section. This is a normal part of our rotation process to ensure all qualifying projects get the opportunity to be featured.
+
+While your project is no longer featured, it's still active and available for backing on our platform.
+
+View your project at: {{ project_url }}
+
+Thank you for being part of our community!
+
+Best regards,
+The PayForMe Team

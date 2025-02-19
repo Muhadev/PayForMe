@@ -63,6 +63,9 @@ class User(db.Model):
     two_factor_enabled = db.Column(db.Boolean, default=False)
     two_factor_setup_code = db.Column(db.String(6))  # For temporary storage during setup
 
+    # Add this relationship
+    project_roles = db.relationship('ProjectRole', back_populates='user', lazy='dynamic')
+
     last_permission_update = db.Column(db.DateTime, default=datetime.utcnow)
 
     stripe_customer_id = db.Column(db.String(255), unique=True, nullable=True)

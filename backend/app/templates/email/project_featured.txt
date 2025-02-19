@@ -1,0 +1,15 @@
+# Project Featured Email (project_featured.txt)
+PayForMe - Congratulations!
+
+Dear {{ user_name }},
+
+Great news! Your project "{{ project_title }}" has been selected to be featured on PayForMe. This means your project will receive additional visibility and exposure to our community.
+
+Your project will be showcased on our featured section, potentially reaching thousands of additional viewers!
+
+View your project at: {{ project_url }}
+
+Keep up the great work!
+
+Best regards,
+The PayForMe Team

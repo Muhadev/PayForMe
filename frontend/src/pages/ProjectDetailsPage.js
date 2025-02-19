@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Card, Button, ProgressBar, Tabs, Tab, Badge, Alert, Image } from 'react-bootstrap';
 import { toast } from 'react-toastify';
@@ -12,7 +12,7 @@ import {
 import { Modal } from 'react-bootstrap';
 import ShareModal from './ShareModal';
 import axiosInstance from '../helper/axiosConfig';
-import { shareProject, activateProject, saveProject, unsaveProject, getSavedProjects } from '../services/projectService';
+import { shareProject, activateProject, saveProject, revokeProject, toggleProjectFeature, unsaveProject, getSavedProjects } from '../services/projectService';
 import './ProjectDetailPage.css';
 import { usePermission } from '../hooks/usePermission'
 
@@ -42,16 +42,13 @@ const getMediaUrl = (url) => {
 };
 
 // Modular Components
-const ProjectHeader = ({ project, isCreator, isAdmin, navigate }) => {
+const ProjectHeader = ({ project, navigate }) => {
+  const { 
+    canEditProject, 
+    canManageProject, 
+    canAdministerProject 
+  } = usePermission();
 
-  // Move permission check functions inside the component
-  const canEditProject = () => {
-    return isAdmin || (isCreator && project.status !== 'ACTIVE');
-  };
-
-  const canManageProject = () => {
-    return isAdmin || isCreator;
-  };
   return (
 
     <div className="project-header mb-4">
@@ -64,7 +61,7 @@ const ProjectHeader = ({ project, isCreator, isAdmin, navigate }) => {
                   <h1 className="display-5 mb-2">{project.title}</h1>
                   <div className="d-flex gap-2 flex-wrap">
                     <Badge bg="primary" className="badge-lg">{project.category?.name || 'Uncategorized'}</Badge>
-                    {isAdmin && (
+                    {canAdministerProject(project) && (
                         <Badge bg={project.featured ? "warning" : "secondary"}>
                           {project.featured ? "Featured" : "Not Featured"}
                         </Badge>
@@ -78,7 +75,7 @@ const ProjectHeader = ({ project, isCreator, isAdmin, navigate }) => {
             </Col>
             <Col md={4} className="text-md-end">
               {/* Show edit/manage buttons for both creator and admin */}
-              {canEditProject() && (
+              {canEditProject(project) && (
                 <div className="creator-controls">
                   <Button 
                     variant="outline-primary" 
@@ -87,13 +84,21 @@ const ProjectHeader = ({ project, isCreator, isAdmin, navigate }) => {
                   >
                     <PencilIcon size={16} className="me-1" /> Edit
                   </Button>
-                  {canManageProject() && (
+                  {canManageProject(project) && (
+                    <>
                   <Button 
                     variant="outline-secondary"
                     onClick={() => navigate(`/projects/manage/${project.id}`)}
                   >
                     <Cog size={16} className="me-1" /> Manage
                   </Button>
+                  <Button 
+                    variant="outline-success"
+                    onClick={() => navigate(`/projects/${project.id}/rewards/create`)}
+                  >
+                    <GiftIcon size={16} className="me-1" /> Rewards
+                  </Button>
+                  </>
                   )}
                 </div>
               )}
@@ -534,10 +539,10 @@ const AdminControls = ({ project, handleProjectAction }) => (
             Activate Project
           </Button>
         )}
-        {project.status !== 'REJECTED' && (
+        {project.status === 'ACTIVE' && (
           <Button 
             variant="danger" 
-            onClick={() => handleProjectAction('reject')}
+            onClick={() => handleProjectAction('revoke')}
           >
             <XCircle className="me-2" size={18} />
             Reject Project
@@ -551,10 +556,27 @@ const AdminControls = ({ project, handleProjectAction }) => (
           {project.featured ? 'Unfeature Project' : 'Feature Project'}
         </Button>
       </div>
+      {/* Status indicator */}
+      <div className="mt-3 pt-3 border-top">
+        <div className="d-flex align-items-center gap-2">
+          <strong>Current Status:</strong>
+          <Badge bg={
+            project.status === 'ACTIVE' ? 'success' :
+            project.status === 'REJECTED' ? 'danger' :
+            'warning'
+          }>
+            {project.status}
+          </Badge>
+        </div>
+        {project.featured && (
+          <div className="mt-2">
+            <Badge bg="warning">Featured Project</Badge>
+          </div>
+        )}
+      </div>
     </Card.Body>
   </Card>
 );
-
 
 // Main Component
 const ProjectDetailPage = () => {
@@ -572,35 +594,58 @@ const ProjectDetailPage = () => {
   const [userRoles, setUserRoles] = useState([]);
   const [activeMedia, setActiveMedia] = useState('image');
 
-  // Use our custom permission hook
+  // const { 
+  //   hasRole, 
+  //   isProjectCreator, 
+  //   canEditProject: hookCanEditProject, 
+  //   canManageProject: hookCanManageProject,
+  //   isLoaded,
+  //   fetchProjectRoles 
+  // } = usePermission();
+
   const { 
     hasRole, 
-    hasPermission, 
-    isCreatorOf, 
-    userId, 
-    isLoaded 
+    permissions, 
+    isProjectCreator, 
+    canEditProject: hookCanEditProject, 
+    canManageProject: hookCanManageProject,
+    isLoaded,
+    fetchProjectRoles,
+    projectRoles
   } = usePermission();
 
-  // Derived state
+  // Then define hasPermission as a function using the permissions array:
+  const hasPermission = (permissionToCheck) => {
+    return permissions.includes(permissionToCheck);
+  };
+
+  // Derived state using hook functions
   const isAdmin = hasRole('Admin');
-  const isProjectCreator = hasRole('Project Creator');
-  const isCreator = project ? isCreatorOf(project.creator_id) : false;
-  const isUser = !isAdmin && !isProjectCreator;
+  // const isCreator = project ? isProjectCreator(project) : false;
+  // const isUser = !isAdmin && !isCreator;
 
-  // Function to check if user can edit project
-  const canEditProject = () => {
-    return isAdmin || (isCreator && project.status !== 'ACTIVE');
-  };
-
-  // Function to check if user can manage project
-  const canManageProject = () => {
-    return isAdmin || isCreator;
-  };
+  const isCreator = useMemo(() => {
+    return project ? isProjectCreator(project) : false;
+  }, [project, projectRoles[project?.id]]);
+  
+  // Fix the permission check functions
+  const canEditProject = useCallback(() => {
+    return project && hookCanEditProject(project);
+  }, [project, projectRoles[project?.id]]);
+  
+  const canManageProject = useCallback(() => {
+    return project && hookCanManageProject(project);
+  }, [project, projectRoles[project?.id]]);
 
   // Function to check if user can back project
   const canBackProject = () => {
-    return project.status === 'ACTIVE' && !isCreator;
+    return project?.status === 'ACTIVE' && !isCreator;
   };
+  useEffect(() => {
+    if (project?.id) {
+      fetchProjectRoles(project.id);
+    }
+  }, [project?.id]);
 
   // Check specific permissions
   const canViewProject = () => {
@@ -616,8 +661,8 @@ const ProjectDetailPage = () => {
     project,
     isCreator,
     isAdmin,
-    canEditProject,
-    canManageProject,
+    canEditProject: canEditProject,
+    canManageProject: canManageProject,
     navigate
   };
 
@@ -857,16 +902,46 @@ const ProjectDetailPage = () => {
   // In your API calls:
   const handleProjectAction = async (action) => {
     try {
-      // The server should check if the user has permission to perform this action
-      const response = await axiosInstance.post(`/api/v1/projects/${id}/${action}`);
+      let response;
       
-      if (response.data.success) {
-        toast.success(response.data.message);
-        // Update the UI based on the server response
-        setProject(response.data.data);
+      switch (action) {
+        case 'activate':
+          response = await activateProject(id);
+          break;
+        case 'revoke':
+          response = await revokeProject(id);
+          break;
+        case 'feature':
+          response = await toggleProjectFeature(id);
+          break;
+        default:
+          throw new Error('Invalid action');
+      }
+
+      if (response.data) {
+        // Update the project state with the new data
+        setProject(prev => ({
+          ...prev,
+          ...response.data,
+          status: action === 'activate' ? 'ACTIVE' : 
+                 action === 'revoke' ? 'REJECTED' : 
+                 prev.status,
+          featured: action === 'feature' ? !prev.featured : prev.featured
+        }));
+
+        // Show success message
+        toast.success(
+          action === 'activate' ? 'Project activated successfully' :
+          action === 'revoke' ? 'Project revoked successfully' :
+          action === 'feature' ? `Project ${response.data.featured ? 'featured' : 'unfeatured'} successfully` :
+          'Action completed successfully'
+        );
       }
     } catch (error) {
-      toast.error(`Failed to ${action} project: ${error.response?.data?.message || error.message}`);
+      // Handle errors
+      const errorMessage = error.response?.data?.message || `Failed to ${action} project`;
+      toast.error(errorMessage);
+      console.error(`Project ${action} error:`, error);
     }
   };
  
@@ -892,7 +967,7 @@ const ProjectDetailPage = () => {
         
         {project && <ProjectHeader {...projectHeaderProps} />}
         
-        {isAdmin && project.status !== 'ACTIVE' && project.status !== 'REJECTED' && (
+        {isAdmin && (
           <AdminControls 
             project={project} 
             handleProjectAction={handleProjectAction}

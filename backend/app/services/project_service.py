@@ -7,13 +7,16 @@ from app.models.enums import ProjectStatus
 from app import db
 from sqlalchemy.exc import SQLAlchemyError
 from app.utils.project_utils import validate_project_data
+from app.services.role_permission_service import RolePermissionService
 from app.utils.exceptions import ValidationError, ProjectNotFoundError
 from app.services.notification_service import NotificationService
+from app.services.project_role_service import ProjectRoleService
 import logging
 from sqlalchemy import desc
 
 
 logger = logging.getLogger(__name__)
+
 
 def get_user_drafts(user_id: int) -> List[Project]:
     """Retrieve all draft projects for a user."""
@@ -71,6 +74,15 @@ def create_project(data: Dict[str, Any]) -> Project:
         db.session.commit()
         logger.info(f"Project status after commit: {new_project.status}")
         logger.info(f"Created new project: {new_project.id} with status {new_project.status}")
+
+        # Assign project creator role to the user
+        # Assign project-specific creator role
+        creator_id = data['creator_id']
+        ProjectRoleService.assign_project_role(
+            user_id=creator_id,
+            project_id=new_project.id,
+            role='creator'
+        )
 
         # Create notification for admins if the project is pending
         if new_project.status == ProjectStatus.PENDING:

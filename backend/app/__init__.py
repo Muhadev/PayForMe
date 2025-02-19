@@ -91,7 +91,7 @@ def create_app():
 
         # Admin routes
         from app.routes.role_permissions import role_permissions_bp
-        app.register_blueprint(role_permissions_bp, url_prefix='/api/v1/admin')
+        app.register_blueprint(role_permissions_bp, url_prefix='/api/v1/role_permissions')
 
         # Project-related routes
         from app.routes.projects import projects_bp

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Your Project Has Been Revoked - PayForMe{% endblock %}
+
+{% block header %}Project Status Update{% endblock %}
+
+{% block content %}
+<div style="text-align: center; margin-bottom: 30px;">
+    <div style="background: #dc3545; color: white; width: 60px; height: 60px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="15" y1="9" x2="9" y2="15"></line>
+            <line x1="9" y1="9" x2="15" y2="15"></line>
+        </svg>
+    </div>
+    <h2 style="color: #2d3748; margin-bottom: 20px;">Project Revoked</h2>
+</div>
+
+<p>Dear {{ user_name }},</p>
+
+<p>We regret to inform you that your project "{{ project_title }}" has been revoked from PayForMe. This decision was made after careful review by our moderation team.</p>
+
+<div style="background-color: #fff5f5; border-left: 4px solid #dc3545; padding: 15px; margin: 20px 0;">
+    <p style="margin: 0; color: #c53030;"><strong>Reason for Revocation:</strong><br>
+    {{ revocation_reason }}</p>
+</div>
+
+<p>If you believe this decision was made in error or would like to appeal, please contact our support team. We're here to help you understand our guidelines and get your project back on track.</p>
+
+<div style="text-align: center; margin-top: 30px;">
+    <a href="{{ support_url }}" style="background-color: #4a5568; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Contact Support</a>
+</div>
+
+<p style="margin-top: 30px;">Thank you for your understanding.</p>
+
+<p>Best regards,<br>
+The PayForMe Team</p>
+{% endblock %}

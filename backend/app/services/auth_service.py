@@ -133,8 +133,10 @@ class AuthService:
     @staticmethod
     def create_token_for_user(user):
         roles = [role.name for role in user.roles]
+        print(f"Creating token for user {user.id} with roles: {roles}")
         permissions = set()
         for role in user.roles:
+            print(f"Processing role: {role.name} with permissions: {[p.name for p in role.permissions]}")  # Add this log
             for perm in role.permissions:
                 permissions.add(perm.name)
         
@@ -146,6 +148,8 @@ class AuthService:
             "permissions": list(permissions),
             'last_permission_update': user.last_permission_update.timestamp() if user.last_permission_update else time.time()
         }
+
+        print(f"Token claims: {additional_claims}")  # Add this log
 
         access_token = create_access_token(identity=user.id, additional_claims=additional_claims)
         return access_token

@@ -218,6 +218,26 @@ export const getCategoryProjects = async (categoryId, page = 1, perPage = 12) =>
     }
 };
 
+export const revokeProject = async (projectId) => {
+    try {
+      const response = await api.post(`/api/v1/projects/${projectId}/revoke`);
+      return response.data;
+    } catch (error) {
+      console.error('Error revoking project:', error);
+      throw error;
+    }
+  };
+  
+  export const toggleProjectFeature = async (projectId) => {
+    try {
+      const response = await api.post(`/api/v1/projects/${projectId}/feature`);
+      return response.data;
+    } catch (error) {
+      console.error('Error toggling project feature status:', error);
+      throw error;
+    }
+  };
+
 export const saveProject = async (projectId) => {
     try {
       // Fixed: use api instance instead of AppWindowMacIcon

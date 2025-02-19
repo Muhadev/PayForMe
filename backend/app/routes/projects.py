@@ -13,6 +13,7 @@ from app.models.enums import ProjectStatus
 from app.utils.file_utils import handle_file_upload
 from app.models.saved_project import SavedProject
 from app import db
+from app.services.project_role_service import ProjectRoleService
 from app.models.project import Project
 from datetime import datetime
 from app.utils.project_utils import validate_project_data
@@ -237,6 +238,17 @@ def create_new_project():
     except Exception as e:
         logger.error(f'Error creating project: {str(e)}', exc_info=True)
         return api_response(message=f"An unexpected error occurred: {str(e)}", status_code=500)
+
+
+@projects_bp.route('/<int:project_id>/roles', methods=['GET'])
+@jwt_required()
+def get_project_roles(project_id):
+    current_user_id = get_jwt_identity()
+    
+    # Get project roles with enhanced information
+    role_info = ProjectRoleService.get_user_project_roles(current_user_id, project_id)
+    
+    return api_response(data=role_info, status_code=200)
 
 @projects_bp.route('/drafts/<int:draft_id>', methods=['GET', 'PUT'])
 @jwt_required()
@@ -696,6 +708,97 @@ def activate_project_route(project_id):
     except Exception as e:
         logger.error(f"Error activating project {project_id}: {str(e)}")
         return api_response(message="Failed to activate project", status_code=500)
+
+@projects_bp.route('/<int:project_id>/revoke', methods=['POST'])
+@jwt_required()
+@permission_required('revoke_project')
+def revoke_project_route(project_id):
+    try:
+        project = get_project_by_id(project_id)
+        
+        if project.status != ProjectStatus.ACTIVE:
+            return api_response(
+                message="Only active projects can be revoked",
+                status_code=400
+            )
+            
+        # Update project status to revoked
+        project.status = ProjectStatus.REVOKED
+        db.session.commit()
+        
+        # Send notification to project creator
+        try:
+            NotificationService.create_notification(
+                user_id=project.creator_id,
+                message=f"Your project '{project.title}' has been revoked. Please contact support for more information.",
+                project_id=project.id
+            )
+            
+            # Send email notification
+            send_templated_email(
+                project.creator.email,
+                'project_revoked',
+                project=project,
+                project_title=project.title,
+                creator_name=project.creator.full_name or project.creator.username
+            )
+        except Exception as notification_error:
+            logger.error(f"Error sending revocation notifications for project {project_id}: {notification_error}")
+            
+        return api_response(
+            data=project.to_dict(),
+            message="Project revoked successfully",
+            status_code=200
+        )
+        
+    except ProjectNotFoundError as e:
+        return api_response(message=str(e), status_code=404)
+    except Exception as e:
+        logger.error(f"Error revoking project {project_id}: {str(e)}")
+        return api_response(message="Failed to revoke project", status_code=500)
+
+@projects_bp.route('/<int:project_id>/feature', methods=['POST'])
+@jwt_required()
+@permission_required('feature_project')
+def toggle_project_feature(project_id):
+    try:
+        project = get_project_by_id(project_id)
+        
+        # Toggle featured status
+        project.featured = not project.featured
+        db.session.commit()
+        
+        # Send notification to project creator
+        action = "featured" if project.featured else "unfeatured"
+        try:
+            NotificationService.create_notification(
+                user_id=project.creator_id,
+                message=f"Your project '{project.title}' has been {action}!",
+                project_id=project.id
+            )
+            
+            # Send email notification
+            send_templated_email(
+                project.creator.email,
+                f'project_{action}',
+                project=project,
+                project_title=project.title,
+                creator_name=project.creator.full_name or project.creator.username
+            )
+        except Exception as notification_error:
+            logger.error(f"Error sending feature notifications for project {project_id}: {notification_error}")
+            
+        return api_response(
+            data=project.to_dict(),
+            message=f"Project {action} successfully",
+            status_code=200
+        )
+        
+    except ProjectNotFoundError as e:
+        return api_response(message=str(e), status_code=404)
+    except Exception as e:
+        logger.error(f"Error featuring project {project_id}: {str(e)}")
+        return api_response(message="Failed to update project feature status", status_code=500)
 
 @projects_bp.route('/admin/pending-projects', methods=['GET'])
 @jwt_required()

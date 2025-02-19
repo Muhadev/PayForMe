@@ -48,7 +48,9 @@ class Project(db.Model):
     media = relationship("Media", back_populates="project")
     tags = relationship("Tag", secondary="project_tags", back_populates="projects")
     faqs = relationship("FAQ", back_populates="project")
-
+    
+    # Add this relationship
+    project_roles = db.relationship('ProjectRole', back_populates='project', lazy='dynamic')
 
     # Add these properties to convert to/from Decimal
     @property

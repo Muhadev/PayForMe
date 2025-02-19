@@ -62,7 +62,7 @@ EMAIL_TEMPLATE_TYPES = [
     'verify_email', 'reset_password', '2fa_enabled', '2fa_disabled', 
     '2fa_setup', 'project_backed', 'project_update', 'project_milestone',
     'project_activated', 'reward_created', 'reward_updated', 'reward_claimed_backer',
-    'reward_claimed_creator'
+    'reward_claimed_creator', 'project_revoked', 'project_featured', 'project_unfeatured'
 ]
 
 def send_templated_email(to_email, email_type, **kwargs):
@@ -102,6 +102,9 @@ def get_required_template_kwargs(email_type):
     template_requirements = {
         'reward_updated': ['reward_title', 'project_title', 'changes'],
         'reward_created': ['project_title', 'reward_title', 'reward_description'],
+        'project_revoked': ['project_title', 'creator_name'],
+        'project_featured': ['project_title', 'creator_name'],
+        'project_unfeatured': ['project_title', 'creator_name']
     }
     return template_requirements.get(email_type, [])
 
@@ -115,6 +118,9 @@ def get_email_subject(email_type):
         'project_update': 'New Update on Your Backed Project',
         'project_milestone': 'Project Milestone Reached!',
         'project_activated': 'Your Project Has Been Activated!',
+        'project_revoked': 'Your Project Has Been Revoked',
+        'project_featured': 'Your Project Has Been Featured!',
+        'project_unfeatured': 'Your Project Has Been Removed from Featured',
         'reward_created': 'A New Reward Has Been Created!',
         'reward_updated': 'Reward Details Updated!',
         'reward_claimed_backer': 'You’ve Successfully Claimed Your Reward!',

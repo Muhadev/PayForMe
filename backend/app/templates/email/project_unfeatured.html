@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Project Feature Status Update - PayForMe{% endblock %}
+
+{% block header %}Project Update{% endblock %}
+
+{% block content %}
+<div style="text-align: center; margin-bottom: 30px;">
+    <div style="background: #edf2f7; color: #4a5568; width: 60px; height: 60px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 15l-6-6-6 6"/>
+        </svg>
+    </div>
+    <h2 style="color: #2d3748; margin-bottom: 20px;">Project Feature Status Update</h2>
+</div>
+
+<p>Dear {{ user_name }},</p>
+
+<p>We wanted to let you know that your project "{{ project_title }}" has been removed from our featured section. This is a normal part of our rotation process to ensure all qualifying projects get the opportunity to be featured.</p>
+
+<div style="background-color: #f7fafc; border-left: 4px solid #718096; padding: 15px; margin: 20px 0;">
+    <p style="margin: 0; color: #4a5568;">While your project is no longer featured, it's still active and available for backing on our platform.</p>
+</div>
+
+<div style="text-align: center; margin-top: 30px;">
+    <a href="{{ project_url }}" style="background-color: #4a5568; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">View Your Project</a>
+</div>
+
+<p style="margin-top: 30px;">Thank you for being part of our community!</p>
+
+<p>Best regards,<br>
+The PayForMe Team</p>
+{% endblock %}

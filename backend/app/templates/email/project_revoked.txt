@@ -1,0 +1,18 @@
+# Project Revoked Email (project_revoked.txt)
+PayForMe - Project Status Update
+
+Dear {{ user_name }},
+
+We regret to inform you that your project "{{ project_title }}" has been revoked from PayForMe. This decision was made after careful review by our moderation team.
+
+REASON FOR REVOCATION:
+{{ revocation_reason }}
+
+If you believe this decision was made in error or would like to appeal, please contact our support team. We're here to help you understand our guidelines and get your project back on track.
+
+To contact support, please visit: {{ support_url }}
+
+Thank you for your understanding.
+
+Best regards,
+The PayForMe Team
