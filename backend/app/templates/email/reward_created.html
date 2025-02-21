@@ -1,20 +1,43 @@
-<!-- templates/email/reward_created.html -->
 {% extends "email/base_email.html" %}
 
-{% block title %}New Reward Added - PayForMe{% endblock %}
+{% block title %}New Reward Created for {{ project_title }}{% endblock %}
 
-{% block header %}New Reward Added{% endblock %}
+{% block header %}New Reward Created!{% endblock %}
 
 {% block content %}
-<h2>New Reward Added to Your Project</h2>
-<p>A new reward has been added to your project "{{ project_title }}":</p>
-<div style="margin: 20px 0; padding: 15px; background-color: #fff; border-radius: 5px;">
-    <h3 style="color: #4CAF50;">{{ reward_title }}</h3>
-    <p>{{ reward_description }}</p>
-    <p><strong>Minimum Amount:</strong> {{ minimum_amount }}</p>
+<div style="color: #2d3748; font-size: 16px; line-height: 1.7;">
+    <p style="margin-bottom: 15px;">Hello,</p>
+    
+    <p style="margin-bottom: 20px;">
+        A new reward has been created for your project <strong style="color: #1a365d;">{{ project_title }}</strong>.
+    </p>
+    
+    <div style="background-color: #f8fafc; border-left: 4px solid #38a169; padding: 20px; margin-bottom: 25px; border-radius: 5px;">
+        <h2 style="margin-top: 0; margin-bottom: 15px; color: #2c7a7b; font-size: 20px;">{{ reward_title }}</h2>
+        
+        <p style="margin-bottom: 15px; font-style: italic; color: #4a5568;">
+            {{ reward_description }}
+        </p>
+        <p><strong>Minimum Amount:</strong> {{ minimum_amount }}</p>
+    </div>
+    
+    <p style="margin-bottom: 25px;">
+        This reward is now visible to potential backers. You can manage your rewards at any time from your project dashboard.
+    </p>
+    
+    <div style="text-align: center; margin: 30px 0;">
+        <a href="{{ project_url }}" style="display: inline-block; background-color: #38a169; color: white; text-decoration: none; padding: 12px 25px; border-radius: 6px; font-weight: 600;">
+            View Project
+        </a>
+    </div>
+    
+    <p style="margin-bottom: 10px;">
+        Thank you for using PayForMe to bring your project to life!
+    </p>
+    
+    <p style="margin-bottom: 0;">
+        Best regards,<br>
+        The PayForMe Team
+    </p>
 </div>
-<p>You can review and edit this reward anytime from your project dashboard.</p>
-<p style="text-align: center;">
-    <a href="{{ project_url }}" class="btn">View Project Dashboard</a>
-</p>
 {% endblock %}

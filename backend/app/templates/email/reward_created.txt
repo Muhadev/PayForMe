@@ -1,13 +1,23 @@
-<!-- templates/email/reward_created.txt -->
-New Reward Added to Your Project
+New Reward Created for {{ project_title }}
+==============================================
 
-A new reward has been added to your project "{{ project_title }}":
+Hello,
 
-{{ reward_title }}
-{{ reward_description }}
-Minimum Amount: {{ minimum_amount }}
+A new reward has been created for your project "{{ project_title }}".
 
-You can review and edit this reward anytime from your project dashboard:
-{{ project_url }}
+REWARD DETAILS:
+Title: {{ reward_title }}
+Description: {{ reward_description }}
 
-© 2024 PayForMe. All rights reserved.
+This reward is now visible to potential backers. You can manage your rewards at any time from your project dashboard.
+
+To view your project, visit: {{ project_url }}
+
+Thank you for using PayForMe to bring your project to life!
+
+Best regards,
+The PayForMe Team
+
+© {{ current_year }} PayForMe. All rights reserved.
+This email was sent to you as a registered user of PayForMe.
+Please do not reply to this email.

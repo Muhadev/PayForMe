@@ -345,7 +345,7 @@ def update_draft_project(draft_id):
 
 @projects_bp.route('/<int:project_id>', methods=['PUT'])
 @jwt_required()
-@permission_required('edit_project')
+@permission_required('edit_own_project')
 def update_existing_project(project_id):
     try:
         if request.is_json:
@@ -716,21 +716,46 @@ def revoke_project_route(project_id):
     try:
         project = get_project_by_id(project_id)
         
-        if project.status != ProjectStatus.ACTIVE:
+        # Log the current project status for debugging
+        logger.info(f"Attempting to revoke project {project_id} with current status: {project.status}")
+        
+        # Convert string status to enum if needed
+        current_status = (
+            project.status if isinstance(project.status, ProjectStatus) 
+            else ProjectStatus.from_string(project.status)
+        )
+        
+        # Check if project can be revoked (both ACTIVE and PENDING projects can be revoked)
+        allowed_statuses = [ProjectStatus.ACTIVE, ProjectStatus.PENDING]
+        if current_status not in allowed_statuses:
             return api_response(
-                message="Only active projects can be revoked",
+                message=(
+                    f"Cannot revoke project in {current_status} status. "
+                    "Only active or pending projects can be revoked."
+                ),
                 status_code=400
             )
-            
-        # Update project status to revoked
-        project.status = ProjectStatus.REVOKED
-        db.session.commit()
         
-        # Send notification to project creator
+        # Update project status to revoked
+        try:
+            project.status = ProjectStatus.REVOKED
+            db.session.commit()
+            
+            logger.info(f"Successfully updated project {project_id} status to REVOKED")
+            
+        except Exception as db_error:
+            logger.error(f"Database error while revoking project {project_id}: {str(db_error)}")
+            db.session.rollback()
+            raise
+            
+        # Send notifications
         try:
             NotificationService.create_notification(
                 user_id=project.creator_id,
-                message=f"Your project '{project.title}' has been revoked. Please contact support for more information.",
+                message=(
+                    f"Your project '{project.title}' has been revoked. "
+                    "Please contact support for more information."
+                ),
                 project_id=project.id
             )
             
@@ -740,22 +765,37 @@ def revoke_project_route(project_id):
                 'project_revoked',
                 project=project,
                 project_title=project.title,
-                creator_name=project.creator.full_name or project.creator.username
+                creator_name=project.creator.full_name or project.creator.username,
+                revocation_reason="This project has been revoked by an administrator."
             )
-        except Exception as notification_error:
-            logger.error(f"Error sending revocation notifications for project {project_id}: {notification_error}")
             
+        except Exception as notification_error:
+            logger.error(
+                f"Error sending revocation notifications for project {project_id}: "
+                f"{notification_error}"
+            )
+            # Continue execution even if notifications fail
+            
+        # Return the updated project data
         return api_response(
-            data=project.to_dict(),
+            data={
+                **project.to_dict(),
+                'status': ProjectStatus.REVOKED.value  # Ensure we return the string value
+            },
             message="Project revoked successfully",
             status_code=200
         )
         
     except ProjectNotFoundError as e:
+        logger.error(f"Project not found error for ID {project_id}: {str(e)}")
         return api_response(message=str(e), status_code=404)
+        
     except Exception as e:
-        logger.error(f"Error revoking project {project_id}: {str(e)}")
-        return api_response(message="Failed to revoke project", status_code=500)
+        logger.error(f"Unexpected error revoking project {project_id}: {str(e)}")
+        return api_response(
+            message="An unexpected error occurred while revoking the project",
+            status_code=500
+        )
 
 @projects_bp.route('/<int:project_id>/feature', methods=['POST'])
 @jwt_required()
@@ -777,10 +817,11 @@ def toggle_project_feature(project_id):
                 project_id=project.id
             )
             
+            template_name = f'project_{action}'
             # Send email notification
             send_templated_email(
                 project.creator.email,
-                f'project_{action}',
+                template_name,
                 project=project,
                 project_title=project.title,
                 creator_name=project.creator.full_name or project.creator.username

@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "email/base_email.html" %}
 
 {% block title %}Your Project Has Been Featured! - PayForMe{% endblock %}
 
@@ -14,7 +14,7 @@
     <h2 style="color: #2d3748; margin-bottom: 20px;">Your Project Is Now Featured! 🎉</h2>
 </div>
 
-<p>Dear {{ user_name }},</p>
+<p>Dear {{ project.creator.username }},</p>
 
 <p>Great news! Your project "{{ project_title }}" has been selected to be featured on PayForMe. This means your project will receive additional visibility and exposure to our community.</p>
 

@@ -111,6 +111,8 @@ def update_project(project_id: int, data: Dict[str, Any]) -> Project:
     try:
         project = get_project_by_id(project_id)
 
+        current_user_id = data.get('creator_id')
+        
         if project.creator_id != current_user_id:
             raise UnauthorizedError("You do not have permission to update this project")
 

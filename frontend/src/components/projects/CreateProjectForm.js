@@ -6,10 +6,12 @@ import ReactQuill from 'react-quill';
 import { toast } from 'react-toastify';
 import 'react-quill/dist/quill.snow.css';
 import './CreateProjectForm.css';
+import { createFormData } from '../../utils/formUtils';
+import * as projectService from '../../services/projectService';
 import { useProjectForm } from '../../hooks/useProjectForm';
 import MediaPreview from './MediaPreview';
 
-function CreateProjectForm({ projectId, isDraftEdit }) {
+function CreateProjectForm({ projectId, isDraftEdit, isEdit, initialData }) {
   const navigate = useNavigate();
   const [showPreview, setShowPreview] = useState(false);
   const [showGuidelines, setShowGuidelines] = useState(false);
@@ -34,7 +36,7 @@ function CreateProjectForm({ projectId, isDraftEdit }) {
     handleVideoUrlChange,
     imageFile,  // Add this line
     videoFile,  // Add this line
-  } = useProjectForm(projectId, isDraftEdit);
+  } = useProjectForm(projectId, isDraftEdit, isEdit, initialData);
 
   // Add handlers for removing media
   const handleRemoveImage = () => {
@@ -68,6 +70,21 @@ function CreateProjectForm({ projectId, isDraftEdit }) {
         console.error('Project creation failed:', error);
     }
   };
+
+  const handleUpdateProject = async (data) => {
+    try {
+        // Use the projectService.updateProject function directly
+        const success = await projectService.updateProject(projectId, createFormData(data, false));
+        if (success) {
+            toast.success('Project updated successfully');
+            navigate(`/projects/${projectId}`);
+        }
+    } catch (error) {
+        toast.error(`Failed to update project: ${error.message}`);
+        console.error('Project update failed:', error);
+    }
+  };
+
 
   // Preview Modal Content Component
   const ProjectPreview = () => {
@@ -172,10 +189,11 @@ function CreateProjectForm({ projectId, isDraftEdit }) {
           <Form.Control
             as="select"
             {...register("category_id", { required: !isDraftEdit })}
+            value={watch("category_id")}
           >
             <option value="">Select a category</option>
             {categories.map((category) => (
-              <option key={category.id} value={category.id}>
+              <option key={category.id} value={category.id.toString()}>
                 {category.name}
               </option>
             ))}
@@ -366,7 +384,31 @@ function CreateProjectForm({ projectId, isDraftEdit }) {
 
         {/* Updated buttons section */}
       <div className="d-flex gap-2 mt-4">
-        {isDraftEdit ? (
+        {isEdit ? (
+          <>
+            <Button
+              variant="info"
+              onClick={() => setShowPreview(true)}
+              disabled={isSubmitting}
+            >
+              Preview Changes
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleSubmit(handleUpdateProject)}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Spinner size="sm" className="me-2" animation="border" />
+                  Updating Project...
+                </>
+              ) : (
+                'Update Project'
+              )}
+            </Button>
+          </>
+        ) : isDraftEdit ? (
           <>
             <Button
               variant="secondary"

@@ -12,6 +12,7 @@ class ProjectStatus(Enum):
     SUCCESSFUL = 'SUCCESSFUL'
     CANCELLED = 'CANCELLED'
     FAILED = 'FAILED'
+    REVOKED = 'REVOKED'
 
     @classmethod
     def _missing_(cls, value):

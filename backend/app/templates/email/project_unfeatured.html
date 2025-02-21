@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "email/base_email.html" %}
 
 {% block title %}Project Feature Status Update - PayForMe{% endblock %}
 
@@ -14,7 +14,7 @@
     <h2 style="color: #2d3748; margin-bottom: 20px;">Project Feature Status Update</h2>
 </div>
 
-<p>Dear {{ user_name }},</p>
+<p>Dear {{ project.creator.username }},</p>
 
 <p>We wanted to let you know that your project "{{ project_title }}" has been removed from our featured section. This is a normal part of our rotation process to ensure all qualifying projects get the opportunity to be featured.</p>
 

@@ -20,11 +20,13 @@ import { ToastContainer } from 'react-toastify';
 import CategoryManagement from './pages/CategoryManagement';
 import MyProjectsPage from './pages/MyProjectsPage';
 import BackedProjectsPage from './pages/BackedProjectsPage';
+import ProjectEditPage from './pages/ProjectEditPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import AuthCallback from './components/auth/AuthCallback';
 import SavedProjectsPage from './pages/SavedProjectsPage';
 import CategoryProjectsPage from './pages/CategoryProjectsPage';
+import AllRewardsPage from './pages/AllRewardsPage';
 // import CreateProjectForm from './components/projects/CreateProjectForm';
 
 // import CreateProjectPage from './pages/CreateProjectPage';
@@ -74,10 +76,15 @@ function App() {
           {/* <Route path="/projects/:id" element={<ProjectDetailsPage />} /> */}
           <Route path="/projects/drafts/:id" element={<ProjectDetailsPage isDraft={true} />} />
           {/* <Route path="/projects/drafts/edit/:id" element={<CreateProjectPage />} /> */}
-          <Route path="/projects/edit/:id" element={<CreateProjectPage />} />
+          {/* <Route path="/projects/edit/:id" element={<CreateProjectPage />} /> */}
           <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/projects/edit/:projectId" element={<ProjectEditPage />} />
           {/* <Route path="projects/:id" element={<ProjectDetailPage />} /> */}
           {/* Add more routes as needed */}
+          {/* Existing routes */}
+          {/* <Route path="/projects/:id" element={<ProjectDetailPage />} /> */}
+          <Route path="/projects/:id/rewards" element={<AllRewardsPage />} />
+          {/* Other routes */}
         </Route>
       </Routes>
     </Router>

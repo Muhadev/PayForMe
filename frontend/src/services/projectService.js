@@ -129,6 +129,68 @@ export const updateDraft = async (draftId, formData) => {
     }
 };
 
+export const fetchProjectForEdit = async (projectId) => {
+  try {
+      const response = await api.get(`/api/v1/projects/${projectId}`);
+      return response.data;
+  } catch (error) {
+      console.error('Error fetching project for edit:', error);
+      throw error;
+  }
+};
+
+export const updateProject = async (projectId, formData) => {
+  try {
+      // Format dates for update
+      if (formData instanceof FormData) {
+          const startDate = formData.get('start_date');
+          const endDate = formData.get('end_date');
+          
+          if (startDate) {
+              const formattedStartDate = new Date(startDate).toISOString().split('T')[0];
+              formData.set('start_date', formattedStartDate);
+          }
+          if (endDate) {
+              const formattedEndDate = new Date(endDate).toISOString().split('T')[0];
+              formData.set('end_date', formattedEndDate);
+          }
+
+          // Convert boolean values
+          if (formData.has('featured')) {
+              formData.set('featured', formData.get('featured') === 'true');
+          }
+
+          // Convert numeric values
+          if (formData.has('goal_amount')) {
+              formData.set('goal_amount', parseFloat(formData.get('goal_amount')));
+          }
+          if (formData.has('category_id')) {
+              formData.set('category_id', parseInt(formData.get('category_id')));
+          }
+      }
+
+      // Log the exact data being sent for debugging
+      if (formData instanceof FormData) {
+          console.log('Sending updated form data:');
+          for (let pair of formData.entries()) {
+              console.log(`${pair[0]}: ${pair[1]}`);
+          }
+      }
+
+      const response = await api.put(`/api/v1/projects/${projectId}`, formData);
+      return response.data;
+  } catch (error) {
+      console.error('Project update error:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          errorMessage: error.response?.data?.message,
+          validationErrors: error.response?.data?.errors,
+          message: error.message
+      });
+      throw new Error(error.response?.data?.message || error.message);
+  }
+};
+
 export const fetchDraft = async (draftId) => {
     try {
         const response = await api.get(`/api/v1/projects/drafts/${draftId}`);

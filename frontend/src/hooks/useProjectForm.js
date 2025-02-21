@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import * as projectService from '../services/projectService';
 import { createFormData, validateMediaUrl } from '../utils/formUtils';
 
-export const useProjectForm = (projectId, isDraftEdit) => {
+export const useProjectForm = (projectId, isDraftEdit, isEdit = false, initialData = null) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [categories, setCategories] = useState([]);
   const [imagePreview, setImagePreview] = useState(null);
@@ -205,6 +205,60 @@ export const useProjectForm = (projectId, isDraftEdit) => {
     loadCategories();
   }, []);
 
+    // Add useEffect to handle initialization with initialData for editing
+    useEffect(() => {
+      if (isEdit && initialData) {
+  
+        console.log('initialData received in useProjectForm:', initialData);
+  
+        // Format dates from ISO format to YYYY-MM-DD for HTML date inputs
+        const formattedStartDate = initialData.start_date ? 
+          initialData.start_date.split('T')[0] : '';
+        const formattedEndDate = initialData.end_date ? 
+          initialData.end_date.split('T')[0] : '';
+  
+        // Determine if the image/video are uploaded files or external URLs
+        const isUploadedImage = initialData.image_url?.startsWith('/uploads/') || 
+                                initialData.image_url?.startsWith('uploads/');
+        const isUploadedVideo = initialData.video_url?.startsWith('/uploads/') || 
+                                initialData.video_url?.startsWith('uploads/');
+  
+        console.log('About to reset form with data:', {
+          ...initialData,
+          start_date: formattedStartDate,
+          end_date: formattedEndDate,
+          imageType: isUploadedImage ? 'file' : 'url',
+          videoType: isUploadedVideo ? 'file' : 'url',
+          imageUrl: !isUploadedImage ? initialData.image_url : '',
+          videoUrl: !isUploadedVideo ? initialData.video_url : '',
+          category_id: initialData.category_id ? initialData.category_id.toString() : ''
+        });
+        formMethods.reset({
+          ...initialData,
+          start_date: formattedStartDate,
+          end_date: formattedEndDate,
+          imageType: isUploadedImage ? 'file' : 'url',
+          videoType: isUploadedVideo ? 'file' : 'url',
+          imageUrl: !isUploadedImage ? initialData.image_url : '',
+          videoUrl: !isUploadedVideo ? initialData.video_url : '',
+          category_id: initialData.category_id.toString() // Ensure it's a string for the select element
+        });
+  
+        // Set preview URLs with full path for uploaded files
+        if (isUploadedImage && initialData.image_url) {
+          setImagePreview(`${process.env.REACT_APP_BACKEND_URL}/${initialData.image_url.replace(/^\//, '')}`);
+        } else if (initialData.image_url) {
+          setImagePreview(initialData.image_url);
+        }
+  
+        if (isUploadedVideo && initialData.video_url) {
+          setVideoPreview(`${process.env.REACT_APP_BACKEND_URL}/${initialData.video_url.replace(/^\//, '')}`);
+        } else if (initialData.video_url) {
+          setVideoPreview(initialData.video_url);
+        }
+      }
+    }, [isEdit, initialData, formMethods]);
+
   useEffect(() => {
     const loadDraftData = async () => {
       if (projectId && isDraftEdit) {
@@ -396,6 +450,8 @@ export const useProjectForm = (projectId, isDraftEdit) => {
     handleVideoChange,
     handleImageUrlChange,
     handleVideoUrlChange,
+    imageFile,
+    videoFile,
     isUploading
   };
 };

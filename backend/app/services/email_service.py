@@ -102,9 +102,9 @@ def get_required_template_kwargs(email_type):
     template_requirements = {
         'reward_updated': ['reward_title', 'project_title', 'changes'],
         'reward_created': ['project_title', 'reward_title', 'reward_description'],
-        'project_revoked': ['project_title', 'creator_name'],
-        'project_featured': ['project_title', 'creator_name'],
-        'project_unfeatured': ['project_title', 'creator_name']
+        # 'project_revoked': ['project_title', 'creator_name'],
+        # 'project_featured': ['project_title', 'creator_name'],
+        # 'project_unfeatured': ['project_title', 'creator_name']
     }
     return template_requirements.get(email_type, [])
 

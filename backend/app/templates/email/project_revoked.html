@@ -1,5 +1,4 @@
-{% extends "base.html" %}
-
+{% extends "email/base_email.html" %}
 {% block title %}Your Project Has Been Revoked - PayForMe{% endblock %}
 
 {% block header %}Project Status Update{% endblock %}
@@ -16,7 +15,7 @@
     <h2 style="color: #2d3748; margin-bottom: 20px;">Project Revoked</h2>
 </div>
 
-<p>Dear {{ user_name }},</p>
+<p>Dear {{ project.creator.username }},</p>
 
 <p>We regret to inform you that your project "{{ project_title }}" has been revoked from PayForMe. This decision was made after careful review by our moderation team.</p>
 

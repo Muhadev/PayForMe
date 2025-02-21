@@ -60,6 +60,8 @@ def setup_permissions_and_roles():
                 ('delete_project', 'Can delete any project'),
                 ('share_project', 'Can share projects on social media'),
                 ('view_users', 'Can view list of all users'),
+                ('revoke_project', 'Can revoke active projects'),
+                ('feature_project', 'Can feature or unfeature projects'),
 
             ]
 
@@ -91,17 +93,6 @@ def setup_permissions_and_roles():
                     'claim_reward',
                     'delete_reward',
                     'share_project',
-                ]),
-                ('Project Creator', 'User who creates and manages projects', [
-                    'view_category', 'view_categories', 'view_projects',
-                    'create_project', 'edit_own_project', 'delete_own_project',
-                    'create_draft', 'view_drafts', 'edit_draft',
-                    'view_backers', 'view_backer_details', 'view_backer_stats',
-                    'send_project_update', 'send_project_milestone',
-                    'view_public_profile', 'create_reward',
-                    'view_rewards', 'list_rewards', 'get_reward',
-                    'update_reward', 'delete_reward',
-                    'share_project',
                 ])
             ]
 
@@ -120,18 +111,6 @@ def setup_permissions_and_roles():
                     role.permissions = Permission.query.all()
                 else:
                     role.permissions = Permission.query.filter(Permission.name.in_(permission_names)).all()
-            
-            # Remove the 'Project Creator' role if it exists
-            project_creator_role = Role.query.filter_by(name='Project Creator').first()
-            if project_creator_role:
-                # Reassign users with 'Project Creator' role to 'User' role
-                user_role = Role.query.filter_by(name='User').first()
-                for user in User.query.filter(User.roles.contains(project_creator_role)):
-                    if user_role not in user.roles:
-                        user.roles.append(user_role)
-                    user.roles.remove(project_creator_role)
-                db.session.delete(project_creator_role)
-                current_app.logger.info("Removed 'Project Creator' role and reassigned users")
             
             # Remove the 'Project Manager' role if it exists
             project_manager_role = Role.query.filter_by(name='Project Manager').first()

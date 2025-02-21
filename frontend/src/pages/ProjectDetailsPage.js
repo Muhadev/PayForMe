@@ -12,6 +12,9 @@ import {
 import { Modal } from 'react-bootstrap';
 import ShareModal from './ShareModal';
 import axiosInstance from '../helper/axiosConfig';
+import RewardModal from './RewardModal';
+import EditRewardModal from './EditRewardModal';
+import ProjectRewards from './ProjectRewards';
 import { shareProject, activateProject, saveProject, revokeProject, toggleProjectFeature, unsaveProject, getSavedProjects } from '../services/projectService';
 import './ProjectDetailPage.css';
 import { usePermission } from '../hooks/usePermission'
@@ -42,9 +45,9 @@ const getMediaUrl = (url) => {
 };
 
 // Modular Components
-const ProjectHeader = ({ project, navigate }) => {
+const ProjectHeader = ({ project, navigate, handleRewardButtonClick, }) => {
   const { 
-    canEditProject, 
+    canEditProject,
     canManageProject, 
     canAdministerProject 
   } = usePermission();
@@ -94,7 +97,7 @@ const ProjectHeader = ({ project, navigate }) => {
                   </Button>
                   <Button 
                     variant="outline-success"
-                    onClick={() => navigate(`/projects/${project.id}/rewards/create`)}
+                    onClick={handleRewardButtonClick}
                   >
                     <GiftIcon size={16} className="me-1" /> Rewards
                   </Button>
@@ -481,50 +484,6 @@ const ProjectContent = ({ project, isCreator }) => (
   </Tabs>
 );
 
-const ProjectRewards = ({ project }) => (
-  <Card className="border-0 shadow-sm">
-    <Card.Body>
-      <h5 className="border-bottom pb-2 mb-3">
-        <GiftIcon size={18} className="me-2 text-primary" />
-        Select a Reward
-      </h5>
-      <div className="rewards-list">
-        {project.rewards?.length > 0 ? (
-          project.rewards.map((reward) => (
-            <div 
-              key={reward.id} 
-              className="reward-item mb-3 p-3 border rounded hover-shadow"
-            >
-              <h6 className="text-primary mb-2">${reward.amount} or more</h6>
-              <h5 className="mb-2">{reward.title}</h5>
-              <p className="text-muted mb-3">{reward.description}</p>
-              {reward.estimated_delivery && (
-                <p className="text-muted small mb-3">
-                  <Calendar size={14} className="me-1" />
-                  Estimated delivery: {new Date(reward.estimated_delivery).toLocaleDateString()}
-                </p>
-              )}
-              <Button 
-                variant="outline-primary" 
-                size="sm" 
-                className="w-100"
-                disabled={project.status !== 'ACTIVE'}
-              >
-                Select this reward
-              </Button>
-            </div>
-          ))
-        ) : (
-          <div className="text-center text-muted p-3">
-            <GiftIcon size={32} className="mb-2" />
-            <p>No rewards have been added to this project yet.</p>
-          </div>
-        )}
-      </div>
-    </Card.Body>
-  </Card>
-);
-
 const AdminControls = ({ project, handleProjectAction }) => (
   <Card className="border-0 shadow-sm mb-4">
     <Card.Body>
@@ -577,7 +536,7 @@ const AdminControls = ({ project, handleProjectAction }) => (
     </Card.Body>
   </Card>
 );
-
+// ProjectDetailsPage.js
 // Main Component
 const ProjectDetailPage = () => {
   const { id } = useParams();
@@ -593,6 +552,26 @@ const ProjectDetailPage = () => {
   const [isSaved, setIsSaved] = useState(false);
   const [userRoles, setUserRoles] = useState([]);
   const [activeMedia, setActiveMedia] = useState('image');
+
+  // Add new state for reward modal
+  const [showRewardModal, setShowRewardModal] = useState(false);
+  const [rewards, setRewards] = useState([]);
+
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedReward, setSelectedReward] = useState(null);
+
+  const handleEditReward = (reward) => {
+    setSelectedReward(reward);
+    setShowEditModal(true);
+  };
+
+  const handleRewardUpdated = (updatedReward) => {
+    // Update your rewards list with the updated reward
+    setRewards(prevRewards => 
+      prevRewards.map(r => r.id === updatedReward.id ? updatedReward : r)
+    );
+    toast.success('Reward updated successfully!');
+  };
 
   // const { 
   //   hasRole, 
@@ -613,6 +592,51 @@ const ProjectDetailPage = () => {
     fetchProjectRoles,
     projectRoles
   } = usePermission();
+
+  // Function to handle Reward button click
+  const handleRewardButtonClick = () => {
+    setShowRewardModal(true);
+  };
+
+  // In fetchProjectRewards function
+  const fetchProjectRewards = async () => {
+    if (!project?.id) return;
+    
+    try {
+      const response = await axiosInstance.get(`/api/v1/rewards/projects/${project.id}/rewards`);
+      
+      // Format the rewards data to match the expected structure
+      const formattedRewards = response.data.data.map(reward => ({
+        id: reward.id,
+        title: reward.title,
+        description: reward.description,
+        amount: reward.minimum_amount,
+        inventory: reward.quantity_available,
+        estimated_delivery: reward.estimated_delivery_date,
+        is_digital: reward.shipping_type === 'none',
+        backers_count: reward.quantity_claimed || 0,
+        original_inventory: reward.quantity_available
+      }));
+      
+      setRewards(formattedRewards);
+    } catch (error) {
+      console.error('Failed to fetch rewards:', error);
+      toast.error('Failed to load project rewards');
+    }
+  };
+  
+  const handleRewardCreated = (newReward) => {
+    // Add the new reward to the existing rewards array
+    setRewards(prevRewards => [newReward, ...prevRewards]);
+    toast.success(`Reward "${newReward.title}" created successfully!`);
+    setShowRewardModal(false);
+  };
+
+  useEffect(() => {
+    if (project?.id) {
+      fetchProjectRewards();
+    }
+  }, [project?.id]);
 
   // Then define hasPermission as a function using the permissions array:
   const hasPermission = (permissionToCheck) => {
@@ -641,6 +665,7 @@ const ProjectDetailPage = () => {
   const canBackProject = () => {
     return project?.status === 'ACTIVE' && !isCreator;
   };
+
   useEffect(() => {
     if (project?.id) {
       fetchProjectRoles(project.id);
@@ -663,7 +688,8 @@ const ProjectDetailPage = () => {
     isAdmin,
     canEditProject: canEditProject,
     canManageProject: canManageProject,
-    navigate
+    navigate,
+    handleRewardButtonClick,
   };
 
   useEffect(() => {
@@ -944,6 +970,16 @@ const ProjectDetailPage = () => {
       console.error(`Project ${action} error:`, error);
     }
   };
+
+  const refreshRewards = (updatedRewards) => {
+    if (updatedRewards) {
+      // If we already have the updated rewards array, use it directly
+      setRewards(updatedRewards);
+    } else {
+      // Otherwise fetch fresh data
+      fetchProjectRewards();
+    }
+  };
  
   if (isLoading) return (
     <div className="text-center p-5">
@@ -1007,8 +1043,11 @@ const ProjectDetailPage = () => {
               <CreatorInfo project={project} navigate={navigate} />
               <ProjectRewards 
                 project={project}
+                rewards={rewards}
                 canBackProject={canBackProject()}
                 isCreator={isCreator}
+                onEditReward={handleEditReward}
+                onRewardsUpdate={refreshRewards}
               />
             </div>
           </Col>
@@ -1019,6 +1058,24 @@ const ProjectDetailPage = () => {
           onHide={() => setShowShareModal(false)}
           shareInfo={shareInfo}
         />
+
+         {/* Reward Creation Modal */}
+         <RewardModal
+          show={showRewardModal}
+          onHide={() => setShowRewardModal(false)}
+          projectId={project?.id}
+          onRewardCreated={handleRewardCreated}
+        />
+
+        {showEditModal && (
+          <EditRewardModal
+            show={showEditModal}
+            onHide={() => setShowEditModal(false)}
+            projectId={project?.id}
+            reward={selectedReward}
+            onRewardUpdated={handleRewardUpdated}
+          />
+        )}
       </Container>
     </div>
   );
