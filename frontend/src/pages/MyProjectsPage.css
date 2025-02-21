@@ -3,6 +3,71 @@
   min-height: 80vh;
 }
 
+
+/* Styles for revoked projects */
+.revoked-project {
+  opacity: 0.85;
+  border: 1px solid #dc3545;
+}
+
+.revoked-project .card-body {
+  position: relative;
+}
+
+.revoked-project .grayscale-img {
+  filter: grayscale(0.8);
+}
+
+.meta-item.revoked-status {
+  color: #dc3545;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.meta-item.revoked-status i {
+  font-size: 1.2rem;
+  margin-bottom: 0.25rem;
+}
+
+.revoked-date {
+  font-size: 0.75rem;
+  opacity: 0.8;
+  margin-top: 0.25rem;
+}
+
+.revocation-reason-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6c757d;
+  background-color: rgba(220, 53, 69, 0.1);
+  padding: 5px 10px;
+  border-radius: 4px;
+  width: 100%;
+  margin-top: 8px;
+  cursor: help;
+  transition: background-color 0.2s ease;
+}
+
+.revocation-reason-hint:hover {
+  background-color: rgba(220, 53, 69, 0.2);
+}
+
+.revocation-reason-hint i {
+  font-size: 14px;
+  margin-right: 4px;
+}
+
+/* Make tooltip text more readable */
+.tooltip-inner {
+  max-width: 250px;
+  padding: 8px 12px;
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: left;
+}
 /* Header section */
 .header-section {
   display: flex;

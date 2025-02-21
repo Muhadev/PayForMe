@@ -89,12 +89,12 @@ const ProjectHeader = ({ project, navigate, handleRewardButtonClick, }) => {
                   </Button>
                   {canManageProject(project) && (
                     <>
-                  <Button 
+                  {/* <Button 
                     variant="outline-secondary"
                     onClick={() => navigate(`/projects/manage/${project.id}`)}
                   >
                     <Cog size={16} className="me-1" /> Manage
-                  </Button>
+                  </Button> */}
                   <Button 
                     variant="outline-success"
                     onClick={handleRewardButtonClick}

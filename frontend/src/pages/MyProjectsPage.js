@@ -108,6 +108,9 @@ const MyProjectsPage = () => {
     if (project.status?.toLowerCase() === 'pending') {
       return 'Awaiting Approval';
     }
+    if (project.status?.toLowerCase() === 'revoked') {
+      return 'Revoked';
+    }
     if (!project.start_date) {
       return 'Start date not set';
     }
@@ -165,12 +168,13 @@ const MyProjectsPage = () => {
   const renderProjectCard = (project) => {
     const isDraft = project?.status?.toUpperCase() === 'DRAFT';
     const isPending = project?.status?.toLowerCase() === 'pending';
+    const isRevoked = project?.status?.toLowerCase() === 'revoked';
     const timeStatus = getProjectTimeStatus(project);
     const progress = calculateProgress(project.total_pledged || 0, project.goal_amount);
 
     return (
       <Col md={4} key={project.id} className="mb-4">
-        <Card className="project-card h-100 shadow-sm">
+        <Card className={`project-card h-100 shadow-sm ${isRevoked ? 'revoked-project' : ''}`}>
           <div className="project-image-container">
             <Card.Img 
               variant="top" 
@@ -179,6 +183,7 @@ const MyProjectsPage = () => {
                 e.target.onerror = null;
                 e.target.src = placeholderImage;
               }}
+              className={isRevoked ? 'grayscale-img' : ''}
             />
             <Badge 
               className={`status-badge ${getStatusBadgeClass(project.status)}`}
@@ -200,7 +205,7 @@ const MyProjectsPage = () => {
               {truncateText(project.description || '')}
             </Card.Text>
             
-            {!isDraft && !isPending && (
+            {!isDraft && !isPending && !isRevoked &&(
               <div className="funding-progress">
                 <div className="progress">
                   <div 
@@ -222,41 +227,71 @@ const MyProjectsPage = () => {
             )}
             
             <div className="project-meta">
-              {!isDraft && !isPending ? (
-                <>
-                  <div className="meta-item backers">
-                    <i className="bi bi-people"></i>
-                    <span>{project.backers_count || 0}</span>
-                  </div>
-                  
+            {isRevoked ? (
+              <>
+                <div className="meta-item revoked-status">
+                  <i className="bi bi-x-circle-fill"></i>
+                  <span>Revoked</span>
+                  {project.revocation_date && (
+                    <small className="revoked-date">
+                      on {formatDate(project.revocation_date)}
+                    </small>
+                  )}
+                </div>
+                
+                {/* Add the revocation reason tooltip here */}
+                {project.revocation_reason && (
                   <OverlayTrigger
                     placement="top"
-                    overlay={<Tooltip>{timeStatus}</Tooltip>}
+                    overlay={<Tooltip id={`tooltip-${project.id}`}>
+                      {project.revocation_reason}
+                    </Tooltip>}
                   >
-                    <div className="meta-item time-status">
-                      <i className="bi bi-clock"></i>
-                      <span>{timeStatus.includes('days') ? timeStatus.replace(' days left', '') : '—'}</span>
+                    <div className="revocation-reason-hint mt-2">
+                      <i className="bi bi-info-circle me-1"></i>
+                      <small>Hover for revocation details</small>
                     </div>
                   </OverlayTrigger>
-                  
-                  <div className="meta-item goal">
-                    <i className="bi bi-bullseye"></i>
-                    <span>{formatCurrency(project.goal_amount || 0)}</span>
-                  </div>
-                </>
-              ) : (
-                <div className="meta-item draft-status">
-                  <i className={isPending ? "bi bi-hourglass" : "bi bi-pencil"}></i>
-                  <span>{isPending ? 'Pending Approval' : 'Draft'}</span>
+                )}
+              </>
+          
+            ) : !isDraft && !isPending ? (
+                    <>
+                      <div className="meta-item backers">
+                        <i className="bi bi-people"></i>
+                        <span>{project.backers_count || 0}</span>
+                      </div>
+                      
+                      <OverlayTrigger
+                        placement="top"
+                        overlay={<Tooltip>{timeStatus}</Tooltip>}
+                      >
+                        <div className="meta-item time-status">
+                          <i className="bi bi-clock"></i>
+                          <span>{timeStatus.includes('days') ? timeStatus.replace(' days left', '') : '—'}</span>
+                        </div>
+                      </OverlayTrigger>
+                      
+                      <div className="meta-item goal">
+                        <i className="bi bi-bullseye"></i>
+                        <span>{formatCurrency(project.goal_amount || 0)}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="meta-item draft-status">
+                      <i className={isPending ? "bi bi-hourglass" : "bi bi-pencil"}></i>
+                      <span>{isPending ? 'Pending Approval' : 'Draft'}</span>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </Card.Body>
+              </Card.Body>
           
           <Card.Footer className="bg-white">
             <div className="card-footer-content">
               <small className="text-muted last-updated">
-                {isDraft || isPending
+                {isRevoked
+                  ? `Revoked: ${formatDate(project.updated_at || project.created_at)}`
+                :isDraft || isPending
                   ? `Updated: ${formatDate(project.updated_at || project.created_at)}`
                   : `Launched: ${formatDate(project.created_at)}`
                 }
@@ -349,6 +384,14 @@ const MyProjectsPage = () => {
             Successful
           </Nav.Link>
         </Nav.Item>
+        <Nav.Item>
+        <Nav.Link 
+          active={filter === 'revoked'} 
+          onClick={() => setFilter('revoked')}
+        >
+          Revoked
+        </Nav.Link>
+      </Nav.Item>
       </Nav>
 
       {isLoading ? (
