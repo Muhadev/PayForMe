@@ -53,21 +53,21 @@ class Project(db.Model):
     project_roles = db.relationship('ProjectRole', back_populates='project', lazy='dynamic')
 
     # Add these properties to convert to/from Decimal
-    @property
-    def current_amount_decimal(self):
-        return Decimal(str(self.current_amount))
+    # @property
+    # def current_amount_decimal(self):
+    #     return Decimal(str(self.current_amount))
 
-    @current_amount_decimal.setter
-    def current_amount_decimal(self, value):
-        self.current_amount = value
+    # @current_amount_decimal.setter
+    # def current_amount_decimal(self, value):
+    #     self.current_amount = value
 
-    @property
-    def goal_amount_decimal(self):
-        return Decimal(str(self.goal_amount))
+    # @property
+    # def goal_amount_decimal(self):
+    #     return Decimal(str(self.goal_amount))
 
-    @goal_amount_decimal.setter
-    def goal_amount_decimal(self, value):
-        self.goal_amount = value
+    # @goal_amount_decimal.setter
+    # def goal_amount_decimal(self, value):
+    #     self.goal_amount = value
 
     def __init__(self, **kwargs):
         super(Project, self).__init__(**kwargs)

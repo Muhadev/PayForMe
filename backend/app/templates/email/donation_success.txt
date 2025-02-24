@@ -1,0 +1,16 @@
+{# donation_success.txt #}
+Payment Successful!
+
+Dear {{ donor_name }},
+
+Great news! Your donation of ${{ amount }} to {{ project_title }} has been successfully processed.
+
+Payment Details:
+--------------
+Donation ID: {{ donation_id }}
+Amount: ${{ amount }}
+Project: {{ project_title }}
+
+You'll receive updates about the project's progress and how your donation is making a difference.
+
+Thank you for being part of our community and supporting this project!

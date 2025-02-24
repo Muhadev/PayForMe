@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from app.services.email_service import send_templated_email
 from app.models.enums import DonationStatus, ProjectStatus
 from app.services.donation_service import DonationService
+from decimal import Decimal, InvalidOperation
 from app.schemas.backer_schemas import BackProjectSchema, ProjectUpdateSchema, ProjectMilestoneSchema
 from marshmallow import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
@@ -43,7 +44,7 @@ class BackerService:
         """
         if reward_id:
             reward = session.query(Reward).filter_by(
-                id=reward_id, 
+                id=reward_id,
                 project_id=project.id
             ).first()
             
@@ -62,118 +63,131 @@ class BackerService:
 
     def back_project(self, project_id, user_id, data):
         """
-        Handle the process of a user backing a project.
+        Create a donation for a project.
+        
+        Args:
+            project_id: ID of the project
+            user_id: ID of the user making the donation
+            data: Dictionary containing donation details
+            
+        Returns:
+            dict: Result containing donation details or error information
         """
         try:
-            # Add detailed logging
             logger.info(f"Backing project: project_id={project_id}, user_id={user_id}, data={data}")
-
-            schema = BackProjectSchema()
-            validated_data = schema.load(data)
             
+            try:
+                amount = Decimal(str(data['amount'])).quantize(Decimal('0.01'))
+                logger.info(f"Converted amount: {amount}, type: {type(amount)}")
+            except (InvalidOperation, TypeError) as e:
+                logger.error(f"Amount conversion error: {str(e)}")
+                return {'error': 'Invalid amount format', 'status_code': 400}
+
             with Session(db.engine) as session:
                 try:
-                    with session.begin():
-                        # 1. First check if project exists and is active
-                        project = self._get_project(project_id, session)
-                        logger.info(f"Retrieved project: {project}")
-                        if not project:
-                            logger.error(f"Project {project_id} not found")
-                            return {'error': 'Project not found', 'status_code': 404}
+                    # Start transaction
+                    project = self._get_project(project_id, session)
+                    if not project:
+                        return {'error': 'Project not found', 'status_code': 404}
 
-                        if project.status != ProjectStatus.ACTIVE:
-                            logger.error(f"Project {project_id} is not active. Current status: {project.status}")
-                            return {'error': 'Project is not currently accepting donations', 'status_code': 400}
+                    logger.info(f"Found project with current amount: {project.current_amount}")
 
-                        # 2. Check if user exists
-                        user = self._get_user(user_id, session)
-                        logger.info(f"Retrieved user: {user}")
-                        if not user:
-                            logger.error(f"User {user_id} not found")
-                            return {'error': 'User not found', 'status_code': 404}
+                    if project.status != ProjectStatus.ACTIVE:
+                        return {'error': 'Project is not currently accepting donations', 'status_code': 400}
 
-                        # Extract necessary information before committing the session
-                        user_email = user.email
-                        user_username = user.username
+                    user = self._get_user(user_id, session)
+                    if not user:
+                        return {'error': 'User not found', 'status_code': 404}
 
-                        # project = Project.query.get(project_id)
-                        project_title = project.title
+                    # Validate reward if provided
+                    reward_id = data.get('reward_id')
+                    if reward_id:
+                        is_valid, result = self._validate_reward(project, amount, reward_id, session)
+                        if not is_valid:
+                            return {'error': result, 'status_code': 400}
 
-                        # 3. Validate reward if provided
-                        reward_id = validated_data.get('reward_id')
-                        if reward_id:
-                            is_valid, result = self._validate_reward(
-                                project, 
-                                validated_data['amount'], 
-                                reward_id, 
-                                session
-                            )
-                            
-                            if not is_valid:
-                                logger.error(f"Reward validation failed: {result}")
-                                return {'error': result, 'status_code': 400}
-                                
-                            reward = result if isinstance(result, Reward) else None
-                            if reward:
-                                if reward.quantity_available is not None and reward.quantity_claimed >= reward.quantity_available:
-                                    return {'error': 'This reward is no longer available', 'status_code': 400}
-                                reward.quantity_claimed += 1
+                    # Create donation
+                    donation = Donation(
+                        user_id=user_id,
+                        project_id=project_id,
+                        amount=amount,
+                        reward_id=reward_id,
+                        currency=data.get('currency', 'USD'),
+                        status=DonationStatus.PENDING,
+                        created_at=datetime.utcnow()
+                    )
+                    session.add(donation)
 
-                            # Use DonationService to create the donation
-                            donation = self.donation_service.create_donation(
-                                user_id=user_id,
-                                project_id=project_id,
-                                amount=validated_data['amount'],
-                                reward_id=reward_id,
-                                payment_method=validated_data.get('payment_method'),
-                                currency=validated_data.get('currency', 'USD')
-                            )
+                    # Update project amounts
+                    if project.current_amount is None:
+                        project.current_amount = Decimal('0')
+                    project.current_amount += amount
+                    
+                    logger.info(f"After update - New current amount: {project.current_amount}")
 
-                            # session.add(donation)
-                            
-                            if donation is None:
-                                return {'error': 'Failed to process donation', 'status_code': 500}
-                        
-                            # Update project status if necessary
-                            self._update_project_status(project, validated_data['amount'])
-                            # 5. Add user to project backers if not already there
-                            if user not in project.backers:
-                                project.backers.append(user)
-                            
-                            # Prepare the result before committing
-                            result = self._prepare_backing_result(user, project, donation)
-                            # result = {
-                            #     'status': 'success',
-                            #     'donation': {
-                            #         'id': donation.id,
-                            #         'amount': str(donation.amount),
-                            #         'currency': donation.currency,
-                            #         'status': donation.status.value
-                            #     }
-                            # }
-                            # The session.commit() is automatically called at the end of the 'with' block
+                    if project.current_amount >= project.goal_amount:
+                        project.status = ProjectStatus.FUNDED
 
-                            session.commit()
+                    if user not in project.backers:
+                        project.backers.append(user)
 
-                            # Schedule the confirmation email asynchronously
-                            # Schedule the confirmation email asynchronously with app context
-                            app = current_app._get_current_object()  # Retrieve the actual app instance
-                            Thread(target=self._send_confirmation_email_with_context, args=(app, user_email, user_username, project_title, donation)).start()
-                            self.invalidate_backer_stats_cache(project_id)
+                    # Commit the transaction
+                    session.commit()
 
-                            return result
+                    # Prepare response after successful commit
+                    result = {
+                        'donation': {
+                            'id': donation.id,
+                            'amount': str(donation.amount),
+                            'currency': donation.currency,
+                            'status': donation.status.value
+                        },
+                        'user_id': user.id,
+                        'project_id': project.id,
+                        'created_at': donation.created_at.isoformat() if donation.created_at else None,
+                        'donation_status': donation.status.value,
+                        'project_status': project.status.value,
+                        'reward_id': donation.reward_id
+                    }
+
+                    # Handle email sending in background
+                    # app = current_app._get_current_object()
+                    # Thread(target=self._send_confirmation_email_with_context,
+                    #     args=(app, user.email, user.username, project.title, donation)).start()
+                    
+                    self.invalidate_backer_stats_cache(project_id)
+                    return result
 
                 except SQLAlchemyError as e:
-                    logger.error(f"Database error while creating donation: {str(e)}")
-                    # The session.rollback() is automatically called in case of an exception
-                    return {'error': 'Failed to process donation', 'status_code': 500}
+                    session.rollback()
+                    logger.error(f"Database error in back_project: {str(e)}")
+                    return {'error': 'Database error occurred', 'status_code': 500}
 
-        except ValidationError as e:
-            logger.warning(f"Validation error in back_project: {e.messages}")
-            return {'error': e.messages, 'status_code': 400}
         except Exception as e:
             logger.error(f"Unexpected error in back_project: {str(e)}")
             return {'error': 'An unexpected error occurred', 'status_code': 500}
+
+    # def _send_success_email(self, user_email, user_username, project_title, donation):
+    #     """
+    #     Send success email after payment is completed.
+    #     """
+    #     try:
+    #         with current_app.app_context():
+    #             email_kwargs = {
+    #                 'donor_name': user_username,
+    #                 'project_title': project_title,
+    #                 'amount': float(donation.amount),
+    #                 'donation_id': donation.id
+    #             }
+
+    #             send_templated_email(
+    #                 to_email=user_email,
+    #                 email_type='donation_success',
+    #                 **email_kwargs
+    #             )
+    #             logger.info(f"Donation success email sent to {user_email}")
+    #     except Exception as e:
+    #         logger.error(f"Failed to send success email: {str(e)}")
 
     def _send_confirmation_email_with_context(self, app, user_email, user_username, project_title, donation):
         """
@@ -214,13 +228,13 @@ class BackerService:
         return {
             'donation': {
                 'id': donation.id,
-                'amount': str(donation.amount),  # Convert to string for JSON serialization
+                'amount': str(donation.amount),  # Convert Decimal to string for JSON
                 'currency': donation.currency,
                 'status': donation.status.value
             },
             'user_id': user.id,
             'project_id': project.id,
-            'created_at': donation.created_at.isoformat(),  # Convert datetime to ISO format string
+            'created_at': donation.created_at.isoformat(),
             'donation_status': donation.status.value,
             'project_status': project.status.value,
             'reward_id': donation.reward_id
@@ -489,6 +503,28 @@ class BackerService:
 
     @staticmethod
     def _update_project_status(project, amount):
-        project.current_amount_decimal += Decimal(str(amount))
-        if project.current_amount_decimal >= project.goal_amount_decimal:
-            project.status = ProjectStatus.FUNDED
+        """
+        Update project status based on new donation amount
+        
+        Args:
+            project: Project instance
+            amount: Decimal amount to add
+        """
+        try:
+            logger.info(f"Before update - Current amount: {project.current_amount}, Goal amount: {project.goal_amount}")
+            
+            if project.current_amount is None:
+                project.current_amount = 0
+                
+            # Direct addition without conversion
+            project.current_amount += amount
+            
+            logger.info(f"After update - New current amount: {project.current_amount}")
+            
+            # Check if project is funded
+            if project.current_amount >= project.goal_amount:
+                project.status = ProjectStatus.FUNDED
+                
+        except Exception as e:
+            logger.error(f"Error in _update_project_status: {e}")
+            raise

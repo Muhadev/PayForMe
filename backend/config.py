@@ -17,6 +17,9 @@ class Config:
     GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
     GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET')
     FRONTEND_URL = os.environ.get('FRONTEND_URL')  # React app URL
+    FRONTEND_SUCCESS_URL = f'{FRONTEND_URL}/donation/success'
+    FRONTEND_CANCEL_URL = f'{FRONTEND_URL}/donation/cancel'
+
 
     # Base upload folder
     UPLOAD_FOLDERS = os.path.abspath(os.path.join(os.getcwd(), 'uploads'))
@@ -55,7 +58,7 @@ class Config:
     STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
     STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
     STRIPE_LOGGING = os.getenv('STRIPE_LOGGING', False)
-
+    
 # class StripeConfig:
 #     SECRET_KEY = 'your_stripe_secret_key'
 #     WEBHOOK_SECRET = 'your_webhook_secret'

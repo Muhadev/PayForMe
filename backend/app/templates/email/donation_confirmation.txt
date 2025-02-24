@@ -1,0 +1,16 @@
+{# donation_confirmation.txt #}
+Thank You for Your Donation!
+
+Dear {{ donor_name }},
+
+Thank you for your generous donation of ${{ amount }} to {{ project_title }}. Your support means a lot to us!
+
+Donation Details:
+----------------
+Donation ID: {{ donation_id }}
+Amount: ${{ amount }}
+Project: {{ project_title }}
+
+We'll process your payment and send you a confirmation email shortly.
+
+If you have any questions about your donation, please contact our support team.

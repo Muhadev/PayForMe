@@ -90,18 +90,33 @@ class RewardService:
             )
 
     def _standardize_date(self, date_value):
-        """Standardize date values to datetime objects"""
+        """
+        Standardize date values to datetime objects
+        
+        Args:
+            date_value: Can be str, date, or datetime
+            
+        Returns:
+            datetime object or None
+        """
+        if date_value is None:
+            return None
+        
+        if isinstance(date_value, datetime):
+            return date_value
+            
         if isinstance(date_value, str):
             try:
                 return datetime.strptime(date_value, '%Y-%m-%d')
             except ValueError:
                 raise ValueError("Invalid date format. Expected YYYY-MM-DD")
-        elif isinstance(date_value, date):
+                
+        if isinstance(date_value, date):
             return datetime.combine(date_value, datetime.min.time())
-        elif isinstance(date_value, datetime):
-            return date_value
-        return None
+            
+        raise ValueError(f"Unsupported date type: {type(date_value)}")
 
+    
     def update_reward(self, project_id: int, reward_id: int, data: Dict[str, Any]) -> Dict[str, Any]:
         try:
             reward = Reward.query.filter_by(
@@ -122,9 +137,11 @@ class RewardService:
             # Handle date standardization
             if 'estimated_delivery_date' in update_data:
                 try:
-                    update_data['estimated_delivery_date'] = self._standardize_date(
-                        update_data['estimated_delivery_date']
-                    )
+                    date_value = update_data['estimated_delivery_date']
+                    standardized_date = self._standardize_date(date_value)
+                    if standardized_date is None:
+                        raise ValueError("Invalid date value provided")
+                    update_data['estimated_delivery_date'] = standardized_date
                 except ValueError as e:
                     return {'error': str(e), 'status_code': 400}
             

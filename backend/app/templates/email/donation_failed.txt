@@ -1,0 +1,16 @@
+{# donation_failed.txt #}
+Payment Failed
+
+Dear {{ donor_name }},
+
+We were unable to process your donation of ${{ amount }}.
+
+This could have happened for several reasons:
+- Insufficient funds
+- Expired card
+- Incorrect payment information
+- Bank security measures
+
+Please try again with a different payment method or contact your bank if the issue persists.
+
+Need help? Contact our support team for assistance.

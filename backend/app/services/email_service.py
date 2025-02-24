@@ -62,7 +62,8 @@ EMAIL_TEMPLATE_TYPES = [
     'verify_email', 'reset_password', '2fa_enabled', '2fa_disabled', 
     '2fa_setup', 'project_backed', 'project_update', 'project_milestone',
     'project_activated', 'reward_created', 'reward_updated', 'reward_claimed_backer',
-    'reward_claimed_creator', 'project_revoked', 'project_featured', 'project_unfeatured'
+    'reward_claimed_creator', 'project_revoked', 'project_featured', 'project_unfeatured', 'donation_confirmation',
+    'donation_failed', 'donation_refund'
 ]
 
 def send_templated_email(to_email, email_type, **kwargs):
@@ -125,9 +126,9 @@ def get_email_subject(email_type):
         'reward_updated': 'Reward Details Updated!',
         'reward_claimed_backer': 'You’ve Successfully Claimed Your Reward!',
         'reward_claimed_creator': 'A Backer Claimed Your Reward!',
-        # 'donation_confirmation': 'Thank You for Your Donation!',
-        # 'donation_success': 'Your Donation Was Successful',
-        # 'donation_failed': 'Donation Payment Failed',
-        # 'donation_refund': 'Your Donation Has Been Refunded'
+        'donation_confirmation': 'Thank You for Your Donation!',
+        'donation_success': 'Your Donation Was Successful',
+        'donation_failed': 'Donation Payment Failed',
+        'donation_refund': 'Your Donation Has Been Refunded'
     }
     return subjects.get(email_type, 'Notification from PayForMe')

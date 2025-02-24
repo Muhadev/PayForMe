@@ -1,0 +1,17 @@
+{# donation_refund.txt #}
+Donation Refund Processed
+
+Dear {{ donor_name }},
+
+Refund Details:
+--------------
+Amount: ${{ amount }}
+Donation ID: {{ donation_id }}
+
+Your donation has been successfully refunded. The refund amount will be credited back to your original payment method within 5-10 business days, depending on your bank's processing time.
+
+If you don't see the refund in your account after 10 business days, please:
+1. Check with your bank
+2. Contact our support team with your donation ID
+
+Thank you for your understanding. We hope you'll consider supporting other projects in the future.
