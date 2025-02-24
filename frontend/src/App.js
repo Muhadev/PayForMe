@@ -27,6 +27,8 @@ import AuthCallback from './components/auth/AuthCallback';
 import SavedProjectsPage from './pages/SavedProjectsPage';
 import CategoryProjectsPage from './pages/CategoryProjectsPage';
 import AllRewardsPage from './pages/AllRewardsPage';
+import DonationSuccessPage from './pages/DonationSuccessPage';
+import DonationCancelPage from './pages/DonationCancelPage';
 // import CreateProjectForm from './components/projects/CreateProjectForm';
 
 // import CreateProjectPage from './pages/CreateProjectPage';
@@ -84,6 +86,8 @@ function App() {
           {/* Existing routes */}
           {/* <Route path="/projects/:id" element={<ProjectDetailPage />} /> */}
           <Route path="/projects/:id/rewards" element={<AllRewardsPage />} />
+          <Route path="/donation/success" element={<DonationSuccessPage />} />
+          <Route path="/donation/cancel" element={<DonationCancelPage />} />
           {/* Other routes */}
         </Route>
       </Routes>

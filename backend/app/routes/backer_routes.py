@@ -8,6 +8,8 @@ from app.utils.rate_limit import rate_limit
 from app.services.email_service import send_templated_email
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import ValidationError
+from app import db
+from app.models.donation import Donation
 from sqlalchemy.orm import Session
 from app.schemas.backer_schemas import (
     BackProjectSchema,
@@ -137,6 +139,47 @@ def payment_cancel(donation_id):
     except Exception as e:
         logger.error(f"Error in payment_cancel: {str(e)}")
         return error_response(message="Error processing cancellation", status_code=500)
+
+@backer_bp.route('/donations/<int:donation_id>', methods=['GET'])
+@jwt_required()
+def get_donation_details(donation_id):
+    """
+    Get details of a specific donation.
+    """
+    try:
+        with Session(db.engine) as session:
+            donation = session.query(Donation).get(donation_id)
+            
+            if not donation:
+                return error_response(message="Donation not found", status_code=404)
+            
+            # Get associated project and user details
+            project = donation.project
+            user = donation.user
+            
+            result = {
+                'id': donation.id,
+                'amount': float(donation.amount),
+                'currency': donation.currency,
+                'status': donation.status.value,
+                'created_at': donation.created_at.isoformat(),
+                'project_id': project.id,
+                'project_title': project.title,
+                'user_id': user.id,
+                'username': user.username
+            }
+            
+            if donation.reward:
+                result['reward'] = {
+                    'id': donation.reward.id,
+                    'title': donation.reward.title
+                }
+            
+            return success_response(data=result)
+            
+    except Exception as e:
+        logger.error(f"Error getting donation details: {str(e)}")
+        return error_response(message="An unexpected error occurred", status_code=500)
 
 @backer_bp.route('/projects/<int:project_id>/backers', methods=['GET'])
 @jwt_required()

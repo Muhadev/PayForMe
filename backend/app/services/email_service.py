@@ -63,7 +63,7 @@ EMAIL_TEMPLATE_TYPES = [
     '2fa_setup', 'project_backed', 'project_update', 'project_milestone',
     'project_activated', 'reward_created', 'reward_updated', 'reward_claimed_backer',
     'reward_claimed_creator', 'project_revoked', 'project_featured', 'project_unfeatured', 'donation_confirmation',
-    'donation_failed', 'donation_refund'
+    'donation_failed', 'donation_refund', 'donation_success'
 ]
 
 def send_templated_email(to_email, email_type, **kwargs):

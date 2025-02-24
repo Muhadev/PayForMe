@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Container, Row, Col, Card, Button, ProgressBar, Tabs, Tab, Badge, Alert, Image } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, ProgressBar, Tabs, Tab, Badge, Alert, Image, Form } from 'react-bootstrap';
 import { toast } from 'react-toastify';
 import { 
   PencilIcon, GiftIcon, Video, BellIcon, Cog, ShareIcon, BookmarkIcon, 
@@ -15,6 +15,7 @@ import axiosInstance from '../helper/axiosConfig';
 import RewardModal from './RewardModal';
 import EditRewardModal from './EditRewardModal';
 import ProjectRewards from './ProjectRewards';
+import { backProject }  from '../services/stripeService.js';
 import { shareProject, activateProject, saveProject, revokeProject, toggleProjectFeature, unsaveProject, getSavedProjects } from '../services/projectService';
 import './ProjectDetailPage.css';
 import { usePermission } from '../hooks/usePermission'
@@ -216,48 +217,84 @@ const ProjectMedia = ({ project, videoRef, isPlaying, handleVideoToggle, activeM
   );
 };
 
-const ProjectStats = ({ project, daysLeft, percentFunded, handleShare, isSaved, handleSaveProject, canBackProject, isCreator }) => (
-  <Card className="border-0 shadow-sm mb-4">
-    <Card.Body>
-      <Row className="text-center">
-        <Col md={4} className="mb-3 mb-md-0">
-          <h2 className="display-6">${project.current_amount?.toLocaleString() || 0}</h2>
-          <p className="text-muted mb-0">of ${project.goal_amount?.toLocaleString() || 0} goal</p>
-        </Col>
-        <Col md={4} className="mb-3 mb-md-0">
-          <h2 className="display-6">{project.backers_count || 0}</h2>
-          <p className="text-muted mb-0">
-            <Users size={16} className="me-1" />
-            backers
-          </p>
-        </Col>
-        <Col md={4}>
-          <h2 className="display-6">{daysLeft}</h2>
-          <p className="text-muted mb-0">
-            <Clock size={16} className="me-1" />
-            days to go
-          </p>
-        </Col>
-      </Row>
-      <ProgressBar 
-        now={percentFunded} 
-        className="mt-4"
-        variant="success"
-        style={{ height: '10px' }}
-      />
-      <div className="d-flex justify-content-between mt-4">
-        {canBackProject() && (
-              <Button variant="primary" size="lg" className="btn-back-project">
-                <GiftIcon size={18} className="me-2" />
-                Back This Project
-              </Button>
-            )}
-        <div className="d-flex gap-2">
-          <Button variant="outline-primary" onClick={handleShare}>
-            <ShareIcon size={16} className="me-1" />
-            Share
-          </Button>
-          {!isCreator && (
+
+const ProjectStats = ({ project, daysLeft, percentFunded, handleShare, isSaved, handleSaveProject, canBackProject, isCreator }) => {
+  const [showBackingModal, setShowBackingModal] = useState(false);
+  const [amount, setAmount] = useState('');
+  const [selectedReward, setSelectedReward] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleBackProject = async () => {
+    try {
+      setIsProcessing(true);
+      
+      const response = await backProject(
+        project.id, 
+        parseFloat(amount), 
+        selectedReward?.id
+      );
+
+      if (response.data?.checkout_url) {
+        window.location.href = response.data.checkout_url;
+      } else {
+        toast.error('Unable to process payment at this time');
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || 'Failed to process backing';
+      toast.error(errorMessage);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <Card className="border-0 shadow-sm mb-4">
+      <Card.Body>
+        <Row className="text-center">
+          <Col md={4} className="mb-3 mb-md-0">
+            <h2 className="display-6">${project.current_amount?.toLocaleString() || 0}</h2>
+            <p className="text-muted mb-0">of ${project.goal_amount?.toLocaleString() || 0} goal</p>
+          </Col>
+          <Col md={4} className="mb-3 mb-md-0">
+            <h2 className="display-6">{project.backers_count || 0}</h2>
+            <p className="text-muted mb-0">
+              <Users size={16} className="me-1" />
+              backers
+            </p>
+          </Col>
+          <Col md={4}>
+            <h2 className="display-6">{daysLeft}</h2>
+            <p className="text-muted mb-0">
+              <Clock size={16} className="me-1" />
+              days to go
+            </p>
+          </Col>
+        </Row>
+        <ProgressBar 
+          now={percentFunded} 
+          className="mt-4"
+          variant="success"
+          style={{ height: '10px' }}
+        />
+        <div className="d-flex justify-content-between mt-4">
+          {canBackProject() && (
+            <Button 
+              variant="primary" 
+              size="lg" 
+              className="btn-back-project"
+              onClick={() => setShowBackingModal(true)}
+              disabled={isProcessing}
+            >
+              <GiftIcon size={18} className="me-2" />
+              {isProcessing ? 'Processing...' : 'Back This Project'}
+            </Button>
+          )}
+          <div className="d-flex gap-2">
+            <Button variant="outline-primary" onClick={handleShare}>
+              <ShareIcon size={16} className="me-1" />
+              Share
+            </Button>
+            {!isCreator && (
               <Button 
                 variant={isSaved ? "outline-success" : "outline-secondary"}
                 onClick={handleSaveProject}
@@ -266,11 +303,45 @@ const ProjectStats = ({ project, daysLeft, percentFunded, handleShare, isSaved, 
                 {isSaved ? 'Saved' : 'Save'}
               </Button>
             )}
+          </div>
         </div>
-      </div>
-    </Card.Body>
-  </Card>
-);
+      </Card.Body>
+
+      {/* Backing Modal */}
+      <Modal show={showBackingModal} onHide={() => setShowBackingModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Back this project</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Pledge Amount ($)</Form.Label>
+              <Form.Control 
+                type="number" 
+                min="1" 
+                value={amount} 
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="Enter amount"
+              />
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowBackingModal(false)}>
+            Cancel
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={handleBackProject}
+            disabled={!amount || isProcessing}
+          >
+            {isProcessing ? 'Processing...' : 'Confirm Pledge'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    </Card>
+  );
+};
 
 const CreatorInfo = ({ project }) => {
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -536,8 +607,7 @@ const AdminControls = ({ project, handleProjectAction }) => (
     </Card.Body>
   </Card>
 );
-// ProjectDetailsPage.js
-// Main Component
+
 const ProjectDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();

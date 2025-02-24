@@ -46,12 +46,18 @@ class DonationService:
             db.session.add(donation)
             try:
                 db.session.commit()
+                # Send confirmation email right after creating donation
+                try:
+                    self._send_donation_confirmation_email(donation)
+                except Exception as e:
+                    logger.error(f"Failed to send confirmation email: {str(e)}")
+                    # Don't return None here, continue with donation creation
+                
+                return donation
             except Exception as e:
                 logger.error(f"Error committing donation: {str(e)}")
                 db.session.rollback()
                 return None
-                
-            return donation
             
         except Exception as e:
             logger.error(f"Error creating donation: {str(e)}")
@@ -152,15 +158,19 @@ class DonationService:
                     logger.error(f"User or Project not found for donation {donation_id}")
                     return False
 
+                completed_at_formatted = donation.completed_at.strftime('%B %d, %Y at %I:%M %p')
+
                 # Send success email
                 try:
                     send_templated_email(
                         to_email=user.email,
-                        email_type='donation_success',
+                        email_type='donation_success',  # Match your template name
                         donor_name=user.username,
                         project_title=project.title,
                         amount=float(donation.amount),
-                        donation_id=donation.id
+                        currency=donation.currency,
+                        donation_id=donation.id,
+                        completed_at=donation.completed_at
                     )
                 except Exception as e:
                     logger.error(f"Failed to send success email: {str(e)}")
