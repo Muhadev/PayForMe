@@ -68,7 +68,7 @@ function App() {
           <Route path="categories" element={<CategoryManagement/>} />
           <Route path="/verify-email" element={<VerifyEmailPage/>} />
           <Route path="my-projects" element={<MyProjectsPage />} />
-          <Route path="backed-projects" element={<BackedProjectsPage />} />
+          <Route path="/backed-projects" element={<BackedProjectsPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="/saved-projects" element={<SavedProjectsPage />} />
           <Route path="settings" element={<SettingsPage />} />

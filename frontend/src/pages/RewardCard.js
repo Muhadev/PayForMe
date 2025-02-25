@@ -9,6 +9,7 @@ const RewardCard = ({
   isCreator, 
   onEditReward, 
   onDeleteReward,
+  onSelectReward,
   fullView = false 
 }) => {
   const remaining = reward.inventory ? reward.inventory - (reward.backers_count || 0) : null;
@@ -17,6 +18,16 @@ const RewardCard = ({
     : 0;
   
   const isSoldOut = remaining !== null && remaining <= 0;
+
+  const isDeadlineApproaching = () => {
+    const today = new Date();
+    const deliveryDate = new Date(reward.estimated_delivery || reward.estimated_delivery_date);
+    const diffTime = deliveryDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    // Return true if less than 7 days remain
+    return diffDays > 0 && diffDays <= 7;
+  };
   
   const handleDelete = (e) => {
     e.preventDefault();
@@ -25,6 +36,12 @@ const RewardCard = ({
     if (window.confirm('Are you sure you want to delete this reward?')) {
       // Call the delete handler and pass the reward ID
       onDeleteReward(reward.id);
+    }
+  };
+
+  const handleBackWithReward = () => {
+    if (onSelectReward && canBackProject && !isSoldOut) {
+      onSelectReward(reward);
     }
   };
   
@@ -60,6 +77,9 @@ const RewardCard = ({
           <small className="text-muted">
             Estimated delivery: {formatDate(reward.estimated_delivery)}
           </small>
+          {isDeadlineApproaching() && (
+            <Badge bg="warning" className="ms-2">Ending Soon</Badge>
+          )}
           
           {reward.backers_count > 0 && (
             <small className="text-muted">
@@ -92,6 +112,7 @@ const RewardCard = ({
               variant="primary" 
               className="w-100"
               disabled={!canBackProject || isSoldOut}
+              onClick={handleBackWithReward}
             >
               {isSoldOut ? 'Sold Out' : `Back for ${formatCurrency(reward.amount)}`}
             </Button>

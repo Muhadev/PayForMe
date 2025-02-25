@@ -11,8 +11,10 @@ import {
 // import jwtDecode from 'jwt-decode';
 import { Modal } from 'react-bootstrap';
 import ShareModal from './ShareModal';
+import BackersList from './BackersList';
 import axiosInstance from '../helper/axiosConfig';
 import RewardModal from './RewardModal';
+import { getAvailableRewards } from '../services/backerService';
 import EditRewardModal from './EditRewardModal';
 import ProjectRewards from './ProjectRewards';
 import { backProject }  from '../services/stripeService.js';
@@ -223,6 +225,44 @@ const ProjectStats = ({ project, daysLeft, percentFunded, handleShare, isSaved, 
   const [amount, setAmount] = useState('');
   const [selectedReward, setSelectedReward] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [availableRewards, setAvailableRewards] = useState([]);
+  const [rewards, setRewards] = useState([]);
+  const [isLoadingRewards, setIsLoadingRewards] = useState(false);
+
+  // Fetch rewards when modal opens
+  useEffect(() => {
+    if (showBackingModal) {
+      fetchRewards();
+    }
+  }, [showBackingModal]);
+
+  const fetchRewards = async () => {
+    if (!project?.id) return;
+    
+    try {
+      setIsLoadingRewards(true);
+      const result = await getAvailableRewards(project.id);
+      
+      if (!result.error) {
+        // Set all rewards for reference
+        setRewards(result.data.rewards);
+        // Set only available rewards for selection
+        setAvailableRewards(result.data.available_rewards);
+      } else {
+        toast.error('Failed to load rewards');
+      }
+    } catch (error) {
+      console.error('Failed to fetch rewards:', error);
+      toast.error('Could not load project rewards');
+    } finally {
+      setIsLoadingRewards(false);
+    }
+  };
+
+  const handleRewardSelect = (reward) => {
+    setSelectedReward(reward);
+    setAmount(reward.minimum_amount.toString());
+  };
 
   const handleBackProject = async () => {
     try {
@@ -247,6 +287,9 @@ const ProjectStats = ({ project, daysLeft, percentFunded, handleShare, isSaved, 
     }
   };
 
+  // Get the correct backer count
+  const backersCount = project?.backers_count || 0;
+
   return (
     <Card className="border-0 shadow-sm mb-4">
       <Card.Body>
@@ -256,7 +299,7 @@ const ProjectStats = ({ project, daysLeft, percentFunded, handleShare, isSaved, 
             <p className="text-muted mb-0">of ${project.goal_amount?.toLocaleString() || 0} goal</p>
           </Col>
           <Col md={4} className="mb-3 mb-md-0">
-            <h2 className="display-6">{project.backers_count || 0}</h2>
+            <h2 className="display-6">{backersCount}</h2>
             <p className="text-muted mb-0">
               <Users size={16} className="me-1" />
               backers
@@ -307,24 +350,94 @@ const ProjectStats = ({ project, daysLeft, percentFunded, handleShare, isSaved, 
         </div>
       </Card.Body>
 
-      {/* Backing Modal */}
-      <Modal show={showBackingModal} onHide={() => setShowBackingModal(false)}>
+      {/* Enhanced Backing Modal with Rewards */}
+      <Modal 
+        show={showBackingModal} 
+        onHide={() => setShowBackingModal(false)}
+        size="lg"
+      >
         <Modal.Header closeButton>
           <Modal.Title>Back this project</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <Form>
-            <Form.Group className="mb-3">
-              <Form.Label>Pledge Amount ($)</Form.Label>
-              <Form.Control 
-                type="number" 
-                min="1" 
-                value={amount} 
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="Enter amount"
-              />
-            </Form.Group>
-          </Form>
+          {isLoadingRewards ? (
+            <div className="text-center p-3">
+              <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Loading rewards...</span>
+              </div>
+            </div>
+          ) : (
+            <>
+              <h5>Select a Reward (Optional)</h5>
+              <div className="reward-selection mb-4">
+                <Form.Check
+                  type="radio"
+                  id="no-reward"
+                  name="reward"
+                  className="mb-3 pb-3 border-bottom"
+                  label={
+                    <div>
+                      <strong>No Reward</strong>
+                      <p className="text-muted mb-0">I just want to support the project</p>
+                    </div>
+                  }
+                  onChange={() => {
+                    setSelectedReward(null);
+                    setAmount('');
+                  }}
+                  checked={selectedReward === null}
+                />
+                
+                  {/* Only show available rewards */}
+                  {availableRewards.map(reward => (
+                  <Form.Check
+                    key={reward.id}
+                    type="radio"
+                    id={`reward-${reward.id}`}
+                    name="reward"
+                    className="mb-3 pb-3 border-bottom"
+                    label={
+                      <div>
+                        <div className="d-flex justify-content-between">
+                          <strong>{reward.title}</strong>
+                          <span>${reward.minimum_amount}</span>
+                        </div>
+                        <p className="text-muted mb-1">{reward.description}</p>
+                        <div className="d-flex justify-content-between">
+                          <small className="text-muted">
+                            Estimated delivery: {new Date(reward.estimated_delivery_date).toLocaleDateString()}
+                          </small>
+                          <small className="text-muted">
+                            {reward.remaining} of {reward.quantity_available} left
+                          </small>
+                        </div>
+                      </div>
+                    }
+                    onChange={() => handleRewardSelect(reward)}
+                    checked={selectedReward?.id === reward.id}
+                  />
+                ))}
+              </div>
+              
+              <Form>
+                <Form.Group className="mb-3">
+                  <Form.Label>Pledge Amount ($)</Form.Label>
+                  <Form.Control 
+                    type="number" 
+                    min={selectedReward ? selectedReward.minimum_amount : "1"} 
+                    value={amount} 
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="Enter amount"
+                  />
+                  {selectedReward && (
+                    <Form.Text className="text-muted">
+                      Minimum pledge for this reward is ${selectedReward.minimum_amount}
+                    </Form.Text>
+                  )}
+                </Form.Group>
+              </Form>
+            </>
+          )}
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowBackingModal(false)}>
@@ -333,7 +446,9 @@ const ProjectStats = ({ project, daysLeft, percentFunded, handleShare, isSaved, 
           <Button 
             variant="primary" 
             onClick={handleBackProject}
-            disabled={!amount || isProcessing}
+            disabled={!amount || parseFloat(amount) < 1 || 
+                     (selectedReward && parseFloat(amount) < selectedReward.minimum_amount) || 
+                     isProcessing}
           >
             {isProcessing ? 'Processing...' : 'Confirm Pledge'}
           </Button>
@@ -643,15 +758,6 @@ const ProjectDetailPage = () => {
     toast.success('Reward updated successfully!');
   };
 
-  // const { 
-  //   hasRole, 
-  //   isProjectCreator, 
-  //   canEditProject: hookCanEditProject, 
-  //   canManageProject: hookCanManageProject,
-  //   isLoaded,
-  //   fetchProjectRoles 
-  // } = usePermission();
-
   const { 
     hasRole, 
     permissions, 
@@ -666,6 +772,17 @@ const ProjectDetailPage = () => {
   // Function to handle Reward button click
   const handleRewardButtonClick = () => {
     setShowRewardModal(true);
+  };
+
+  const filterAvailableRewards = (rewardsArray) => {
+    return rewardsArray.filter(reward => {
+      // Check if there are still slots available
+      const claimed = reward.backers_count || 0;
+      const available = reward.inventory || reward.quantity_available || 0;
+      
+      // Only show rewards that have slots available
+      return claimed < available;
+    });
   };
 
   // In fetchProjectRewards function
@@ -685,8 +802,12 @@ const ProjectDetailPage = () => {
         estimated_delivery: reward.estimated_delivery_date,
         is_digital: reward.shipping_type === 'none',
         backers_count: reward.quantity_claimed || 0,
-        original_inventory: reward.quantity_available
+        original_inventory: reward.quantity_available,
+        remaining: reward.quantity_available - (reward.quantity_claimed || 0)
       }));
+
+      // Filter out expired rewards
+      // const activeRewards = filterExpiredRewards(formattedRewards);
       
       setRewards(formattedRewards);
     } catch (error) {
@@ -773,9 +894,10 @@ const ProjectDetailPage = () => {
     }
   }, [project]);
 
-  // Calculate project metrics
+  // In the calculateProjectMetrics function
+  // In the calculateProjectMetrics function
   const calculateProjectMetrics = () => {
-    if (!project) return { daysLeft: 0, percentFunded: 0 };
+    if (!project) return { daysLeft: 0, percentFunded: 0, backersCount: 0 };
     
     // Calculate days left
     const endDate = new Date(project.end_date);
@@ -788,126 +910,144 @@ const ProjectDetailPage = () => {
       ? Math.min(100, ((project.current_amount || 0) / project.goal_amount) * 100)
       : 0;
 
-    return { daysLeft, percentFunded };
+    // Handle backers count with more robust fallback
+    const backersCount = project.backers_count || 
+                      (project.donations ? project.donations.length : 0) || 0;
+
+    return { daysLeft, percentFunded, backersCount };
   };
 
-  const { daysLeft, percentFunded } = calculateProjectMetrics();
-
-  // useEffect(() => {
-    const fetchProjectDetails = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        
+  // Extract metrics values to use in components
+  const { daysLeft, percentFunded, backersCount } = useMemo(() => 
+    calculateProjectMetrics(), [project]
+  );
   
-        // Check if we're viewing a draft
-        const isDraftRoute = window.location.pathname.includes('/drafts/');
-    
-        // Fetch project data
-        const response = await axiosInstance.get(
-          isDraftRoute ? `/api/v1/projects/drafts/${id}` : `/api/v1/projects/${id}`
-        );
-        
-        const projectData = response.data.data;
-
-        console.log("Project data:", projectData);
-        console.log("Featured status:", projectData.featured);
-        // Properly handle media URLs
-        if (projectData.image_url) {
-          projectData.image_url = getMediaUrl(projectData.image_url);
+  const fetchProjectDetails = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // Check if we're viewing a draft
+      const isDraftRoute = window.location.pathname.includes('/drafts/');
+  
+      // Fetch project data
+      const response = await axiosInstance.get(
+        isDraftRoute ? `/api/v1/projects/drafts/${id}` : `/api/v1/projects/${id}`
+      );
+  
+      // Get backers stats
+      try {
+        const backerStatsResponse = await axiosInstance.get(`/api/v1/backers/projects/${id}/public-stats`);
+        if (backerStatsResponse.data && backerStatsResponse.data.data) {
+          setProject(prev => ({
+            ...prev,
+            backers_count: backerStatsResponse.data.data.backers_count
+          }));
         }
-        
-        if (projectData.video_url) {
-          projectData.video_url = getMediaUrl(projectData.video_url);
-        }
-        
-        // Handle creator profile image if it exists
-        if (projectData.creator && projectData.creator.profile_image) {
-          projectData.creator.profile_image = getMediaUrl(projectData.creator.profile_image);
-        }
-
-        setProject(projectData);
-        setIsDraft(isDraftRoute);
-    
-        // Try to get category information if needed
-        if (projectData.category_id && !projectData.category) {
-          try {
-            const categoryRes = await axiosInstance.get('/api/v1/categories/');
-            const categories = categoryRes.data.data;
-            const category = categories.find(c => c.id === projectData.category_id);
-            
-            if (category) {
-              setProject(prev => ({
-                ...prev,
-                category
-              }));
-            }
-          } catch (err) {
-            console.error('Failed to fetch category:', err);
-          }
-        }
-
-        // If creator info is incomplete, fetch additional profile details
-        // If creator info is incomplete, fetch additional profile details
-        if (projectData.creator_id && (!projectData.creator || !projectData.creator.full_name)) {
-          try {
-            const creatorRes = await axiosInstance.get(`/api/v1/profile/${projectData.creator_id}`);
-            const creatorData = creatorRes.data.data.user;
-            
-            // Filter out sensitive fields if necessary
-            const filteredCreatorData = {
-              id: creatorData.id,
-              full_name: creatorData.full_name,
-              username: creatorData.username,
-              location: creatorData.location,
-              bio: creatorData.bio,
-              website: creatorData.website,
-              twitter: creatorData.twitter,
-              profile_image: creatorData.profile_image,
-              projects_created_count: creatorData.projects_created_count,
-              backed_projects_count: creatorData.backed_projects_count,
-              join_date: creatorData.created_at,
-            };
-            
-            // Update project with creator data
+      } catch (err) {
+        console.error('Failed to fetch public backer stats:', err);
+        // Don't let this error stop the overall function
+        // But you might want to set a default value
+        setProject(prev => ({
+          ...prev,
+          backers_count: prev.backers_count || 0
+        }));
+      }
+      
+      const projectData = response.data.data;
+  
+      console.log("Project data:", projectData);
+      console.log("Featured status:", projectData.featured);
+      // Properly handle media URLs
+      if (projectData.image_url) {
+        projectData.image_url = getMediaUrl(projectData.image_url);
+      }
+      
+      if (projectData.video_url) {
+        projectData.video_url = getMediaUrl(projectData.video_url);
+      }
+      
+      // Handle creator profile image if it exists
+      if (projectData.creator && projectData.creator.profile_image) {
+        projectData.creator.profile_image = getMediaUrl(projectData.creator.profile_image);
+      }
+  
+      setProject(projectData);
+      setIsDraft(isDraftRoute);
+  
+      // Try to get category information if needed
+      if (projectData.category_id && !projectData.category) {
+        try {
+          const categoryRes = await axiosInstance.get('/api/v1/categories/');
+          const categories = categoryRes.data.data;
+          const category = categories.find(c => c.id === projectData.category_id);
+          
+          if (category) {
             setProject(prev => ({
               ...prev,
-              creator: {
-                ...prev.creator,
-                ...filteredCreatorData,
-                profile_image: filteredCreatorData.profile_image ? 
-                  getMediaUrl(filteredCreatorData.profile_image) : 
-                  prev.creator?.profile_image
-              }
+              category
             }));
-          } catch (err) {
-            console.error('Failed to fetch creator details:', err);
           }
-        }
-        
-        try {
-          const savedProjectsResponse = await getSavedProjects();
-          const savedProjectIds = savedProjectsResponse.data.projects.map(p => p.id);
-          setIsSaved(savedProjectIds.includes(parseInt(id)));
         } catch (err) {
-          console.error('Failed to fetch saved projects status:', err);
-          // Fallback to not saved
-          setIsSaved(false);
+          console.error('Failed to fetch category:', err);
         }
-        
-      } catch (error) {
-        const errorMessage = error.response?.data?.message || 'Failed to fetch project details';
-        setError(errorMessage);
-        toast.error(errorMessage);
-      } finally {
-        setIsLoading(false);
       }
-    };
-
-  //   fetchProjectDetails();
-  // }, [id]);
-
-
+  
+      // If creator info is incomplete, fetch additional profile details
+      if (projectData.creator_id && (!projectData.creator || !projectData.creator.full_name)) {
+        try {
+          const creatorRes = await axiosInstance.get(`/api/v1/profile/${projectData.creator_id}`);
+          const creatorData = creatorRes.data.data.user;
+          
+          // Filter out sensitive fields if necessary
+          const filteredCreatorData = {
+            id: creatorData.id,
+            full_name: creatorData.full_name,
+            username: creatorData.username,
+            location: creatorData.location,
+            bio: creatorData.bio,
+            website: creatorData.website,
+            twitter: creatorData.twitter,
+            profile_image: creatorData.profile_image,
+            projects_created_count: creatorData.projects_created_count,
+            backed_projects_count: creatorData.backed_projects_count,
+            join_date: creatorData.created_at,
+          };
+          
+          // Update project with creator data
+          setProject(prev => ({
+            ...prev,
+            creator: {
+              ...prev.creator,
+              ...filteredCreatorData,
+              profile_image: filteredCreatorData.profile_image ? 
+                getMediaUrl(filteredCreatorData.profile_image) : 
+                prev.creator?.profile_image
+            }
+          }));
+        } catch (err) {
+          console.error('Failed to fetch creator details:', err);
+        }
+      }
+      
+      try {
+        const savedProjectsResponse = await getSavedProjects();
+        const savedProjectIds = savedProjectsResponse.data.projects.map(p => p.id);
+        setIsSaved(savedProjectIds.includes(parseInt(id)));
+      } catch (err) {
+        console.error('Failed to fetch saved projects status:', err);
+        // Fallback to not saved
+        setIsSaved(false);
+      }
+      
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || 'Failed to fetch project details';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     // Only fetch project data once permission data is loaded
@@ -1086,6 +1226,7 @@ const ProjectDetailPage = () => {
           <ProjectStats 
               project={project}
               daysLeft={daysLeft}
+              backersCount={project?.backers_count || 0}
               percentFunded={percentFunded}
               handleShare={handleShare}
               isSaved={isSaved}
@@ -1106,6 +1247,11 @@ const ProjectDetailPage = () => {
               isCreator={isCreator}
               canCreateReward={canCreateReward()}
             />
+
+            {/* Add the BackersList component */}
+            {/* {project.status === 'ACTIVE' && (
+              <BackersList projectId={project.id} />
+            )} */}
           </Col>
           
           <Col lg={4}>

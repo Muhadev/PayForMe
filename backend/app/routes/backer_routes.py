@@ -198,7 +198,7 @@ def list_project_backers(project_id):
         return error_response(message=result['error'], status_code=result.get('status_code', 404))
     return success_response(data=result['backers'], meta=result['meta'])
 
-@backer_bp.route('/users/<int:user_id>/backed-projects', methods=['GET'])
+@backer_bp.route('/users/<user_id>/backed-projects', methods=['GET'])
 @jwt_required()
 @permission_required('view_user_backed_projects')
 def list_user_backed_projects(user_id):
@@ -209,18 +209,51 @@ def list_user_backed_projects(user_id):
     """
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 20, type=int)
-
+    status = request.args.get('status', None)
+    
     current_user_id = get_jwt_identity()
     logger.info(f"User {current_user_id} requesting backed projects for user {user_id}")
+    
+    # Check if the user has the required permission
+    logger.info(f"Checking permission 'view_user_backed_projects' for user {current_user_id}")
+    
+    # Log request headers for debugging
+    logger.debug(f"Request headers: {dict(request.headers)}")
 
-    result = backer_service.get_user_backed_projects(user_id, page, per_page)
+    result = backer_service.get_user_backed_projects(user_id, page, per_page, status)
     if 'error' in result:
         logger.error(f"Error in list_user_backed_projects: {result['error']}")
         return error_response(message=result['error'], status_code=result.get('status_code', 404))
-
+    
     logger.info(f"Successfully retrieved backed projects for user {user_id}")
     return success_response(data=result['projects'], meta=result['meta'])
 
+@backer_bp.route('/me/backed-projects', methods=['GET'])
+@jwt_required()
+def list_my_backed_projects():
+    """
+    Endpoint for listing projects backed by the current logged-in user.
+    
+    This function retrieves a paginated list of projects that the currently
+    authenticated user has backed.
+    """
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
+    status = request.args.get('status', None)
+    
+    current_user_id = get_jwt_identity()
+    logger.info(f"User {current_user_id} requesting their own backed projects")
+    
+    # No permission check needed as users can always view their own backed projects
+    
+    result = backer_service.get_user_backed_projects(current_user_id, page, per_page, status)
+    if 'error' in result:
+        logger.error(f"Error in list_my_backed_projects: {result['error']}")
+        return error_response(message=result['error'], status_code=result.get('status_code', 404))
+    
+    logger.info(f"Successfully retrieved backed projects for current user {current_user_id}")
+    return success_response(data=result['projects'], meta=result['meta'])
+   
 @backer_bp.route('/projects/<int:project_id>/backers/<int:user_id>', methods=['GET'])
 @jwt_required()
 @permission_required('view_backer_details')
@@ -254,6 +287,19 @@ def get_backer_stats(project_id):
     result = backer_service.get_backer_stats(project_id)
     if 'error' in result:
         logger.error(f"Error in get_backer_stats: {result['error']}")
+        return error_response(message=result['error'], status_code=result.get('status_code', 404))
+    return success_response(data=result)
+
+@backer_bp.route('/projects/<int:project_id>/public-stats', methods=['GET'])
+@jwt_required()
+def get_public_backer_stats(project_id):
+    """
+    Public endpoint for retrieving basic backer statistics for a project.
+    Only returns non-sensitive aggregate data.
+    """
+    result = backer_service.get_public_backer_stats(project_id)
+    if 'error' in result:
+        logger.error(f"Error in get_public_backer_stats: {result['error']}")
         return error_response(message=result['error'], status_code=result.get('status_code', 404))
     return success_response(data=result)
 

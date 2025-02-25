@@ -7,7 +7,7 @@ from threading import Thread
 from app.models.donation import Donation
 from app.models import Reward
 from app import db, cache
-from sqlalchemy import func
+from sqlalchemy import func,  distinct
 from datetime import datetime
 from decimal import Decimal
 from sqlalchemy.orm import Session
@@ -130,6 +130,7 @@ class BackerService:
 
                     if user not in project.backers:
                         project.backers.append(user)
+                        project.backers_count = project.backers_count + 1  # Increment the counter
 
                     # Commit the transaction
                     session.commit()
@@ -321,7 +322,7 @@ class BackerService:
             logger.error(f"Error in get_project_backers: {str(e)}")
             return {'error': 'An unexpected error occurred', 'status_code': 500}
 
-    def get_user_backed_projects(self, user_id, page, per_page):
+    def get_user_backed_projects(self, user_id, page, per_page, status=None):
         """
         Retrieve a paginated list of projects backed by a specific user.
         """
@@ -331,36 +332,55 @@ class BackerService:
                 if not user:
                     logger.warning(f"User with id {user_id} not found")
                     return {'error': f'User with id {user_id} not found', 'status_code': 404}
-
+                    
                 # Query for backed projects
                 backed_projects_query = session.query(Project).join(Project.backers).filter(User.id == user_id)
-
+                
+                # Apply status filter if provided
+                if status:
+                    backed_projects_query = backed_projects_query.filter(Project.status == status.upper())
+                    
                 # Count total items
                 total = backed_projects_query.count()
-
+                    
                 # Apply pagination
                 offset = (page - 1) * per_page
                 backed_projects = backed_projects_query.offset(offset).limit(per_page).all()
-
+                    
                 projects = []
                 for project in backed_projects:
                     total_amount = session.query(func.sum(Donation.amount)).filter(
                         Donation.user_id == user.id,
                         Donation.project_id == project.id
                     ).scalar() or 0
-
+                        
                     first_backed_at = session.query(func.min(Donation.created_at)).filter(
                         Donation.user_id == user.id,
                         Donation.project_id == project.id
                     ).scalar()
 
+                    total_pledged = session.query(func.sum(Donation.amount)).filter(
+                        Donation.project_id == project.id
+                    ).scalar() or 0
+
+                        
                     projects.append({
                         'project_id': project.id,
+                        'id': project.id,
                         'title': project.title,
+                        'description': project.description,
                         'total_amount': float(total_amount),
-                        'first_backed_at': first_backed_at
+                        'first_backed_at': first_backed_at,
+                        'status': project.status.value if project.status else None,
+                        'image_url': project.image_url,
+                        'start_date': project.start_date,
+                        'end_date': project.end_date,
+                        'goal_amount': float(project.goal_amount) if project.goal_amount else 0,
+                        'category_id': project.category_id,
+                        'total_pledged': float(total_pledged),
+                        'backers_count': project.backers_count
                     })
-
+                        
                 # Calculate pagination metadata
                 total_pages = (total + per_page - 1) // per_page
                 meta = {
@@ -369,7 +389,7 @@ class BackerService:
                     'total': total,
                     'pages': total_pages
                 }
-
+                    
                 logger.info(f"Successfully retrieved {len(projects)} backed projects for user {user_id}")
                 return {'projects': projects, 'meta': meta}
         except SQLAlchemyError as e:
@@ -447,6 +467,42 @@ class BackerService:
             logger.error(f"Database error in get_backer_stats: {str(e)}")
             return {'error': 'An unexpected error occurred', 'status_code': 500}
     
+    def get_public_backer_stats(self, project_id):
+        """
+        Get public statistics about backers for a specific project.
+        Returns only non-sensitive aggregate data that can be viewed publicly.
+        """
+        try:
+            with Session(db.engine) as session:
+                project = self._get_project(project_id, session)
+                if not project:
+                    return {'error': 'Project not found', 'status_code': 404}
+
+                # Query for basic statistics - non-sensitive data only
+                stats = session.query(
+                    func.count(distinct(Donation.user_id)).label('total_backers'),
+                    func.sum(Donation.amount).label('total_amount')
+                ).filter(Donation.project_id == project_id).first()
+
+                return {
+                    'project_id': project_id,
+                    'project_title': project.title,
+                    'total_backers': stats.total_backers or 0,
+                    'total_amount': float(stats.total_amount) if stats.total_amount else 0,
+                    # 'funding_percentage': self._calculate_funding_percentage(project, stats.total_amount)
+                }
+        except SQLAlchemyError as e:
+            logger.error(f"Database error in get_public_backer_stats: {str(e)}")
+            return {'error': 'An unexpected error occurred', 'status_code': 500}
+
+    def _calculate_funding_percentage(self, project, total_amount):
+        """
+        Helper method to calculate funding percentage based on goal.
+        """
+        if not project.funding_goal or not total_amount:
+            return 0
+        return min(100, round((float(total_amount) / float(project.funding_goal)) * 100, 2))
+
     def invalidate_backer_stats_cache(self, project_id):
         """
         Invalidate the cache for backer stats when there's a new donation.

@@ -211,6 +211,30 @@ export const fetchCategories = async () => {
     }
 };
 
+export const fetchBackedProjects = async (userId, page = 1, perPage = 20, status = null) => {
+    try {
+      const params = {
+        page,
+        per_page: perPage
+      };
+      
+      if (status && status !== 'all') {
+        params.status = status.toUpperCase();
+      }
+      
+      // Use the "me" or "current" endpoint if userId is 'current'
+      const endpoint = userId === 'current' 
+        ? `/api/v1/backers/me/backed-projects` 
+        : `/api/v1/backers/users/${userId}/backed-projects`;
+      
+      const response = await api.get(endpoint, { params });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching backed projects:', error);
+      throw error;
+    }
+  };
+
 export const shareProject = async (projectId) => {
     try {
         const response = await api.post(`/api/v1/projects/${projectId}/share`);

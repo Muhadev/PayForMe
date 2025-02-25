@@ -32,6 +32,7 @@ class Project(db.Model):
     # Add soft delete fields
     is_deleted = Column(Boolean, default=False, nullable=False)
     deleted_at = Column(DateTime)
+    backers_count = db.Column(db.Integer, default=0)
     
     # Relationships
     creator = relationship("User", back_populates="projects_created")

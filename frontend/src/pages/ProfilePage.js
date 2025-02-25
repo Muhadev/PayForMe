@@ -209,7 +209,7 @@ const ProfilePage = () => {
               </div>
               <div className="stat-item">
                 <span className="stat-label">Total Donations</span>
-                <span className="stat-value">${userData.total_donations.toFixed(2)}</span>
+                <span className="stat-value">${(parseFloat(userData.total_donations) || 0).toFixed(2)}</span>
               </div>
             </div>
             <div className="member-since">
