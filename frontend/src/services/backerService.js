@@ -10,8 +10,8 @@ export const fetchBackerStats = async (projectId) => {
       throw new Error('Project ID is required');
     }
     
-    // Fixed URL with backers prefix
-    const response = await axiosInstance.get(`/api/v1/backers/projects/${projectId}/backers/stats`);
+    // Updated to match the working endpoint from Postman
+    const response = await axiosInstance.get(`/api/v1/backers/projects/${projectId}/public-stats`);
     return {
       error: false,
       data: response.data.data || {}

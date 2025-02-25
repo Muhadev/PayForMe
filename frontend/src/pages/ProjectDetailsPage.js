@@ -220,7 +220,7 @@ const ProjectMedia = ({ project, videoRef, isPlaying, handleVideoToggle, activeM
 };
 
 
-const ProjectStats = ({ project, daysLeft, percentFunded, handleShare, isSaved, handleSaveProject, canBackProject, isCreator }) => {
+const ProjectStats = ({ project, daysLeft, backersCount, percentFunded, handleShare, isSaved, handleSaveProject, canBackProject, isCreator }) => {
   const [showBackingModal, setShowBackingModal] = useState(false);
   const [amount, setAmount] = useState('');
   const [selectedReward, setSelectedReward] = useState(null);
@@ -228,6 +228,8 @@ const ProjectStats = ({ project, daysLeft, percentFunded, handleShare, isSaved, 
   const [availableRewards, setAvailableRewards] = useState([]);
   const [rewards, setRewards] = useState([]);
   const [isLoadingRewards, setIsLoadingRewards] = useState(false);
+
+  console.log('ProjectStats received backersCount:', backersCount);
 
   // Fetch rewards when modal opens
   useEffect(() => {
@@ -287,9 +289,6 @@ const ProjectStats = ({ project, daysLeft, percentFunded, handleShare, isSaved, 
     }
   };
 
-  // Get the correct backer count
-  const backersCount = project?.backers_count || 0;
-
   return (
     <Card className="border-0 shadow-sm mb-4">
       <Card.Body>
@@ -299,10 +298,10 @@ const ProjectStats = ({ project, daysLeft, percentFunded, handleShare, isSaved, 
             <p className="text-muted mb-0">of ${project.goal_amount?.toLocaleString() || 0} goal</p>
           </Col>
           <Col md={4} className="mb-3 mb-md-0">
-            <h2 className="display-6">{backersCount}</h2>
+          <h2 className="display-6">{Number(backersCount) || 0}</h2>
             <p className="text-muted mb-0">
               <Users size={16} className="me-1" />
-              backers
+              backers ({typeof backersCount === 'undefined' ? 'undefined' : backersCount})
             </p>
           </Col>
           <Col md={4}>
@@ -897,7 +896,7 @@ const ProjectDetailPage = () => {
   // In the calculateProjectMetrics function
   // In the calculateProjectMetrics function
   const calculateProjectMetrics = () => {
-    if (!project) return { daysLeft: 0, percentFunded: 0, backersCount: 0 };
+    if (!project) return { daysLeft: 0, percentFunded: 0 };
     
     // Calculate days left
     const endDate = new Date(project.end_date);
@@ -910,15 +909,11 @@ const ProjectDetailPage = () => {
       ? Math.min(100, ((project.current_amount || 0) / project.goal_amount) * 100)
       : 0;
 
-    // Handle backers count with more robust fallback
-    const backersCount = project.backers_count || 
-                      (project.donations ? project.donations.length : 0) || 0;
-
-    return { daysLeft, percentFunded, backersCount };
+    return { daysLeft, percentFunded };
   };
 
   // Extract metrics values to use in components
-  const { daysLeft, percentFunded, backersCount } = useMemo(() => 
+  const { daysLeft, percentFunded } = useMemo(() => 
     calculateProjectMetrics(), [project]
   );
   
@@ -934,25 +929,6 @@ const ProjectDetailPage = () => {
       const response = await axiosInstance.get(
         isDraftRoute ? `/api/v1/projects/drafts/${id}` : `/api/v1/projects/${id}`
       );
-  
-      // Get backers stats
-      try {
-        const backerStatsResponse = await axiosInstance.get(`/api/v1/backers/projects/${id}/public-stats`);
-        if (backerStatsResponse.data && backerStatsResponse.data.data) {
-          setProject(prev => ({
-            ...prev,
-            backers_count: backerStatsResponse.data.data.backers_count
-          }));
-        }
-      } catch (err) {
-        console.error('Failed to fetch public backer stats:', err);
-        // Don't let this error stop the overall function
-        // But you might want to set a default value
-        setProject(prev => ({
-          ...prev,
-          backers_count: prev.backers_count || 0
-        }));
-      }
       
       const projectData = response.data.data;
   
@@ -1055,6 +1031,29 @@ const ProjectDetailPage = () => {
       fetchProjectDetails();
     }
   }, [id, isLoaded]);
+
+  // Add this useEffect to your ProjectDetailPage component
+  useEffect(() => {
+    const fetchBackersCount = async () => {
+      if (!project?.id) return;
+      
+      try {
+        const response = await axiosInstance.get(`/api/v1/backers/projects/${project.id}/public-stats`);
+        if (response.data?.data?.total_backers !== undefined) {
+          // Force update the backers count directly
+          setProject(prev => ({
+            ...prev,
+            backers_count: response.data.data.total_backers
+          }));
+          console.log('Backers count updated separately:', response.data.data.total_backers);
+        }
+      } catch (error) {
+        console.error('Failed to fetch backers count:', error);
+      }
+    };
+    
+    fetchBackersCount();
+  }, [project?.id]); // Only re-run when project ID changes
 
   const handleVideoToggle = () => {
     if (videoRef.current) {
@@ -1204,6 +1203,8 @@ const ProjectDetailPage = () => {
 
   return (
     <div className="project-detail-page bg-light min-vh-100 py-4">
+      {/* Add this line for debugging */}
+      {console.log('Rendering ProjectDetailPage with backers_count:', project?.backers_count)}
       <Container>
       {project.status === 'PENDING' && (isCreator || isAdmin) && (
           <Alert variant="warning" className="mb-4">
@@ -1223,10 +1224,11 @@ const ProjectDetailPage = () => {
         <Row>
           <Col lg={8}>
 
+
           <ProjectStats 
               project={project}
               daysLeft={daysLeft}
-              backersCount={project?.backers_count || 0}
+              backersCount={project?.backers_count ?? 0}
               percentFunded={percentFunded}
               handleShare={handleShare}
               isSaved={isSaved}
