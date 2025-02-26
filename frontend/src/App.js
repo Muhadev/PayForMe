@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import MainLayout from './components/layout/MainLayout';
 import HomePage from './pages/HomePage';
 import AboutPage from './pages/AboutPage';
@@ -23,6 +23,7 @@ import BackedProjectsPage from './pages/BackedProjectsPage';
 import ProjectEditPage from './pages/ProjectEditPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
+import { AuthProvider } from './context/AuthContext';
 import AuthCallback from './components/auth/AuthCallback';
 import SavedProjectsPage from './pages/SavedProjectsPage';
 import CategoryProjectsPage from './pages/CategoryProjectsPage';
@@ -34,9 +35,21 @@ import DonationCancelPage from './pages/DonationCancelPage';
 // import CreateProjectPage from './pages/CreateProjectPage';
 // Other imports...
 
+// Create a protected route component
+const ProtectedRoute = ({ children }) => {
+  const token = localStorage.getItem('accessToken');
+  
+  if (!token) {
+    return <Navigate to="/signin" replace />;
+  }
+  
+  return children;
+};
+
 // console.log('MyProjects:', MyProjects);
 function App() {
   return (
+    
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <ToastContainer
         position="bottom-center"
@@ -49,6 +62,7 @@ function App() {
         draggable
         pauseOnHover
       />
+      <AuthProvider>
       <Routes>
         <Route path="/" element={<MainLayout />}>
           <Route index element={<HomePage />} />
@@ -58,7 +72,14 @@ function App() {
           {/* <Route path="/projects" element={<ProjectsPage />} /> */}
           <Route path="projects" element={<ProjectsPage />} />
           <Route path="projects/:id" element={<ProjectDetailsPage />} /> {/* Dynamic route for project details */}
-          <Route path="projects/create" element={<CreateProjectPage />} />
+          <Route 
+            path="/dashboard" 
+            element={
+              <ProtectedRoute>
+                <UserDashboardPage />
+              </ProtectedRoute>
+            } 
+          />
           <Route path="dashboard" element={<UserDashboardPage />} />
           <Route path="signin" element={<SignInPage />} />
           <Route path="register" element={<SignUpPage />} />
@@ -72,6 +93,7 @@ function App() {
           <Route path="profile" element={<ProfilePage />} />
           <Route path="/saved-projects" element={<SavedProjectsPage />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="/projects/create" element={<CreateProjectPage />} />
           <Route path="/password-reset/:token" element={<ResetPassword />} />
           <Route path="projects/drafts/edit/:id" element={<CreateProjectPage />} />
           {/* <Route path="projects/drafts/:id" element={<ProjectDetailsPage />} /> */}
@@ -91,6 +113,7 @@ function App() {
           {/* Other routes */}
         </Route>
       </Routes>
+      </AuthProvider>
     </Router>
   );
 }

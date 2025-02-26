@@ -671,6 +671,93 @@ def view_project(project_id):
             status_code=500
         )
 
+@projects_bp.route('/my-projects', methods=['GET'])
+@jwt_required()
+def get_my_projects():
+    try:
+        user_id = get_jwt_identity()
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        status = request.args.get('status', None)
+        
+        # Query projects created by current user
+        query = Project.query.filter_by(creator_id=user_id)
+        
+        # Filter by status if provided
+        if status:
+            query = query.filter_by(status=status)
+            
+        # Order by creation date, newest first
+        query = query.order_by(Project.created_at.desc())
+        
+        # Paginate results
+        paginated_projects = query.paginate(page=page, per_page=per_page)
+        
+        # Format response
+        projects = [p.to_dict() for p in paginated_projects.items]
+        
+        meta = {
+            'page': page,
+            'per_page': per_page,
+            'total': paginated_projects.total,
+            'pages': paginated_projects.pages
+        }
+        
+        return api_response(
+            data={'projects': projects, 'meta': meta},
+            status_code=200
+        )
+    except Exception as e:
+        logger.error(f'Error fetching user projects: {str(e)}', exc_info=True)
+        return api_response(message="An unexpected error occurred", status_code=500)
+
+@projects_bp.route('/users/<int:user_id>', methods=['GET'])
+@jwt_required()
+@permission_required('view_user_projects')
+def get_user_projects(user_id):
+    try:
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        status = request.args.get('status', None)
+        
+        # Query projects created by specified user
+        query = Project.query.filter_by(creator_id=user_id)
+        
+        # Filter by status if provided
+        if status:
+            query = query.filter_by(status=status)
+            
+        # For non-admin users, only show public projects
+        if not UserService.has_permission(get_jwt_identity(), 'admin'):
+            query = query.filter(or_(
+                Project.status == ProjectStatus.APPROVED,
+                Project.status == ProjectStatus.FUNDED,
+                Project.status == ProjectStatus.COMPLETED
+            ))
+            
+        # Order by creation date, newest first
+        query = query.order_by(Project.created_at.desc())
+        
+        # Paginate results
+        paginated_projects = query.paginate(page=page, per_page=per_page)
+        
+        # Format response
+        projects = [p.to_dict() for p in paginated_projects.items]
+        
+        meta = {
+            'page': page,
+            'per_page': per_page,
+            'total': paginated_projects.total,
+            'pages': paginated_projects.pages
+        }
+        
+        return api_response(
+            data={'projects': projects, 'meta': meta},
+            status_code=200
+        )
+    except Exception as e:
+        logger.error(f'Error fetching user projects: {str(e)}', exc_info=True)
+        return api_response(message="An unexpected error occurred", status_code=500)
 # Then in the activation route, modify the email sending part:
 @projects_bp.route('/<int:project_id>/activate', methods=['POST'])
 @jwt_required()

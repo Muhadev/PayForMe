@@ -3,7 +3,7 @@ import axios from 'axios';
 import { AppWindowMacIcon } from 'lucide-react';
 
 // Create axios instance with default config
-const api = axios.create({
+export const api = axios.create({
     baseURL: process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000',
     // Add withCredentials for CORS
     withCredentials: true,
@@ -57,6 +57,8 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
   );
+
+
 
 export const createProject = async (formData, isDraft = false) => {
     try {
@@ -209,7 +211,7 @@ export const fetchCategories = async () => {
         console.error('Error fetching categories:', error);
         throw error;
     }
-};
+};    
 
 export const fetchBackedProjects = async (userId, page = 1, perPage = 20, status = null) => {
     try {
@@ -244,6 +246,30 @@ export const shareProject = async (projectId) => {
         throw error;
     }
 };
+
+// Add this to projectService.js
+export const fetchUserProjects = async (userId = 'current', page = 1, perPage = 10, status = null) => {
+    try {
+      const params = {
+        page,
+        per_page: perPage
+      };
+      
+      if (status && status !== 'all') {
+        params.status = status.toUpperCase();
+      }
+      
+      const endpoint = userId === 'current' 
+        ? `/api/v1/projects/my-projects` 
+        : `/api/v1/projects/users/${userId}`;
+      
+      const response = await api.get(endpoint, { params });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching user projects:', error);
+      throw error;
+    }
+  };
 
 export const getPendingProjects = async (page = 1, perPage = 10) => {
     try {
