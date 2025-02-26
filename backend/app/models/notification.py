@@ -17,4 +17,16 @@ class Notification(db.Model):
     
     user = db.relationship("User", back_populates="notifications")
 
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'type': self.type.name if self.type else None,
+            'message': self.message,
+            'read_at': self.read_at.isoformat() if self.read_at else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'project_id': self.project_id
+        }
+
     

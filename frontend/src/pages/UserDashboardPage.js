@@ -8,6 +8,7 @@ import placeholderImage from '../assets/image.png';
 import { toast } from 'react-toastify';
 import Sidebar from './Sidebar';
 import { fetchCategories, api } from '../services/projectService';
+import RecentActivityNotifications from './RecentActivityNotifications';
 
 const StatsCard = ({ icon, title, value, color }) => (
   <Card className="text-center">
@@ -369,7 +370,8 @@ const UserDashboardPage = () => {
                 </Col>
               </Row>
               <ProjectsList projects={userProjects} isLoading={isProjectsLoading} />
-              <RecentActivity />
+              {/* Replace the old RecentActivity component with the new one */}
+              <RecentActivityNotifications />
             </>
           )}
         </Container>

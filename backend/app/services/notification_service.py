@@ -67,7 +67,7 @@ class NotificationService:
         try:
             query = Notification.query.filter_by(user_id=user_id)
             if unread_only:
-                query = query.filter_by(is_read=False)
+                query = query.filter(Notification.read_at == None)  # Use read_at instead of is_read
             notifications = query.order_by(Notification.created_at.desc()).all()
             return notifications
         except Exception as e:
