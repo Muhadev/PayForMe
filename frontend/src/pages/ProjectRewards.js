@@ -14,8 +14,14 @@ const ProjectRewards = ({ project, rewards = [], canBackProject, isCreator, onEd
   const [amount, setAmount] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const displayedRewards = rewards.slice(0, 2);
-  const hasMoreRewards = rewards.length > 2;
+  const availableRewards = rewards.filter(reward => {
+    // Check remaining inventory
+    const remaining = reward.inventory ? reward.inventory - (reward.backers_count || 0) : null;
+    return remaining === null || remaining > 0;
+  });
+
+  const displayedRewards = availableRewards.slice(0, 2);
+  const hasMoreRewards = availableRewards.length > 2;
 
   const handleDeleteReward = async (rewardId) => {
     try {
@@ -98,7 +104,7 @@ const ProjectRewards = ({ project, rewards = [], canBackProject, isCreator, onEd
               variant="outline-primary"
               onClick={() => navigate(`/projects/${project.id}/rewards`)}
             >
-              View All Rewards ({rewards.length})
+              View All Available Rewards ({availableRewards.length})
             </Button>
           </div>
         )}

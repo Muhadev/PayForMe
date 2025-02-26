@@ -1,6 +1,6 @@
 // AllRewardsPage.js
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Alert } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Alert, Form } from 'react-bootstrap';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axiosInstance from '../helper/axiosConfig';
 import EditRewardModal from './EditRewardModal'; // Adjust the path if needed
@@ -18,6 +18,8 @@ const AllRewardsPage = () => {
 
   const [editingReward, setEditingReward] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
+
+  const [showSoldOut, setShowSoldOut] = useState(false);
 
   const handleEditReward = (reward) => {
     setEditingReward(reward);
@@ -42,6 +44,19 @@ const AllRewardsPage = () => {
       prevRewards.map(r => r.id === updatedReward.id ? updatedReward : r)
     );
     toast.success('Reward updated successfully');
+  };
+
+  // Filter function to get either all rewards or just available ones
+  const getFilteredRewards = () => {
+    if (showSoldOut) {
+      return rewards; // Show all rewards if toggle is on
+    }
+    
+    // Otherwise, only show available rewards
+    return rewards.filter(reward => {
+      const remaining = reward.inventory ? reward.inventory - (reward.backers_count || 0) : null;
+      return remaining === null || remaining > 0;
+    });
   };
   
   
@@ -110,6 +125,8 @@ const AllRewardsPage = () => {
       <Alert variant="warning">Project not found</Alert>
     </Container>
   );
+
+  const filteredRewards = getFilteredRewards();
   
   return (
     <Container className="py-5">
@@ -118,41 +135,58 @@ const AllRewardsPage = () => {
           <h1 className="h3 mb-2">All Rewards</h1>
           <h2 className="h5 text-muted">{project.title}</h2>
         </div>
-        <Button variant="outline-secondary" onClick={() => navigate(`/projects/${id}`)}>
-          <i className="bi bi-arrow-left me-2"></i>
-          Back to Project
-        </Button>
+        <div className="d-flex gap-3">
+          <Form.Check 
+            type="switch"
+            id="show-sold-out-switch"
+            label="Show sold out rewards"
+            checked={showSoldOut}
+            onChange={(e) => setShowSoldOut(e.target.checked)}
+          />
+          <Button variant="outline-secondary" onClick={() => navigate(`/projects/${id}`)}>
+            <i className="bi bi-arrow-left me-2"></i>
+            Back to Project
+          </Button>
+        </div>
       </div>
       
       {rewards.length === 0 ? (
         <Alert variant="info">
           This project doesn't have any rewards yet.
         </Alert>
+      ) : filteredRewards.length === 0 ? (
+        <Alert variant="info">
+          There are no available rewards at this time.
+          {rewards.length > 0 && (
+            <span> Toggle "Show sold out rewards" to view all rewards.</span>
+          )}
+        </Alert>
       ) : (
         <Row>
-          {rewards.map(reward => (
+          {filteredRewards.map(reward => (
             <Col md={6} lg={4} className="mb-4" key={reward.id}>
               <RewardCard 
                 reward={reward}
                 canBackProject={project.status === 'ACTIVE'}
                 isCreator={true}
                 fullView={true}
-                onEditReward={(reward) => handleEditReward(reward)} // Add this function
-                onDeleteReward={(rewardId) => handleDeleteReward(rewardId)} // Add this functio
+                onEditReward={(reward) => handleEditReward(reward)}
+                onDeleteReward={(rewardId) => handleDeleteReward(rewardId)}
               />
             </Col>
           ))}
         </Row>
       )}
+      
       {showEditModal && (
         <EditRewardModal
-            show={showEditModal}
-            onHide={() => setShowEditModal(false)}
-            projectId={id}
-            reward={editingReward}
-            onRewardUpdated={handleRewardUpdated}
+          show={showEditModal}
+          onHide={() => setShowEditModal(false)}
+          projectId={id}
+          reward={editingReward}
+          onRewardUpdated={handleRewardUpdated}
         />
-        )}
+      )}
     </Container>
   );
 };
