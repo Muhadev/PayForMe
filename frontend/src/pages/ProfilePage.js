@@ -248,14 +248,14 @@ const ProfilePage = () => {
                     Account Settings
                   </Nav.Link>
                 </Nav.Item>
-                <Nav.Item>
+                {/* <Nav.Item>
                   <Nav.Link 
                     eventKey="notifications" 
                     onClick={() => setActiveTab('notifications')}
                   >
                     Notifications
                   </Nav.Link>
-                </Nav.Item>
+                </Nav.Item> */}
               </Nav>
             </Card.Header>
 
@@ -342,7 +342,7 @@ const ProfilePage = () => {
 
               {activeTab === 'account' && <AccountSettingsPanel />}
 
-              {activeTab === 'notifications' && (
+              {/* {activeTab === 'notifications' && (
                 <div className="notification-settings">
                   <h5 className="mb-4">Notification Preferences</h5>
                   <Form>
@@ -375,7 +375,7 @@ const ProfilePage = () => {
                     <Button variant="primary">Save Preferences</Button>
                   </Form>
                 </div>
-              )}
+              )} */}
             </Card.Body>
           </Card>
         </Col>

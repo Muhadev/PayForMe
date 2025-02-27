@@ -17,7 +17,7 @@ import os
 db = SQLAlchemy()
 jwt = JWTManager()
 migrate = Migrate()
-limiter = Limiter(key_func=get_remote_address, default_limits=["200 per day", "50 per hour"])
+limiter = Limiter(key_func=get_remote_address, default_limits=["1000 per day", "200 per hour"])
 photos = UploadSet('photos', IMAGES)  # Define an UploadSet for images
 videos = UploadSet('videos', ('mp4', 'avi', 'mov'))
 cache = Cache()

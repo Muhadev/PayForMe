@@ -11,6 +11,8 @@ const AppNavbar = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
   const searchRef = useRef(null);
   const navigate = useNavigate();
 
@@ -42,7 +44,38 @@ const AppNavbar = () => {
       }
     };
 
+    const checkAuthStatus = async () => {
+      // Check if user is authenticated (using token from localStorage)
+      // Updated to match the token key used in axiosConfig.js
+      const token = localStorage.getItem('accessToken');
+      if (token) {
+        try {
+          // Use the profile endpoint to validate token and get user data
+          const response = await axiosInstance.get('api/v1/profile/');
+          
+          // Based on your API response structure from profile_routes.py
+          if (response.data.data && response.data.data.user) {
+            setUser(response.data.data.user);
+            setIsAuthenticated(true);
+          } else {
+            throw new Error('Invalid user data structure');
+          }
+        } catch (error) {
+          // Token might be invalid or expired
+          console.error('Auth validation error:', error);
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          setIsAuthenticated(false);
+          setUser(null);
+        }
+      } else {
+        setIsAuthenticated(false);
+        setUser(null);
+      }
+    };
+
     fetchCategories();
+    checkAuthStatus();
 
     // Close dropdown when clicking outside
     const handleClickOutside = (event) => {
@@ -75,6 +108,65 @@ const AppNavbar = () => {
     setShowDropdown(false);
   };
 
+  const handleSignOut = async () => {
+    try {
+      // Call the logout endpoint from your auth_routes.py
+      await axiosInstance.delete('api/v1/auth/logout');
+    } catch (error) {
+      console.error('Error during logout:', error);
+    } finally {
+      // Even if the API call fails, clear local auth data
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('userId');
+      setIsAuthenticated(false);
+      setUser(null);
+      
+      // Redirect to home page
+      navigate('/');
+    }
+  };
+
+  // Auth-dependent navigation items
+  const renderAuthButtons = () => {
+    if (isAuthenticated && user) {
+      return (
+        <>
+          <Link to="/projects/create" className="btn btn-primary rounded-pill me-2">
+            Start Project
+          </Link>
+          
+          <NavDropdown 
+            title={
+              <div className="d-flex align-items-center">
+                <i className="bi bi-person-circle me-1"></i>
+                {user.username || user.full_name || 'Account'}
+              </div>
+            } 
+            id="user-dropdown"
+          >
+            <NavDropdown.Item as={Link} to="/dashboard">Dashboard</NavDropdown.Item>
+            <NavDropdown.Item as={Link} to="/profile">My Profile</NavDropdown.Item>
+            <NavDropdown.Item as={Link} to="/my-projects">My Projects</NavDropdown.Item>
+            <NavDropdown.Divider />
+            <NavDropdown.Item onClick={handleSignOut}>Sign Out</NavDropdown.Item>
+          </NavDropdown>
+        </>
+      );
+    } else {
+      return (
+        <>
+          <Link to="/projects/create" className="btn btn-primary rounded-pill me-2">
+            Start Project
+          </Link>
+          <Nav.Link as={Link} to="/signin" className="btn btn-outline-primary rounded-pill">
+            Sign In
+          </Nav.Link>
+        </>
+      );
+    }
+  };
+
   return (
     <Navbar bg="white" expand="lg" fixed="top" className="py-2">
       <Container fluid className="px-4">
@@ -105,13 +197,6 @@ const AppNavbar = () => {
                     className="search-result-item d-flex align-items-center hover:bg-gray-100"
                     onClick={() => handleResultClick(project.id)}
                   >
-                    {/* {project.image_url && (
-                      <img
-                        src={project.image_url}
-                        alt={project.title}
-                        className="search-result-image me-3"
-                      />
-                    )} */}
                     <div>
                       <div className="search-result-title">{project.title}</div>
                       <small className="text-muted">
@@ -131,7 +216,6 @@ const AppNavbar = () => {
           </div>
 
           <Nav>
-            {/* Rest of your navigation items remain the same */}
             <NavDropdown title="Categories" id="basic-nav-dropdown" className="me-2">
               {categories.map((category) => (
                 <NavDropdown.Item 
@@ -145,15 +229,11 @@ const AppNavbar = () => {
             </NavDropdown>
 
             <Nav.Link as={Link} to="/about" className="me-2">About</Nav.Link>
-            <Nav.Link as={Link} to="/dashboard" className="me-2">Dashboard</Nav.Link>
             <Nav.Link as={Link} to="/faqs" className="me-2">FAQs</Nav.Link>
-
-            <Link to="/projects/create" className="btn btn-primary rounded-pill me-2">
-              Start Project
-            </Link>
-            <Nav.Link as={Link} to="/signin" className="btn btn-outline-primary rounded-pill">
-              Sign In
-            </Nav.Link>
+            {isAuthenticated && <Nav.Link as={Link} to="/dashboard" className="me-2">Dashboard</Nav.Link>}
+            
+            {/* Conditionally render auth-dependent buttons */}
+            {renderAuthButtons()}
           </Nav>
         </Navbar.Collapse>
       </Container>
