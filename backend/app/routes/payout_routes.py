@@ -94,7 +94,7 @@ def payout_webhook():
     payload = request.get_data()
     sig_header = request.headers.get('Stripe-Signature')
     
-    if not sig_header:
+    if not sig_header:  
         logger.error("Missing Stripe-Signature header")
         return error_response(message="No signature header", status_code=400)
     

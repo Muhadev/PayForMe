@@ -72,6 +72,7 @@ class User(db.Model):
     payouts = db.relationship("Payout", back_populates="user")
 
     stripe_connect_id = db.Column(db.String(255), unique=True, nullable=True)
+    country_code = db.Column(db.String(2), default="US")
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)

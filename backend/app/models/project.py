@@ -28,6 +28,8 @@ class Project(db.Model):
     featured = Column(Boolean, default=False)
     risk_and_challenges = Column(Text)
     video_url = Column(String(200))
+    # In your Project model
+    currency = Column(String(3), default="USD", nullable=False)
 
     # Add soft delete fields
     is_deleted = Column(Boolean, default=False, nullable=False)

@@ -58,6 +58,7 @@ class Config:
     STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
     STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
     STRIPE_LOGGING = os.getenv('STRIPE_LOGGING', False)
+    STRIPE_CONNECT_WEBHOOK_SECRET = os.getenv('STRIPE_CONNECT_WEBHOOK_SECRET')
 
     # Platform fee configuration for payouts (defaults to 5% if not set)
     PLATFORM_FEE_PERCENTAGE = os.getenv('PLATFORM_FEE_PERCENTAGE', '5')

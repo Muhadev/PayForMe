@@ -118,6 +118,9 @@ def create_app():
         from app.routes.payout_routes import payout_bp
         app.register_blueprint(payout_bp, url_prefix='/api/v1/payouts')
 
+        from app.routes.bank_account_routes import bank_account_bp
+        app.register_blueprint(bank_account_bp, url_prefix='/api/v1/bank-accounts')
+
         @app.errorhandler(422)
         def handle_validation_error(e):
             return jsonify({
