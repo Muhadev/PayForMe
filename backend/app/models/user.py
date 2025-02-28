@@ -70,6 +70,8 @@ class User(db.Model):
 
     stripe_customer_id = db.Column(db.String(255), unique=True, nullable=True)
     payouts = db.relationship("Payout", back_populates="user")
+
+    stripe_connect_id = db.Column(db.String(255), unique=True, nullable=True)
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)

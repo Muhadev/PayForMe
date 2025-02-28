@@ -62,6 +62,11 @@ def setup_permissions_and_roles():
                 ('view_users', 'Can view list of all users'),
                 ('revoke_project', 'Can revoke active projects'),
                 ('feature_project', 'Can feature or unfeature projects'),
+                ('create_payout', 'Can create a payout request'),
+                ('view_payouts', 'Can view payout history'),
+                ('view_payout_eligibility', 'Can check payout eligibility'),
+                ('process_payout', 'Can process payouts (admin)'),
+                ('manage_payouts', 'Can manage all payouts (admin)'),
 
             ]
 
@@ -93,6 +98,9 @@ def setup_permissions_and_roles():
                     'claim_reward',
                     'delete_reward',
                     'share_project',
+                    'create_payout',
+                    'view_payouts',
+                    'view_payout_eligibility'
                 ])
             ]
 

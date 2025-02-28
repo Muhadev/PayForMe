@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 @payout_bp.route('/projects/<int:project_id>/payout/eligibility', methods=['GET'])
 @jwt_required()
+@permission_required('view_payout_eligibility')
 def check_payout_eligibility(project_id):
     """Check if a project is eligible for payout."""
     try:
@@ -60,6 +61,7 @@ def request_payout(project_id):
 
 @payout_bp.route('/', methods=['GET'])
 @jwt_required()
+@permission_required('view_payouts')
 def get_payout_history():
     """Get payout history for the current user."""
     try:

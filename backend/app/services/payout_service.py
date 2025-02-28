@@ -214,7 +214,7 @@ class PayoutService:
                         amount=float(payout.amount),
                         currency=payout.currency
                     )
-                except Exception as e:
+                except Exception as e: 
                     logger.error(f"Failed to send payout email: {str(e)}")
                 
                 return {
