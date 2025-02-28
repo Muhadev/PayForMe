@@ -124,10 +124,14 @@ def reactivate_account():
 @bp.route('/refresh', methods=['POST'])
 @jwt_required(refresh=True)
 def refresh():
-    current_user = get_jwt_identity()
-    new_access_token = create_access_token(identity=current_user)
-    logger.info(f"Access token refreshed for user: {current_user}")
-    return jsonify(access_token=new_access_token), 200
+    try:
+        current_user = get_jwt_identity()
+        new_access_token = create_access_token(identity=current_user)
+        current_app.logger.info(f"Refreshed access token for user: {current_user}")
+        return jsonify(access_token=new_access_token), 200
+    except Exception as e:
+        current_app.logger.error(f"Token refresh error: {str(e)}")
+        return jsonify({"msg": "Invalid refresh token"}), 401
 
 @bp.route('/logout', methods=['DELETE'])
 @jwt_required()

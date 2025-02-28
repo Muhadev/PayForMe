@@ -30,36 +30,24 @@ function SignInPage() {
     }, 1000);
   }, [navigate]);
 
-  // Handle OAuth callback
+  // Handle tokens in URL parameters (for Google OAuth)
   useEffect(() => {
-    const handleOAuthCallback = async () => {
-      // Check if this is a callback from OAuth
-      if (searchParams.has('code') && searchParams.has('state')) {
-        setIsLoading(true);
-        try {
-          // The backend will handle the token exchange
-          const response = await axiosInstance.get('/api/v1/google_auth/login/google/authorized' + window.location.search);
-          
-          if (response.status === 200) {
-            const { access_token, refresh_token } = response.data.data;
-            if (access_token && refresh_token) {
-              handleSuccessfulLogin(access_token, refresh_token);
-            } else {
-              toast.error('Authentication failed: No tokens received.');
-            }
-          }
-        } catch (error) {
-          console.error('OAuth callback error:', error);
-          toast.error('Failed to complete Google sign in. Please try again.');
-        } finally {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    handleOAuthCallback();
+    // Check for tokens directly in the URL
+    const access_token = searchParams.get('access_token');
+    const refresh_token = searchParams.get('refresh_token');
+    
+    if (access_token && refresh_token) {
+      console.log("Found tokens in URL, handling login...");
+      handleSuccessfulLogin(access_token, refresh_token);
+    }
+    
+    // Also check for error messages
+    const error = searchParams.get('error');
+    if (error) {
+      toast.error(`Authentication error: ${error}`);
+    }
   }, [searchParams, handleSuccessfulLogin]);
-
+  
   // Standard Email Login
   const handleSubmit = async (event) => {
     event.preventDefault();
