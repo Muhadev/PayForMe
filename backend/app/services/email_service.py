@@ -63,7 +63,8 @@ EMAIL_TEMPLATE_TYPES = [
     '2fa_setup', 'project_backed', 'project_update', 'project_milestone',
     'project_activated', 'reward_created', 'reward_updated', 'reward_claimed_backer',
     'reward_claimed_creator', 'project_revoked', 'project_featured', 'project_unfeatured', 'donation_confirmation',
-    'donation_failed', 'donation_refund', 'donation_success'
+    'donation_failed', 'donation_refund', 'donation_success',
+    'payout_initiated', 'payout_completed', 'payout_failed'
 ]
 
 def send_templated_email(to_email, email_type, **kwargs):
@@ -106,6 +107,10 @@ def get_required_template_kwargs(email_type):
         # 'project_revoked': ['project_title', 'creator_name'],
         # 'project_featured': ['project_title', 'creator_name'],
         # 'project_unfeatured': ['project_title', 'creator_name']
+        'payout_initiated': ['user_name', 'project_title', 'amount', 'currency'],
+        'payout_completed': ['user_name', 'project_title', 'amount', 'currency', 'payout_id'],
+        'payout_failed': ['user_name', 'project_title', 'amount', 'currency', 'failure_reason'],
+        # other template types...
     }
     return template_requirements.get(email_type, [])
 
@@ -129,6 +134,9 @@ def get_email_subject(email_type):
         'donation_confirmation': 'Thank You for Your Donation!',
         'donation_success': 'Your Donation Was Successful',
         'donation_failed': 'Donation Payment Failed',
-        'donation_refund': 'Your Donation Has Been Refunded'
+        'donation_refund': 'Your Donation Has Been Refunded',
+        'payout_initiated': 'Your Payout Has Been Initiated',
+        'payout_completed': 'Your Payout Has Been Completed',
+        'payout_failed': 'Your Payout Has Failed'
     }
     return subjects.get(email_type, 'Notification from PayForMe')

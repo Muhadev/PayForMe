@@ -1,0 +1,36 @@
+{% extends "base_email.html" %}
+
+{% block title %}Payout Failed | PayForMe{% endblock %}
+
+{% block header %}Payout Failed{% endblock %}
+
+{% block content %}
+<h2 style="color: #2d3748; margin-top: 0; margin-bottom: 24px;">Hello {{ user_name }},</h2>
+
+<p>We regret to inform you that your payout of <strong>{{ amount }} {{ currency }}</strong> for your project <strong>{{ project_title }}</strong> could not be processed.</p>
+
+<div style="background-color: #fff5f5; border-left: 4px solid #f56565; padding: 16px; margin: 24px 0; border-radius: 4px;">
+    <p style="margin: 0; font-weight: 600; color: #2d3748;">Payout Details:</p>
+    <ul style="margin-top: 12px; margin-bottom: 0; padding-left: 20px;">
+        <li>Amount: {{ amount }} {{ currency }}</li>
+        <li>Project: {{ project_title }}</li>
+        <li>Status: Failed</li>
+        <li>Reason: {{ failure_reason }}</li>
+    </ul>
+</div>
+
+<p>The funds remain available in your project balance and you can request another payout at any time.</p>
+
+<p>Common reasons for payout failures include:</p>
+<ul>
+    <li>Incorrect bank account information</li>
+    <li>Bank account restrictions</li>
+    <li>Temporary issues with the payment processor</li>
+</ul>
+
+<p>To resolve this issue, please verify your bank account information in your account settings and try requesting a payout again. If you continue to experience issues, please contact our support team for assistance.</p>
+
+<p>We apologize for any inconvenience this may have caused.</p>
+
+<p style="margin-bottom: 0;">Best regards,<br>The PayForMe Team</p>
+{% endblock %}

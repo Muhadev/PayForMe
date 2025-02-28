@@ -1,0 +1,22 @@
+Hello {{ user_name }},
+
+We're happy to inform you that your payout of {{ amount }} {{ currency }} for your project "{{ project_title }}" has been successfully completed!
+
+The funds have been transferred to your connected bank account and should be available according to your bank's standard processing times.
+
+PAYOUT DETAILS:
+- Amount: {{ amount }} {{ currency }}
+- Project: {{ project_title }}
+- Payout ID: {{ payout_id }}
+- Status: Completed
+
+For your reference, this transaction will appear as "PayForMe - Payout" in your bank statement. If you don't see the funds in your account within 5 business days, please contact our support team.
+
+Thank you for choosing PayForMe to bring your project to life. We're excited to see your continued success!
+
+Best regards,
+The PayForMe Team
+
+© {{ current_year }} PayForMe. All rights reserved.
+This email was sent to you as a registered user of PayForMe.
+Please do not reply to this email.

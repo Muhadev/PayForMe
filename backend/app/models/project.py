@@ -33,6 +33,10 @@ class Project(db.Model):
     is_deleted = Column(Boolean, default=False, nullable=False)
     deleted_at = Column(DateTime)
     backers_count = db.Column(db.Integer, default=0)
+
+    payouts = db.relationship("Payout", back_populates="project")
+    # Add a field to track if the project funds are available for withdrawal
+    funds_available = db.Column(db.Boolean, default=False)
     
     # Relationships
     creator = relationship("User", back_populates="projects_created")

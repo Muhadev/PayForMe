@@ -1,0 +1,28 @@
+{% extends "base_email.html" %}
+
+{% block title %}Payout Initiated | PayForMe{% endblock %}
+
+{% block header %}Payout Initiated{% endblock %}
+
+{% block content %}
+<h2 style="color: #2d3748; margin-top: 0; margin-bottom: 24px;">Hello {{ user_name }},</h2>
+
+<p>Great news! We've initiated a payout of <strong>{{ amount }} {{ currency }}</strong> for your project <strong>{{ project_title }}</strong>.</p>
+
+<p>The funds are now being processed through our payment system and should arrive in your connected bank account within 2-5 business days, depending on your bank's processing times.</p>
+
+<div style="background-color: #f7fafc; border-left: 4px solid #4299e1; padding: 16px; margin: 24px 0; border-radius: 4px;">
+    <p style="margin: 0; font-weight: 600; color: #2d3748;">Payout Details:</p>
+    <ul style="margin-top: 12px; margin-bottom: 0; padding-left: 20px;">
+        <li>Amount: {{ amount }} {{ currency }}</li>
+        <li>Project: {{ project_title }}</li>
+        <li>Status: Processing</li>
+    </ul>
+</div>
+
+<p>You'll receive another email once the payout has been completed. If you have any questions about this transaction, please contact our support team.</p>
+
+<p>Thank you for using PayForMe to fund your creative journey!</p>
+
+<p style="margin-bottom: 0;">Best regards,<br>The PayForMe Team</p>
+{% endblock %}

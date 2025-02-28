@@ -1,0 +1,29 @@
+{% extends "base_email.html" %}
+
+{% block title %}Payout Completed | PayForMe{% endblock %}
+
+{% block header %}Payout Completed{% endblock %}
+
+{% block content %}
+<h2 style="color: #2d3748; margin-top: 0; margin-bottom: 24px;">Hello {{ user_name }},</h2>
+
+<p>We're happy to inform you that your payout of <strong>{{ amount }} {{ currency }}</strong> for your project <strong>{{ project_title }}</strong> has been successfully completed!</p>
+
+<p>The funds have been transferred to your connected bank account and should be available according to your bank's standard processing times.</p>
+
+<div style="background-color: #f0fff4; border-left: 4px solid #48bb78; padding: 16px; margin: 24px 0; border-radius: 4px;">
+    <p style="margin: 0; font-weight: 600; color: #2d3748;">Payout Details:</p>
+    <ul style="margin-top: 12px; margin-bottom: 0; padding-left: 20px;">
+        <li>Amount: {{ amount }} {{ currency }}</li>
+        <li>Project: {{ project_title }}</li>
+        <li>Payout ID: {{ payout_id }}</li>
+        <li>Status: Completed</li>
+    </ul>
+</div>
+
+<p>For your reference, this transaction will appear as "PayForMe - Payout" in your bank statement. If you don't see the funds in your account within 5 business days, please contact our support team.</p>
+
+<p>Thank you for choosing PayForMe to bring your project to life. We're excited to see your continued success!</p>
+
+<p style="margin-bottom: 0;">Best regards,<br>The PayForMe Team</p>
+{% endblock %}

@@ -1,0 +1,27 @@
+Hello {{ user_name }},
+
+We regret to inform you that your payout of {{ amount }} {{ currency }} for your project "{{ project_title }}" could not be processed.
+
+PAYOUT DETAILS:
+- Amount: {{ amount }} {{ currency }}
+- Project: {{ project_title }}
+- Status: Failed
+- Reason: {{ failure_reason }}
+
+The funds remain available in your project balance and you can request another payout at any time.
+
+Common reasons for payout failures include:
+- Incorrect bank account information
+- Bank account restrictions
+- Temporary issues with the payment processor
+
+To resolve this issue, please verify your bank account information in your account settings and try requesting a payout again. If you continue to experience issues, please contact our support team for assistance.
+
+We apologize for any inconvenience this may have caused.
+
+Best regards,
+The PayForMe Team
+
+© {{ current_year }} PayForMe. All rights reserved.
+This email was sent to you as a registered user of PayForMe.
+Please do not reply to this email.

@@ -1,0 +1,21 @@
+Hello {{ user_name }},
+
+Great news! We've initiated a payout of {{ amount }} {{ currency }} for your project "{{ project_title }}".
+
+The funds are now being processed through our payment system and should arrive in your connected bank account within 2-5 business days, depending on your bank's processing times.
+
+PAYOUT DETAILS:
+- Amount: {{ amount }} {{ currency }}
+- Project: {{ project_title }}
+- Status: Processing
+
+You'll receive another email once the payout has been completed. If you have any questions about this transaction, please contact our support team.
+
+Thank you for using PayForMe to fund your creative journey!
+
+Best regards,
+The PayForMe Team
+
+© {{ current_year }} PayForMe. All rights reserved.
+This email was sent to you as a registered user of PayForMe.
+Please do not reply to this email.

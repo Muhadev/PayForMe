@@ -115,6 +115,9 @@ def create_app():
         from app.routes.reward_routes import reward_bp
         app.register_blueprint(reward_bp, url_prefix='/api/v1/rewards')
 
+        from app.routes.payout_routes import payout_bp
+        app.register_blueprint(payout_bp, url_prefix='/api/v1/payouts')
+
         @app.errorhandler(422)
         def handle_validation_error(e):
             return jsonify({

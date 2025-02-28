@@ -9,6 +9,7 @@ import { toast } from 'react-toastify';
 import Sidebar from './Sidebar';
 import { fetchCategories, api } from '../services/projectService';
 import RecentActivityNotifications from './RecentActivityNotifications';
+import * as backerService from '../services/backerService';
 
 const StatsCard = ({ icon, title, value, color }) => (
   <Card className="text-center">
@@ -329,6 +330,60 @@ const UserDashboardPage = () => {
     
     fetchProjectsAndCategories();
   }, []);
+
+  // Add this new effect to fetch backer stats
+  useEffect(() => {
+    const fetchBackerStatsForProjects = async () => {
+      if (!userProjects.length) return;
+      
+      // Filter active projects that need stats
+      const projectsNeedingStats = userProjects.filter(
+        project => project.status?.toLowerCase() !== 'draft' && 
+                   project.status?.toLowerCase() !== 'pending' &&
+                   project.status?.toLowerCase() !== 'revoked'
+      );
+      
+      if (!projectsNeedingStats.length) return;
+      
+      try {
+        // Create array of promises for parallel execution
+        const statsPromises = projectsNeedingStats.map(project => 
+          backerService.fetchBackerStats(project.id)
+        );
+        
+        // Execute all promises in parallel
+        const statsResults = await Promise.all(statsPromises);
+        
+        // Create a map of project ID to stats
+        const statsMap = {};
+        projectsNeedingStats.forEach((project, index) => {
+          const result = statsResults[index];
+          if (!result.error && result.data) {
+            statsMap[project.id] = {
+              backers_count: result.data.total_backers || 0,
+              current_amount: result.data.total_amount || project.total_pledged || 0
+            };
+          }
+        });
+        
+        // Update all projects with their stats
+        const updatedProjects = userProjects.map(project => {
+          if (statsMap[project.id]) {
+            return { ...project, ...statsMap[project.id] };
+          }
+          return project;
+        });
+        
+        setUserProjects(updatedProjects);
+      } catch (error) {
+        console.error('Failed to fetch backer stats:', error);
+      }
+    };
+  
+    if (userProjects.length && !isProjectsLoading) {
+      fetchBackerStatsForProjects();
+    }
+  }, [userProjects.length, isProjectsLoading]);
 
   return (
     <div className="dashboard-container">
