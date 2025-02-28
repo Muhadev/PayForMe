@@ -6,6 +6,7 @@ import { getSavedProjects, unsaveProject } from '../services/projectService';
 import { Link, useNavigate } from 'react-router-dom';
 import placeholderImage from '../assets/image.png';
 import './SavedProjectsPage.css';
+import * as backerService from '../services/backerService';
 
 const SavedProjectsPage = () => {
   const [projects, setProjects] = useState([]);
@@ -49,6 +50,60 @@ const SavedProjectsPage = () => {
 
     fetchSavedProjects();
   }, [currentPage, refreshTrigger]);
+
+    // Add this new effect to fetch backer stats
+    useEffect(() => {
+      const fetchBackerStatsForProjects = async () => {
+        if (!projects.length) return;
+        
+        // Filter active projects that need stats
+        const projectsNeedingStats = projects.filter(
+          project => project.status?.toLowerCase() !== 'draft' && 
+                     project.status?.toLowerCase() !== 'pending' &&
+                     project.status?.toLowerCase() !== 'revoked'
+        );
+        
+        if (!projectsNeedingStats.length) return;
+        
+        try {
+          // Create array of promises for parallel execution
+          const statsPromises = projectsNeedingStats.map(project => 
+            backerService.fetchBackerStats(project.id)
+          );
+          
+          // Execute all promises in parallel
+          const statsResults = await Promise.all(statsPromises);
+          
+          // Create a map of project ID to stats
+          const statsMap = {};
+          projectsNeedingStats.forEach((project, index) => {
+            const result = statsResults[index];
+            if (!result.error && result.data) {
+              statsMap[project.id] = {
+                backers_count: result.data.total_backers || 0,
+                current_amount: result.data.total_amount || project.total_pledged || 0
+              };
+            }
+          });
+          
+          // Update all projects with their stats
+          const updatedProjects = projects.map(project => {
+            if (statsMap[project.id]) {
+              return { ...project, ...statsMap[project.id] };
+            }
+            return project;
+          });
+          
+          setProjects(updatedProjects);
+        } catch (error) {
+          console.error('Failed to fetch backer stats:', error);
+        }
+      };
+  
+      if (projects.length && !loading) {
+        fetchBackerStatsForProjects();
+      }
+    }, [projects.length, loading]);
 
   const handleUnsave = async (projectId) => {
     try {

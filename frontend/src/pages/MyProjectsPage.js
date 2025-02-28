@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 import './MyProjectsPage.css';
 import * as projectService from '../services/projectService';
 import placeholderImage from '../assets/image.png';
+import * as backerService from '../services/backerService';
 
 const MyProjectsPage = () => {
   const [filter, setFilter] = useState('all');
@@ -57,6 +58,60 @@ const MyProjectsPage = () => {
 
     fetchProjects();
   }, [filter]);
+
+  // More efficient implementation using Promise.all
+  useEffect(() => {
+    const fetchBackerStatsForProjects = async () => {
+      if (!projects.length) return;
+      
+      // Filter projects that need stats (non-draft, non-pending)
+      const projectsNeedingStats = projects.filter(
+        project => project.status?.toLowerCase() !== 'draft' && 
+                    project.status?.toLowerCase() !== 'pending' &&
+                    project.status?.toLowerCase() !== 'revoked'
+      );
+      
+      if (!projectsNeedingStats.length) return;
+      
+      try {
+        // Create array of promises for parallel execution
+        const statsPromises = projectsNeedingStats.map(project => 
+          backerService.fetchBackerStats(project.id)
+        );
+        
+        // Execute all promises in parallel
+        const statsResults = await Promise.all(statsPromises);
+        
+        // Create a map of project ID to stats
+        const statsMap = {};
+        projectsNeedingStats.forEach((project, index) => {
+          const result = statsResults[index];
+          if (!result.error && result.data) {
+            statsMap[project.id] = {
+              backers_count: result.data.total_backers || 0,
+              total_pledged: result.data.total_amount || project.total_pledged || 0
+            };
+          }
+        });
+        
+        // Update all projects with their stats
+        const updatedProjects = projects.map(project => {
+          if (statsMap[project.id]) {
+            return { ...project, ...statsMap[project.id] };
+          }
+          return project;
+        });
+        
+        setProjects(updatedProjects);
+      } catch (error) {
+        console.error('Failed to fetch backer stats:', error);
+      }
+    };
+
+    if (projects.length && !isLoading) {
+      fetchBackerStatsForProjects();
+    }
+  }, [projects.length, isLoading]);
 
   const stripHtml = (html) => {
     const tmp = document.createElement('div');
