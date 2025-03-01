@@ -59,11 +59,39 @@ def request_payout(project_id):
         logger.error(f"Error in request_payout: {str(e)}")
         return error_response(message="An unexpected error occurred", status_code=500)
 
+# Fix: Add a specific route for getting project payout history to avoid the redirect issue
+@payout_bp.route('/projects/<int:project_id>/payouts', methods=['GET'])
+@jwt_required()
+@permission_required('view_payouts')
+def get_project_payout_history(project_id):
+    """Get payout history for a specific project."""
+    try:
+        current_user_id = get_jwt_identity()
+        
+        # Get query parameters
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)
+        
+        result = payout_service.get_payout_history(
+            current_user_id, 
+            project_id=project_id,
+            page=page,
+            per_page=per_page
+        )
+        
+        if 'error' in result:
+            return error_response(message=result['error'], status_code=result.get('status_code', 400))
+        
+        return success_response(data=result)
+    except Exception as e:
+        logger.error(f"Error in get_project_payout_history: {str(e)}")
+        return error_response(message="An unexpected error occurred", status_code=500)
+
 @payout_bp.route('/', methods=['GET'])
 @jwt_required()
 @permission_required('view_payouts')
 def get_payout_history():
-    """Get payout history for the current user."""
+    """Get payout history for the current user across all projects."""
     try:
         current_user_id = get_jwt_identity()
         

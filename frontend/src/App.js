@@ -30,6 +30,7 @@ import CategoryProjectsPage from './pages/CategoryProjectsPage';
 import AllRewardsPage from './pages/AllRewardsPage';
 import DonationSuccessPage from './pages/DonationSuccessPage';
 import DonationCancelPage from './pages/DonationCancelPage';
+import BankAccountCallback from './pages/BankAccountCallback';
 // import CreateProjectForm from './components/projects/CreateProjectForm';
 
 // import CreateProjectPage from './pages/CreateProjectPage';
@@ -94,6 +95,8 @@ function App() {
           <Route path="/saved-projects" element={<SavedProjectsPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="/projects/create" element={<CreateProjectPage />} />
+          {/* Add this route for handling Stripe Connect callbacks */}
+          <Route path="/connect/callback" element={<BankAccountCallback />} />
           <Route path="/password-reset/:token" element={<ResetPassword />} />
           <Route path="projects/drafts/edit/:id" element={<CreateProjectPage />} />
           {/* <Route path="projects/drafts/:id" element={<ProjectDetailsPage />} /> */}

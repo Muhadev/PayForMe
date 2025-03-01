@@ -20,7 +20,8 @@ import ProjectRewards from './ProjectRewards';
 import { backProject }  from '../services/stripeService.js';
 import { shareProject, activateProject, saveProject, revokeProject, toggleProjectFeature, unsaveProject, getSavedProjects } from '../services/projectService';
 import './ProjectDetailPage.css';
-import { usePermission } from '../hooks/usePermission'
+import { usePermission } from '../hooks/usePermission';
+import PayoutManagement from './PayoutManagement'
 
 // Utility function to handle media URLs
 const getMediaUrl = (url) => {
@@ -1249,6 +1250,14 @@ const ProjectDetailPage = () => {
               isCreator={isCreator}
               canCreateReward={canCreateReward()}
             />
+
+            {/* Add the PayoutManagement component for project creators */}
+            {isCreator && (
+              <PayoutManagement 
+                projectId={project.id} 
+                isCreator={isCreator} 
+              />
+            )}
 
             {/* Add the BackersList component */}
             {/* {project.status === 'ACTIVE' && (

@@ -758,6 +758,7 @@ def get_user_projects(user_id):
     except Exception as e:
         logger.error(f'Error fetching user projects: {str(e)}', exc_info=True)
         return api_response(message="An unexpected error occurred", status_code=500)
+
 # Then in the activation route, modify the email sending part:
 @projects_bp.route('/<int:project_id>/activate', methods=['POST'])
 @jwt_required()
@@ -1141,3 +1142,51 @@ def search_projects():
     except Exception as e:
         logger.error(f"Error searching projects: {str(e)}")
         return api_response(message="Search failed", status_code=500)
+
+@projects_bp.route('/discovery', methods=['GET'])
+def get_discovery_projects():
+    """
+    Get projects for the discovery section (featured and top projects)
+    Returns both a featured project and a set of trending projects
+    """
+    try:
+        # Number of projects to return for the grid
+        grid_count = request.args.get('count', 4, type=int)
+        
+        # Base query for active projects
+        base_query = Project.query.filter_by(status=ProjectStatus.ACTIVE)
+        
+        # Get one featured project (prioritize projects marked as featured)
+        featured_query = base_query.filter_by(featured=True)
+        featured_project = featured_query.order_by(Project.current_amount.desc()).first()
+        
+        # If no featured projects exist, get the highest funded active project
+        if not featured_project:
+            featured_project = base_query.order_by(Project.current_amount.desc()).first()
+        
+        # Query for grid projects (avoid including the featured project)
+        grid_query = base_query
+        if featured_project:
+            grid_query = grid_query.filter(Project.id != featured_project.id)
+        
+        # Get trending projects based on recent backers or funding progress
+        grid_projects = grid_query.order_by(
+            # Order by percentage funded (for projects with momentum)
+            (Project.current_amount / Project.goal_amount).desc(),
+            # Then by newest
+            Project.created_at.desc()
+        ).limit(grid_count).all()
+        
+        # Format response
+        response_data = {
+            'featured': featured_project.to_dict() if featured_project else None,
+            'trending': [p.to_dict() for p in grid_projects]
+        }
+        
+        return api_response(
+            data=response_data,
+            status_code=200
+        )
+    except Exception as e:
+        logger.error(f'Error fetching discovery projects: {str(e)}', exc_info=True)
+        return api_response(message="An unexpected error occurred", status_code=500)

@@ -45,8 +45,8 @@ class StripeService:
             # Create an account link for onboarding
             account_link = self.stripe.AccountLink.create(
                 account=account.id,
-                refresh_url=url_for('bank_account_bp.create_connect_account', _external=True),
-                return_url=url_for('bank_account_bp.get_bank_account_status', _external=True),
+                refresh_url=f"{current_app.config['FRONTEND_URL']}/connect/refresh",
+                return_url=f"{current_app.config['FRONTEND_URL']}/connect/callback",
                 type="account_onboarding",
             )
             

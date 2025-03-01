@@ -240,13 +240,13 @@ const CategoryProjectsPage = () => {
             {projects.length} Projects
           </Badge>
         </div>
-        <Button 
+        {/* <Button 
           variant="primary" 
           className="discover-button"
           onClick={() => navigate('/discover')}
         >
           <FontAwesomeIcon icon={faSearch} className="me-2" /> Browse Categories
-        </Button>
+        </Button> */}
       </div>
       
       {error && <Alert variant="danger">{error}</Alert>}

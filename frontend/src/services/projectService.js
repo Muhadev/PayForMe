@@ -293,6 +293,54 @@ export const activateProject = async (projectId) => {
     }
 };
 
+export const fetchDiscoveryProjects = async () => {
+  try {
+    const response = await api.get('/api/v1/projects/discovery');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching discovery projects:', error);
+    throw error;
+  }
+};
+
+// You can also add a more specialized function for featured projects
+export const fetchFeaturedProjects = async (count = 5) => {
+  try {
+    const response = await api.get('/api/v1/projects/', {
+      params: {
+        featured: true,
+        status: 'ACTIVE',
+        per_page: count,
+        sort_by: 'current_amount',
+        sort_order: 'desc'
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching featured projects:', error);
+    throw error;
+  }
+};
+
+// Get top projects in different categories
+export const fetchTopCategoryProjects = async (categoryId, count = 3) => {
+  try {
+    const response = await api.get('/api/v1/projects/', {
+      params: {
+        category_id: categoryId,
+        status: 'ACTIVE',
+        per_page: count,
+        sort_by: 'current_amount',
+        sort_order: 'desc'
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching top projects for category ${categoryId}:`, error);
+    throw error;
+  }
+};
+
 export const getCategoryProjects = async (categoryId, page = 1, perPage = 12) => {
     try {
         // Get projects for category
