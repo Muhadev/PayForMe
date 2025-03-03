@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Container, Form, Button, Row, Col } from 'react-bootstrap';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import axiosInstance from '../../helper/axiosConfig';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { useAuth } from '../../context/AuthContext';
 import './SignInPage.css';
 
 function SignInPage() {
@@ -13,6 +14,11 @@ function SignInPage() {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const { setIsAuthenticated } = useAuth();
+  
+  // Get the intended destination from location state, or default to dashboard
+  const from = location.state?.from || '/dashboard';
 
   // Memoize handleSuccessfulLogin to prevent unnecessary re-renders
   const handleSuccessfulLogin = useCallback((access_token, refresh_token) => {
@@ -23,12 +29,16 @@ function SignInPage() {
     
     localStorage.setItem('accessToken', access_token);
     localStorage.setItem('refreshToken', refresh_token);
+    
+    // Update authentication state
+    setIsAuthenticated(true);
   
-    toast.success('Login successful! Redirecting to dashboard...');
+    toast.success('Login successful! Redirecting...');
     setTimeout(() => {
-      navigate('/dashboard');
+      // Redirect to the intended destination or dashboard if none specified
+      navigate(from, { replace: true });
     }, 1000);
-  }, [navigate]);
+  }, [navigate, setIsAuthenticated, from]);
 
   // Handle tokens in URL parameters (for Google OAuth)
   useEffect(() => {
@@ -83,7 +93,9 @@ function SignInPage() {
       sessionStorage.clear();
       
       // Redirect to backend's Google OAuth route
-      window.location.href = `${process.env.REACT_APP_BACKEND_URL}/api/v1/google_auth/login/google`;
+      // Add state parameter to remember the redirect destination after OAuth
+      const redirectUrl = encodeURIComponent(from);
+      window.location.href = `${process.env.REACT_APP_BACKEND_URL}/api/v1/google_auth/login/google?redirect_path=${redirectUrl}`;
     } catch (error) {
       console.error('Google Login Error:', error);
       toast.error('Google login failed. Please try again.');
@@ -98,6 +110,13 @@ function SignInPage() {
             <div className="signin-form">
               <h2>Sign In</h2>
               <p className="description">Access your PayForMe account</p>
+              
+              {/* Display message if redirected from a protected route */}
+              {location.state?.from && (
+                <div className="alert alert-info">
+                  You need to sign in to access that page
+                </div>
+              )}
               
               {/* Google Sign-In Button */}
               <div className="google-signin-container">

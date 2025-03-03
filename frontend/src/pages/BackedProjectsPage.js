@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 import './BackedProjectsPage.css'; // We'll create this file later
 import * as projectService from '../services/projectService';
 import placeholderImage from '../assets/image.png';
+import BackedProjectFilterTabs from './BackedProjectFilterTabs';
 
 const BackedProjectsPage = () => {
   const [filter, setFilter] = useState('all');
@@ -197,7 +198,7 @@ const BackedProjectsPage = () => {
     return (
       <Col md={4} key={project.id} className="mb-4">
         <Card className="project-card h-100 shadow-sm">
-          <div className="project-image-container">
+        <div className="position-relative">
             <Card.Img 
               variant="top" 
               src={getImageUrl(project)}
@@ -357,41 +358,7 @@ const BackedProjectsPage = () => {
           </Badge>
         </div>
       </div>
-
-      <Nav variant="tabs" className="project-tabs mb-4">
-        <Nav.Item>
-          <Nav.Link 
-            active={filter === 'all'} 
-            onClick={() => setFilter('all')}
-          >
-            All Projects
-          </Nav.Link>
-        </Nav.Item>
-        <Nav.Item>
-          <Nav.Link 
-            active={filter === 'active'} 
-            onClick={() => setFilter('active')}
-          >
-            Active
-          </Nav.Link>
-        </Nav.Item>
-        <Nav.Item>
-          <Nav.Link 
-            active={filter === 'successful'} 
-            onClick={() => setFilter('successful')}
-          >
-            Successful
-          </Nav.Link>
-        </Nav.Item>
-        <Nav.Item>
-          <Nav.Link 
-            active={filter === 'failed'} 
-            onClick={() => setFilter('failed')}
-          >
-            Failed
-          </Nav.Link>
-        </Nav.Item>
-      </Nav>
+      <BackedProjectFilterTabs activeFilter={filter} setFilter={setFilter} />
 
       {isLoading ? (
         <div className="text-center mt-4">
@@ -409,12 +376,12 @@ const BackedProjectsPage = () => {
               ? "You haven't backed any projects yet." 
               : `You don't have any ${filter} backed projects.`}
           </p>
-          <Button 
+          {/* <Button 
             variant="primary" 
             onClick={() => navigate('/')}
           >
             Discover Projects
-          </Button>
+          </Button> */}
         </div>
       ) : (
         <>

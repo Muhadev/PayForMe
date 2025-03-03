@@ -12,7 +12,7 @@ function VideoSection() {
         </p>
         <div className="video-wrapper">
           <iframe
-            src="https://www.youtube.com/embed/EWdcOID8zxU"
+            src="https://www.youtube.com/embed/mlr18jqXv4M"
             title="PayForMe Explainer Video"
             frameBorder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

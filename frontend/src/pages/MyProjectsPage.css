@@ -142,6 +142,17 @@
   height: 100%;
   object-fit: cover;
   transition: transform 0.5s ease;
+  display: block;
+  object-position: center;
+}
+
+.project-card .card-body {
+  padding-top: 0.75rem;
+  margin-top: 0;
+}
+
+.project-image-container {
+  margin-bottom: 0;
 }
 
 .project-card:hover .project-image-container img {

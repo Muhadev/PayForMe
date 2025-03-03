@@ -5,6 +5,7 @@ import { faSearch } from '@fortawesome/free-solid-svg-icons';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getCategoryProjects } from '../services/projectService';
 import placeholderImage from '../assets/image.png';
+import * as backerService from '../services/backerService';
 
 const CategoryProjectsPage = () => {
   const [projects, setProjects] = useState([]);
@@ -87,6 +88,54 @@ const CategoryProjectsPage = () => {
     return `${daysLeft} days left`;
   };
 
+  useEffect(() => {
+    const fetchBackerStatsForProjects = async () => {
+      if (!projects.length) return;
+      
+      const projectsNeedingStats = projects.filter(
+        project => project.status?.toLowerCase() !== 'draft' && 
+                   project.status?.toLowerCase() !== 'pending' &&
+                   project.status?.toLowerCase() !== 'revoked'
+      );
+      
+      if (!projectsNeedingStats.length) return;
+      
+      try {
+        const statsPromises = projectsNeedingStats.map(project => 
+          backerService.fetchBackerStats(project.id)
+        );
+        
+        const statsResults = await Promise.all(statsPromises);
+        
+        const statsMap = {};
+        projectsNeedingStats.forEach((project, index) => {
+          const result = statsResults[index];
+          if (!result.error && result.data) {
+            statsMap[project.id] = {
+              backers_count: result.data.total_backers || 0,
+              current_amount: result.data.total_amount || project.total_pledged || 0
+            };
+          }
+        });
+        
+        const updatedProjects = projects.map(project => {
+          if (statsMap[project.id]) {
+            return { ...project, ...statsMap[project.id] };
+          }
+          return project;
+        });
+        
+        setProjects(updatedProjects);
+      } catch (error) {
+        console.error('Failed to fetch backer stats:', error);
+      }
+    };
+  
+    if (projects.length && !loading) {
+      fetchBackerStatsForProjects();
+    }
+  }, [projects.length, loading]);
+
   const renderProjectCard = (project) => {
     const normalizedProject = {
       id: project.id,
@@ -107,7 +156,7 @@ const CategoryProjectsPage = () => {
     return (
       <Col md={4} key={normalizedProject.id} className="mb-4">
         <Card className="project-card h-100 shadow-sm">
-          <div className="project-image-container">
+          <div className="position-relative">
             <Card.Img 
               variant="top" 
               src={getImageUrl(normalizedProject)} 
@@ -162,7 +211,7 @@ const CategoryProjectsPage = () => {
             <div className="project-meta">
               <div className="meta-item backers">
                 <i className="bi bi-people"></i>
-                <span>{normalizedProject.backers_count}</span>
+                <span>{normalizedProject.backers_count || 0}</span>
               </div>
               
               <OverlayTrigger

@@ -1,0 +1,75 @@
+/* Project tabs responsive styles */
+.project-tabs {
+    margin-bottom: 2rem;
+    border-bottom: 1px solid #dee2e6;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    scrollbar-width: none; /* Hide scrollbar in Firefox */
+    -ms-overflow-style: none; /* Hide scrollbar in IE/Edge */
+  }
+  
+  /* Hide scrollbar in Chrome/Safari */
+  .project-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .project-tabs .tab-item {
+    flex: 0 0 auto;
+  }
+  
+  .project-tabs .nav-link {
+    color: #6c757d;
+    font-weight: 500;
+    padding: 0.75rem 1.25rem;
+    border: none;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* Styles for mobile view */
+  @media (max-width: 767.98px) {
+    .project-tabs .nav-link {
+      padding: 0.75rem;
+      min-width: 48px; /* Ensure touch target size */
+      height: 48px;
+    }
+    
+    .project-tabs .nav-link i {
+      font-size: 1.2rem;
+    }
+    
+    /* Make tooltip text more readable on mobile */
+    .tooltip-inner {
+      font-size: 12px;
+      padding: 6px 10px;
+    }
+    
+    /* Add indicator dot for active tab on mobile */
+    .project-tabs .nav-link.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 6px;
+      height: 6px;
+      background-color: #0d6efd;
+      border-radius: 50%;
+    }
+  }
+  
+  .project-tabs .nav-link.active {
+    color: #0d6efd;
+    background: transparent;
+    border-bottom: 2px solid #0d6efd;
+  }
+  
+  /* Add subtle bounce effect on hover */
+  .project-tabs .nav-link:hover:not(.active) {
+    background-color: rgba(13, 110, 253, 0.05);
+    transform: translateY(-2px);
+  }

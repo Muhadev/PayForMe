@@ -175,7 +175,7 @@ const AppNavbar = () => {
           PayForMe
         </Navbar.Brand>
 
-        <Navbar.Toggle aria-controls="basic-navbar-nav" />
+        <Navbar.Toggle aria-controls="basic-navbar-nav" className="ms-auto" />
         <Navbar.Collapse id="basic-navbar-nav">
           <div className="search-container position-relative me-auto" ref={searchRef}>
             <Form onSubmit={handleSearchSubmit}>
@@ -230,7 +230,8 @@ const AppNavbar = () => {
 
             <Nav.Link as={Link} to="/about" className="me-2">About</Nav.Link>
             <Nav.Link as={Link} to="/faqs" className="me-2">FAQs</Nav.Link>
-            {isAuthenticated && <Nav.Link as={Link} to="/dashboard" className="me-2">Dashboard</Nav.Link>}
+            {isAuthenticated && <Nav.Link as=
+            {Link} to="/dashboard" className="me-2">Dashboard</Nav.Link>}
             
             {/* Conditionally render auth-dependent buttons */}
             {renderAuthButtons()}

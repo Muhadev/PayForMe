@@ -183,6 +183,12 @@ const ProjectsList = ({ projects, isLoading }) => {
                           style={{ width: `${calculateProgress(project.total_pledged || 0, project.goal_amount)}%` }}
                         />
                       </div>
+                      <div className="project-meta mt-2">
+                      <div className="meta-item backers">
+                        <i className="bi bi-people"></i>
+                        <span>{project.backers_count || 0} backers</span>
+                      </div>
+                    </div>
                       <div className="funding-stats">
                         <div className="funding-raised">
                           {formatCurrency(project.total_pledged || 0)}
@@ -361,7 +367,7 @@ const UserDashboardPage = () => {
           if (!result.error && result.data) {
             statsMap[project.id] = {
               backers_count: result.data.total_backers || 0,
-              current_amount: result.data.total_amount || project.total_pledged || 0
+              current_amount: result.data.total_amount || 0
             };
           }
         });
@@ -369,7 +375,11 @@ const UserDashboardPage = () => {
         // Update all projects with their stats
         const updatedProjects = userProjects.map(project => {
           if (statsMap[project.id]) {
-            return { ...project, ...statsMap[project.id] };
+            return { 
+              ...project, 
+              backers_count: statsMap[project.id].backers_count,
+              total_pledged: statsMap[project.id].current_amount || project.total_pledged
+            };
           }
           return project;
         });

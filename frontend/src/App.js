@@ -17,6 +17,7 @@ import PasswordResetSuccess from './components/auth/PasswordResetSuccess';
 import PasswordResetFailed from './components/auth/PasswordResetFailed';
 import ResetPassword from './components/auth/ResetPassword';
 import { ToastContainer } from 'react-toastify';
+import LoadingSpinner from './components/common/LoadingSpinner';
 import CategoryManagement from './pages/CategoryManagement';
 import MyProjectsPage from './pages/MyProjectsPage';
 import BackedProjectsPage from './pages/BackedProjectsPage';
@@ -31,6 +32,7 @@ import AllRewardsPage from './pages/AllRewardsPage';
 import DonationSuccessPage from './pages/DonationSuccessPage';
 import DonationCancelPage from './pages/DonationCancelPage';
 import BankAccountCallback from './pages/BankAccountCallback';
+import ExploreProjectsPage from './pages/ExploreProjectsPage';
 // import CreateProjectForm from './components/projects/CreateProjectForm';
 
 // import CreateProjectPage from './pages/CreateProjectPage';
@@ -72,6 +74,7 @@ function App() {
           <Route path="/category/:categoryId" element={<CategoryProjectsPage />} />
           {/* <Route path="/projects" element={<ProjectsPage />} /> */}
           <Route path="projects" element={<ProjectsPage />} />
+          <Route path="/projects/explore" element={<ExploreProjectsPage />} />
           <Route path="projects/:id" element={<ProjectDetailsPage />} /> {/* Dynamic route for project details */}
           <Route 
             path="/dashboard" 
@@ -94,7 +97,15 @@ function App() {
           <Route path="profile" element={<ProfilePage />} />
           <Route path="/saved-projects" element={<SavedProjectsPage />} />
           <Route path="settings" element={<SettingsPage />} />
-          <Route path="/projects/create" element={<CreateProjectPage />} />
+          <Route 
+            path="/projects/create" 
+            element={
+              <ProtectedRoute>
+                <CreateProjectPage />
+              </ProtectedRoute>
+            } 
+          />
+          {/* <Route path="*" element={<NotFoundPage />} /> */}
           {/* Add this route for handling Stripe Connect callbacks */}
           <Route path="/connect/callback" element={<BankAccountCallback />} />
           <Route path="/password-reset/:token" element={<ResetPassword />} />

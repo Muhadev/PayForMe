@@ -136,20 +136,120 @@
 
   .navbar-nav {
     gap: 16px;
+    align-items: center; /* Center navbar items within the dropdown */
+    width: 100%; /* Full width within the container */
   }
 
   .nav-link {
     padding: 8px 0 !important;
+    justify-content: center; /* Center the content of nav links */
+    width: 100%; /* Make links take full width of dropdown */
+  }
+  
+  /* Position mobile toggle button to the right */
+  .navbar-toggler {
+    margin-left: auto;
+  }
+  
+  /* Modify the collapsed navbar to be a dropdown at the right */
+  .navbar-collapse {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    width: auto;
+    min-width: 200px;
+    max-width: 300px;
+    background-color: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-radius: 0 0 8px 8px;
+    padding: 12px;
+    z-index: 1000;
+    text-align: center; /* Center the text in the dropdown */
   }
 
-  .btn-primary.start-project-btn {
+  /* Ensure dropdown items aren't cut off */
+  .navbar-collapse .dropdown-menu {
+    position: static !important;
+    float: none;
     width: 100%;
-    margin: 8px 0;
+    margin-top: 0;
+    background-color: transparent;
+    border: 0;
+    box-shadow: none;
+    text-align: center; /* Center text in nested dropdowns */
   }
-
-  .nav-link.sign-in {
+  
+  /* Make sure the search container is properly positioned */
+  .search-container {
     width: 100%;
+    max-width: 100%;
+    margin-bottom: 10px;
+  }
+  
+  /* Make NavDropdown items centered */
+  .navbar-collapse .dropdown-item {
     text-align: center;
-    margin: 8px 0;
   }
+
+  /* Center the text in dropdowns */
+  .navbar-collapse .dropdown-toggle {
+    display: flex !important;
+    justify-content: center;
+    width: 100%;
+  }
+
+  /* Specifically fix the Start Project button and any other primary buttons in mobile menu */
+  .navbar-collapse .btn-primary {
+    display: block !important;
+    width: auto !important;
+    margin: 8px auto !important;
+    text-align: center !important;
+  }
+  
+  /* Fix all buttons in the navbar collapse */
+  .navbar-collapse .btn {
+    display: inline-block !important;
+    margin: 8px auto !important;
+  }
+  
+  /* Fix specifically for link that contains a button */
+  .navbar-collapse a.btn {
+    display: inline-block !important;
+    margin: 8px auto !important;
+  }
+  
+  /* Additional style to center link with the start project button */
+  .navbar-collapse a[href="/projects/create"] {
+    display: flex !important;
+    justify-content: center !important;
+    width: 100% !important;
+  }
+  
+  /* Sign In button specific fix */
+  .navbar-collapse .btn-outline-primary {
+    display: inline-block !important;
+    margin: 8px auto !important;
+  }
+}
+
+/* User Dropdown specific styles */
+#user-dropdown .dropdown-menu {
+  right: 0;
+  left: auto;
+}
+
+/* Adjust search results position in mobile view */
+@media (max-width: 991.98px) {
+  .search-results-dropdown {
+    position: absolute;
+    width: 100%;
+    left: 0;
+    top: 100%;
+  }
+}
+
+/* Fix for navbar-collapse overflow issues */
+.navbar-collapse.show {
+  overflow-y: auto;
+  max-height: calc(100vh - 70px);
 }

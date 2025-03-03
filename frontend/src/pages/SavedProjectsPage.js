@@ -327,13 +327,13 @@ const SavedProjectsPage = () => {
             {projects.length} Saved
           </Badge>
         </div>
-        <Button 
+        {/* <Button 
           variant="primary" 
           className="discover-button"
           onClick={() => navigate('/discover')}
         >
           <FontAwesomeIcon icon={faSearch} className="me-2" /> Discover Projects
-        </Button>
+        </Button> */}
       </div>
       
       {error && <Alert variant="danger">{error}</Alert>}
@@ -352,12 +352,12 @@ const SavedProjectsPage = () => {
           <p className="text-muted">
             You haven't saved any projects yet. Browse projects and click the heart icon to save them for later.
           </p>
-          <Button 
+          {/* <Button 
             variant="primary" 
             onClick={() => navigate('/discover')}
           >
             Discover Projects
-          </Button>
+          </Button> */}
         </div>
       ) : (
         <>

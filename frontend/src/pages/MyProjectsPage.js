@@ -7,6 +7,7 @@ import './MyProjectsPage.css';
 import * as projectService from '../services/projectService';
 import placeholderImage from '../assets/image.png';
 import * as backerService from '../services/backerService';
+import ProjectFilterTabs from './ProjectFilterTabs';
 
 const MyProjectsPage = () => {
   const [filter, setFilter] = useState('all');
@@ -230,7 +231,7 @@ const MyProjectsPage = () => {
     return (
       <Col md={4} key={project.id} className="mb-4">
         <Card className={`project-card h-100 shadow-sm ${isRevoked ? 'revoked-project' : ''}`}>
-          <div className="project-image-container">
+          <div className="position-relative">
             <Card.Img 
               variant="top" 
               src={getImageUrl(project)}
@@ -397,57 +398,7 @@ const MyProjectsPage = () => {
           <i className="bi bi-plus-lg me-2"></i> Create New Project
         </Button>
       </div>
-
-      <Nav variant="tabs" className="project-tabs mb-4">
-        <Nav.Item>
-          <Nav.Link 
-            active={filter === 'all'} 
-            onClick={() => setFilter('all')}
-          >
-            All Projects
-          </Nav.Link>
-        </Nav.Item>
-        <Nav.Item>
-          <Nav.Link 
-            active={filter === 'draft'} 
-            onClick={() => setFilter('draft')}
-          >
-            Drafts
-          </Nav.Link>
-        </Nav.Item>
-        <Nav.Item>
-          <Nav.Link 
-            active={filter === 'pending'} 
-            onClick={() => setFilter('pending')}
-          >
-            Pending
-          </Nav.Link>
-        </Nav.Item>
-        <Nav.Item>
-          <Nav.Link 
-            active={filter === 'active'} 
-            onClick={() => setFilter('active')}
-          >
-            Active
-          </Nav.Link>
-        </Nav.Item>
-        <Nav.Item>
-          <Nav.Link 
-            active={filter === 'successful'} 
-            onClick={() => setFilter('successful')}
-          >
-            Successful
-          </Nav.Link>
-        </Nav.Item>
-        <Nav.Item>
-        <Nav.Link 
-          active={filter === 'revoked'} 
-          onClick={() => setFilter('revoked')}
-        >
-          Revoked
-        </Nav.Link>
-      </Nav.Item>
-      </Nav>
+      <ProjectFilterTabs activeFilter={filter} setFilter={setFilter} />
 
       {isLoading ? (
         <div className="text-center mt-4">

@@ -1,35 +1,130 @@
 /* AboutPayForMeSection.css */
 .about-payforme-section {
-    background-color: #00264d; /* Deep blue background */
-    color: #ffffff; /* White text color for contrast */
-    padding: 40px 20px;
-    text-align: left;
+  background-color: #00264d; /* Deep blue background */
+  color: #ffffff; /* White text color for contrast */
+  padding: 80px 0;
+  overflow: hidden;
+}
+
+.about-payforme-section .container {
+  max-width: 1200px;
+  padding: 0 15px;
+  margin: 0 auto;
+}
+
+.about-payforme-section .row {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 -15px;
+  align-items: center;
+}
+
+.about-payforme-section .col-lg-7,
+.about-payforme-section .col-lg-5 {
+  padding: 0 15px;
+  position: relative;
+}
+
+.about-payforme-section .content-col {
+  margin-bottom: 30px;
+}
+
+.about-payforme-section h2 {
+  font-size: 2.5rem;
+  margin-bottom: 25px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.about-payforme-section p {
+  font-size: 1.2rem;
+  margin-bottom: 25px;
+  line-height: 1.6;
+  opacity: 0.9;
+}
+
+.about-payforme-section .learn-more-link {
+  color: #ffffff;
+  text-decoration: underline;
+  font-weight: 600;
+  font-size: 1.1rem;
+  display: inline-block;
+  transition: color 0.3s ease;
+}
+
+.about-payforme-section .learn-more-link:hover {
+  color: #ffcc00; /* Yellow hover state */
+}
+
+.about-payforme-section .image-container {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.about-payforme-section .section-image {
+  width: 100%;
+  height: auto;
+  max-height: 400px;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.about-payforme-section .image-container:hover .section-image {
+  transform: scale(1.05);
+}
+
+/* Media Queries for Responsive Design */
+@media (min-width: 992px) {
+  .about-payforme-section .col-lg-7 {
+    width: 58.333333%;
   }
   
-  .about-payforme-section .container {
-    max-width: 800px;
-    margin: 0 40px;
+  .about-payforme-section .col-lg-5 {
+    width: 41.666667%;
+  }
+}
+
+@media (max-width: 991px) {
+  .about-payforme-section {
+    padding: 60px 0;
   }
   
   .about-payforme-section h2 {
     font-size: 2rem;
-    margin-bottom: 20px;
   }
   
   .about-payforme-section p {
-    font-size: 1.2rem;
-    margin-bottom: 20px;
-    line-height: 1.5;
+    font-size: 1.1rem;
   }
   
-  .about-payforme-section .learn-more-link {
-    color: #ffffff;
-    text-decoration: underline;
-    font-weight: bold;
+  .about-payforme-section .col-lg-7,
+  .about-payforme-section .col-lg-5 {
+    width: 100%;
+  }
+  
+  .about-payforme-section .image-container {
+    margin-top: 30px;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+@media (max-width: 767px) {
+  .about-payforme-section {
+    padding: 40px 0;
+  }
+  
+  .about-payforme-section h2 {
+    font-size: 1.75rem;
+  }
+  
+  .about-payforme-section p {
     font-size: 1rem;
   }
-  
-  .about-payforme-section .learn-more-link:hover {
-    color: #ffcc00; /* Optional: Change color on hover */
-  }
-  
+}
