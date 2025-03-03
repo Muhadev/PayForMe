@@ -1,27 +1,89 @@
 /* PayForMeSection.css */
 .payforme-section {
-    padding: 80px 15px; /* Increase padding for more height and add horizontal padding */
-    background-color: #003366; /* Deep blue background */
-    color: #ffffff; /* White text color */
-    display: flex; /* Use flexbox for alignment */
-    align-items: center; /* Center vertically */
-    justify-content: flex-start; /* Align content to the left */
+  background-color: #003366;
+  color: #ffffff;
+  padding: 80px 0;
+  overflow: hidden;
+}
+
+.payforme-container {
+  display: flex;
+  flex-direction: column;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.payforme-content {
+  flex: 1;
+  padding: 20px 0;
+}
+
+.payforme-content h2 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 24px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.payforme-content p {
+  font-size: 1.2rem;
+  line-height: 1.6;
+  opacity: 0.9;
+  max-width: 600px;
+}
+
+.payforme-image-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 30px;
+}
+
+.payforme-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  transition: transform 0.5s ease;
+}
+
+.payforme-image:hover {
+  transform: scale(1.03);
+}
+
+/* Media Queries for responsive layout */
+@media (min-width: 992px) {
+  .payforme-container {
+    flex-direction: row;
+    align-items: center;
+    gap: 50px;
   }
   
-  .content-container {
-    max-width: 800px; /* Control maximum width */
-    margin: 0; /* Remove horizontal margins */
-    padding: 0 50px; /* Add horizontal padding */
-    text-align: left; /* Align text to the left */
+  .payforme-content {
+    padding-right: 20px;
   }
   
-  h2 {
-    font-size: 2rem; /* Font size for heading */
-    margin-bottom: 20px; /* Space below heading */
+  .payforme-image-container {
+    margin-top: 0;
+  }
+}
+
+/* Mobile adjustments */
+@media (max-width: 767px) {
+  .payforme-section {
+    padding: 60px 0;
   }
   
-  p {
-    font-size: 1.2rem; /* Font size for paragraph */
-    line-height: 1.6; /* Line height for readability */
+  .payforme-content h2 {
+    font-size: 2rem;
+    text-align: center;
   }
   
+  .payforme-content p {
+    font-size: 1.1rem;
+    text-align: center;
+    margin: 0 auto;
+  }
+}

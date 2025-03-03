@@ -337,6 +337,12 @@ body {
   }
 }
 
+@media (max-width: 768px) {
+  .dashboard-container .row .col-md-4 {
+    margin-bottom: 15px;
+  }
+}
+
 @media (min-width: 769px) {
   .sidebar-toggle {
     display: none;

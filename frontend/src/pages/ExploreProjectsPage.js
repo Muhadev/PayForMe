@@ -50,7 +50,18 @@ function ExploreProjectsPage() {
   };
 
   const getProjectTimeStatus = (project) => {
-    if (!project.end_date) return 'No timeline';
+    if (project.status?.toLowerCase() === 'draft') {
+      return 'Draft';
+    }
+    if (project.status?.toLowerCase() === 'pending') {
+      return 'Awaiting Approval';
+    }
+    if (project.status?.toLowerCase() === 'revoked') {
+      return 'Revoked';
+    }
+    if (!project.end_date) {
+      return 'No timeline';
+    }
     
     const endDate = new Date(project.end_date);
     const now = new Date();
@@ -74,7 +85,7 @@ function ExploreProjectsPage() {
     return isNaN(progress) ? 0 : Math.min(progress, 100);
   };
 
-  // Get status badge class based on status - imported from BackedProjectsPage
+  // Get status badge class based on status
   const getStatusBadgeClass = (status) => {
     switch (status?.toLowerCase()) {
       case 'active':
@@ -104,6 +115,7 @@ function ExploreProjectsPage() {
         const response = await axiosInstance.get(`/api/v1/projects/search?${params.toString()}`);
         
         if (response.data.data && response.data.data.projects) {
+          console.log('Project data sample:', response.data.data.projects[0]); // Log the first project to debug
           setProjects(response.data.data.projects);
         } else {
           setProjects([]);
@@ -127,11 +139,13 @@ function ExploreProjectsPage() {
         const response = await axiosInstance.get('/api/v1/categories');
         if (response.data.data && response.data.data.categories) {
           setCategories(response.data.data.categories);
+        } else {
+          console.warn('Categories data format unexpected:', response.data);
+          setCategories([]);
         }
       } catch (error) {
         console.error('Error fetching categories:', error);
-        // Not setting error state here as this is not critical
-        toast.error('Failed to load categories');
+        setCategories([]);
       }
     };
 
@@ -161,7 +175,7 @@ function ExploreProjectsPage() {
     fetchSavedProjects();
   }, [isAuthenticated]);
 
-  // Improved backer stats fetching for projects - based on BackedProjectsPage
+  // Improved backer stats fetching for projects
   useEffect(() => {
     const fetchBackerStatsForProjects = async () => {
       if (!projects.length || loading) return;
@@ -179,28 +193,32 @@ function ExploreProjectsPage() {
         // Create temporary array of promises to fetch backer stats
         const statsPromises = projectsNeedingStats.map(project => 
           backerService.fetchBackerStats(project.id)
-            .then(response => ({ id: project.id, data: response.data }))
-            .catch(error => ({ id: project.id, error }))
         );
         
         // Execute all promises in parallel
         const statsResults = await Promise.all(statsPromises);
         
-        // Update projects with stats data
-        const updatedProjects = [...projects];
-        statsResults.forEach(result => {
+        // Create a map of project IDs to stats for easier lookup
+        const statsMap = {};
+        projectsNeedingStats.forEach((project, index) => {
+          const result = statsResults[index];
           if (!result.error && result.data) {
-            const projectIndex = updatedProjects.findIndex(p => p.id === result.id);
-            if (projectIndex !== -1) {
-              updatedProjects[projectIndex] = {
-                ...updatedProjects[projectIndex],
-                backers_count: result.data.total_backers || 0,
-                current_amount: result.data.total_amount || updatedProjects[projectIndex].total_pledged || 0
-              };
-            }
+            statsMap[project.id] = {
+              backers_count: result.data.total_backers || 0,
+              total_pledged: result.data.total_amount || 0
+            };
           }
         });
         
+        // Update projects with stats data
+        const updatedProjects = projects.map(project => {
+          if (statsMap[project.id]) {
+            return { ...project, ...statsMap[project.id] };
+          }
+          return project;
+        });
+        
+        console.log('Updated projects with stats:', updatedProjects[0]); // Log the first updated project
         setProjects(updatedProjects);
       } catch (error) {
         console.error('Failed to fetch backer stats:', error);
@@ -251,6 +269,179 @@ function ExploreProjectsPage() {
     
     // Navigate to project details for backing
     navigate(`/projects/${projectId}`);
+  };
+
+  // Render project card
+  const renderProjectCard = (project) => {
+    const isSaved = savedProjects.includes(project.id);
+    const isDraft = project.status?.toLowerCase() === 'draft';
+    const isPending = project.status?.toLowerCase() === 'pending';
+    const isRevoked = project.status?.toLowerCase() === 'revoked';
+    
+    // Determine category
+    const category = project.categories?.name || 
+                    project.category_name || 
+                    project.category || 
+                    categories.find(c => c.id === project.category_id)?.name || 
+                    'Uncategorized';
+    
+    // Calculate funding data
+    const fundingGoal = parseFloat(project.funding_goal || project.goal_amount || 0);
+    const raisedAmount = parseFloat(project.total_pledged || project.current_amount || 0);
+    const progress = calculateProgress(raisedAmount, fundingGoal);
+    const timeStatus = getProjectTimeStatus(project);
+    
+    return (
+      <Col key={project.id} md={4} sm={6} className="mb-4">
+        <Card className="project-card h-100 shadow-sm">
+          {/* Project Image */}
+          <div className="position-relative">
+            {project.image_url ? (
+              <Card.Img 
+                variant="top" 
+                src={getImageUrl(project)} 
+                alt={project.title}
+                className="project-image"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  // Create a fallback div that maintains the same dimensions
+                  const cardContainer = e.target.closest('.position-relative');
+                  if (cardContainer) {
+                    // Hide the image
+                    e.target.style.display = 'none';
+                    
+                    // Create fallback div with same dimensions as image
+                    const fallbackDiv = document.createElement('div');
+                    fallbackDiv.className = 'default-project-image';
+                    fallbackDiv.style.height = '200px'; // Set to match standard card image height
+                    fallbackDiv.innerHTML = `<span>${project.title.charAt(0)}</span>`;
+                    
+                    // Insert fallback before the img element
+                    cardContainer.insertBefore(fallbackDiv, e.target);
+                  }
+                }}
+              />
+            ) : (
+              <div className="default-project-image">
+                <span>{project.title.charAt(0)}</span>
+              </div>
+            )}
+            
+            {/* Status badge */}
+            {project.status && (
+              <Badge 
+                bg={getStatusBadgeClass(project.status)}
+                className="status-badge"
+              >
+                {project.status.charAt(0).toUpperCase() + project.status.slice(1).toLowerCase()}
+              </Badge>
+            )}
+          </div>
+          
+          <Card.Body className="pt-2 pb-2">
+            <div className="d-flex justify-content-between">
+              <div className="category-label">
+                {category}
+              </div>
+              
+              {isAuthenticated && (
+                <Button 
+                  variant="link" 
+                  className={`bookmark-btn ${isSaved ? 'saved' : ''}`}
+                  onClick={() => handleSaveProject(project.id, isSaved)}
+                >
+                  {isSaved ? <FaBookmark /> : <FaRegBookmark />}
+                </Button>
+              )}
+            </div>
+            
+            <Card.Title className="project-title">
+              {project.title || 'Unnamed Project'}
+            </Card.Title>
+            
+            <Card.Text className="project-brief mb-2">
+              {truncateText(project.description || project.short_description || '', 100)}
+            </Card.Text>
+            
+            {/* Only show funding progress for non-draft, non-pending projects */}
+            {!isDraft && !isPending && !isRevoked && (
+              <div className="funding-progress">
+                <div className="progress">
+                  <div 
+                    className="progress-bar" 
+                    role="progressbar"
+                    style={{ width: `${progress}%` }}
+                    aria-valuenow={progress}
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                  />
+                </div>
+                <div className="funding-stats">
+                  <div className="funding-raised">
+                    {formatCurrency(raisedAmount)}
+                    <span className="funding-label">raised</span>
+                  </div>
+                  <div className="funding-percentage">
+                    {progress.toFixed(0)}%
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Project Meta Stats */}
+            <div className="project-meta">
+              {isRevoked ? (
+                <div className="meta-item revoked-status">
+                  <i className="bi bi-x-circle-fill"></i>
+                  <span>Revoked</span>
+                </div>
+              ) : !isDraft && !isPending ? (
+                <>
+                  <div className="meta-item backers">
+                    <i className="bi bi-people"></i>
+                    <span>{project.backers_count || 0}</span>
+                  </div>
+                  
+                  <OverlayTrigger
+                    placement="top"
+                    overlay={<Tooltip>{timeStatus}</Tooltip>}
+                  >
+                    <div className="meta-item time-status">
+                      <i className="bi bi-clock"></i>
+                      <span>{timeStatus.includes('days') ? timeStatus.replace(' days left', '') : '—'}</span>
+                    </div>
+                  </OverlayTrigger>
+                  
+                  <div className="meta-item goal">
+                    <i className="bi bi-bullseye"></i>
+                    <span>{formatCurrency(fundingGoal)}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="meta-item draft-status">
+                  <i className={isPending ? "bi bi-hourglass" : "bi bi-pencil"}></i>
+                  <span>{isPending ? 'Pending Approval' : 'Draft'}</span>
+                </div>
+              )}
+            </div>
+          </Card.Body>
+          
+          <Card.Footer className="bg-white py-2">
+            <div className="card-footer-content">
+              <Link to={`/projects/${project.id}`} className="w-100">
+                <Button 
+                  variant="outline-primary"
+                  size="sm"
+                  className="view-button w-100"
+                >
+                  View Project
+                </Button>
+              </Link>
+            </div>
+          </Card.Footer>
+        </Card>
+      </Col>
+    );
   };
 
   if (loading) {
@@ -343,159 +534,7 @@ function ExploreProjectsPage() {
         </div>
       ) : (
         <Row className="project-grid">
-          {projects.map(project => {
-            const isSaved = savedProjects.includes(project.id);
-            const imageUrl = getImageUrl(project);
-            const category = project.categories?.name || project.category_name || project.category || 'Uncategorized';
-            const timeStatus = getProjectTimeStatus(project);
-            
-            // Normalize project data
-            const normalizedProject = {
-              id: project.id,
-              title: project.title || 'Unnamed Project',
-              category: category,
-              short_description: stripHtml(project.description || project.short_description || ''),
-              current_amount: parseFloat(project.current_amount || project.total_pledged || 0),
-              funding_goal: parseFloat(project.funding_goal || project.goal_amount || 0),
-              backers_count: project.backers_count || 0,
-              days_left: project.days_left,
-              end_date: project.end_date,
-              image_url: project.image_url,
-              status: project.status
-            };
-            
-            const progress = calculateProgress(normalizedProject.current_amount, normalizedProject.funding_goal);
-            
-            return (
-              <Col key={project.id} md={4} sm={6} className="mb-4">
-                <Card className="project-card h-100 shadow-sm">
-                  {/* Project Image */}
-                  <div className="position-relative">
-                    {imageUrl ? (
-                      <Card.Img 
-                        variant="top" 
-                        src={imageUrl} 
-                        alt={project.title}
-                        className="project-image"
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          // Create a fallback div that maintains the same dimensions
-                          const cardContainer = e.target.closest('.position-relative');
-                          if (cardContainer) {
-                            // Hide the image
-                            e.target.style.display = 'none';
-                            
-                            // Create fallback div with same dimensions as image
-                            const fallbackDiv = document.createElement('div');
-                            fallbackDiv.className = 'default-project-image';
-                            fallbackDiv.style.height = '200px'; // Set to match standard card image height
-                            fallbackDiv.innerHTML = `<span>${project.title.charAt(0)}</span>`;
-                            
-                            // Insert fallback before the img element
-                            cardContainer.insertBefore(fallbackDiv, e.target);
-                          }
-                        }}
-                      />
-                    ) : (
-                      <div className="default-project-image">
-                        <span>{project.title.charAt(0)}</span>
-                      </div>
-                    )}
-                    
-                    {/* Improved status badge implementation */}
-                    {project.status && (
-                      <Badge className={`status-badge ${getStatusBadgeClass(project.status)}`}>
-                        {project.status.charAt(0).toUpperCase() + project.status.slice(1).toLowerCase()}
-                      </Badge>
-                    )}
-                  </div>
-                  
-                  <Card.Body className="pt-2 pb-2">
-                    <div className="d-flex justify-content-between">
-                      <div className="category-label">
-                        {category}
-                      </div>
-                      
-                      {isAuthenticated && (
-                        <Button 
-                          variant="link" 
-                          className={`bookmark-btn ${isSaved ? 'saved' : ''}`}
-                          onClick={() => handleSaveProject(project.id, isSaved)}
-                        >
-                          {isSaved ? <FaBookmark /> : <FaRegBookmark />}
-                        </Button>
-                      )}
-                    </div>
-                    
-                    <Card.Title className="project-title">
-                      {project.title}
-                    </Card.Title>
-                    
-                    <Card.Text className="project-brief mb-2">
-                      {truncateText(normalizedProject.short_description, 100)}
-                    </Card.Text>
-                    
-                    {/* Funding Progress Bar */}
-                    <div className="funding-progress">
-                      <div className="progress">
-                        <div 
-                          className="progress-bar" 
-                          role="progressbar"
-                          style={{ width: `${progress}%` }}
-                        />
-                      </div>
-                      <div className="funding-stats">
-                        <div className="funding-raised">
-                          {formatCurrency(normalizedProject.current_amount)}
-                          <span className="funding-label">raised</span>
-                        </div>
-                        <div className="funding-percentage">
-                          {progress.toFixed(0)}%
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Project Meta Stats */}
-                    <div className="project-meta">
-                      <div className="meta-item backers">
-                        <i className="bi bi-people"></i>
-                        <span>{normalizedProject.backers_count}</span>
-                      </div>
-                      
-                      <OverlayTrigger
-                        placement="top"
-                        overlay={<Tooltip>{timeStatus}</Tooltip>}
-                      >
-                        <div className="meta-item time-status">
-                          <i className="bi bi-clock"></i>
-                          <span>{timeStatus.includes('days') ? timeStatus.replace(' days left', '') : '—'}</span>
-                        </div>
-                      </OverlayTrigger>
-                      
-                      <div className="meta-item goal">
-                        <i className="bi bi-bullseye"></i>
-                        <span>{formatCurrency(normalizedProject.funding_goal)}</span>
-                      </div>
-                    </div>
-                  </Card.Body>
-                  
-                  <Card.Footer className="bg-white py-2">
-                    <div className="card-footer-content">
-                      <Link to={`/projects/${project.id}`} className="w-100">
-                        <Button 
-                          variant="outline-primary"
-                          size="sm"
-                          className="view-button w-100"
-                        >
-                          View Project
-                        </Button>
-                      </Link>
-                    </div>
-                  </Card.Footer>
-                </Card>
-              </Col>
-            );
-          })}
+          {projects.map(project => renderProjectCard(project))}
         </Row>
       )}
     </Container>

@@ -91,7 +91,7 @@ const AboutUs = () => {
       </div>
 
       {/* Team Section */}
-      <Container className="section-padding">
+      {/* <Container className="section-padding">
         <h2 className="section-title text-center mb-5">Meet Our Leadership Team</h2>
         <Row>
           {teamMembers.map((member, index) => (
@@ -107,7 +107,7 @@ const AboutUs = () => {
             </Col>
           ))}
         </Row>
-      </Container>
+      </Container> */}
 
       {/* Values Section */}
       <div className="values-section">
