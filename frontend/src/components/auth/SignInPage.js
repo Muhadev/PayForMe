@@ -42,16 +42,13 @@ function SignInPage() {
 
   // Handle tokens in URL parameters (for Google OAuth)
   useEffect(() => {
-    // Check for tokens directly in the URL
     const access_token = searchParams.get('access_token');
     const refresh_token = searchParams.get('refresh_token');
     
     if (access_token && refresh_token) {
-      console.log("Found tokens in URL, handling login...");
       handleSuccessfulLogin(access_token, refresh_token);
     }
     
-    // Also check for error messages
     const error = searchParams.get('error');
     if (error) {
       toast.error(`Authentication error: ${error}`);
@@ -76,8 +73,10 @@ function SignInPage() {
       }
     } catch (error) {
       if (error.response?.status === 401) {
+        setErrorMessage('Invalid email or password');
         toast.error('Invalid email or password. Please try again.');
       } else {
+        setErrorMessage('Login failed. Please try again later.');
         toast.error('Login failed. Please try again later.');
       }
     } finally {
@@ -86,14 +85,11 @@ function SignInPage() {
   };
 
   // Google Login Handler
-  const handleGoogleLogin = async () => {
+  const handleGoogleLogin = () => {
     try {
-      // Clear any existing tokens before starting the OAuth flow
       localStorage.clear();
       sessionStorage.clear();
       
-      // Redirect to backend's Google OAuth route
-      // Add state parameter to remember the redirect destination after OAuth
       const redirectUrl = encodeURIComponent(from);
       window.location.href = `${process.env.REACT_APP_BACKEND_URL}/api/v1/google_auth/login/google?redirect_path=${redirectUrl}`;
     } catch (error) {
@@ -105,81 +101,77 @@ function SignInPage() {
   return (
     <div className="signin-page">
       <Container>
-        <Row className="justify-content-center">
-          <Col md={10} lg={5}>
-            <div className="signin-form">
-              <h2>Sign In</h2>
-              <p className="description">Access your PayForMe account</p>
-              
-              {/* Display message if redirected from a protected route */}
-              {location.state?.from && (
-                <div className="alert alert-info">
-                  You need to sign in to access that page
-                </div>
-              )}
-              
-              {/* Google Sign-In Button */}
-              <div className="google-signin-container">
-                <Button 
-                  onClick={handleGoogleLogin}
-                  className="google-btn"
-                  disabled={isLoading}
-                >
-                  <img 
-                    src="https://developers.google.com/identity/images/g-logo.png" 
-                    alt="Google logo" 
-                    className="google-icon"
-                  />
-                  Sign in with Google
-                </Button>
-              </div>
-
-              <div className="or-divider">
-                <span>OR</span>
-              </div>
-
-              {/* Email Login Form */}
-              <Form onSubmit={handleSubmit}>
-                <Form.Group controlId="formBasicEmail">
-                  <Form.Label>Email address</Form.Label>
-                  <Form.Control
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </Form.Group>
-
-                <Form.Group controlId="formBasicPassword">
-                  <Form.Label>Password</Form.Label>
-                  <Form.Control
-                    type="password"
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                </Form.Group>
-
-                {errorMessage && <p className="text-danger">{errorMessage}</p>}
-
-                <Button variant="primary" type="submit" disabled={isLoading}>
-                  {isLoading ? 'Signing In...' : 'Sign In'}
-                </Button>
-              </Form>
-
-              <div className="footer-links">
-                <p>
-                  <a href="/forgot-password">Forgot password?</a>
-                </p>
-                <p>
-                  Don't have an account? <a href="/register">Sign up</a>
-                </p>
-              </div>
+        <div className="signin-form">
+          <h2>Sign In</h2>
+          <p className="description">Access your PayForMe account</p>
+          
+          {/* Display message if redirected from a protected route */}
+          {location.state?.from && (
+            <div className="alert alert-info">
+              You need to sign in to access that page
             </div>
-          </Col>
-        </Row>
+          )}
+          
+          {/* Google Sign-In Button */}
+          <div className="google-signin-container">
+            <Button 
+              onClick={handleGoogleLogin}
+              className="google-btn"
+              disabled={isLoading}
+            >
+              <img 
+                src="https://developers.google.com/identity/images/g-logo.png" 
+                alt="Google logo" 
+                className="google-icon"
+              />
+              Sign in with Google
+            </Button>
+          </div>
+
+          <div className="or-divider">
+            <span>OR</span>
+          </div>
+
+          {/* Email Login Form */}
+          <Form onSubmit={handleSubmit}>
+            <Form.Group controlId="formBasicEmail" className="form-group">
+              <Form.Label>Email address</Form.Label>
+              <Form.Control
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </Form.Group>
+
+            <Form.Group controlId="formBasicPassword" className="form-group">
+              <Form.Label>Password</Form.Label>
+              <Form.Control
+                type="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </Form.Group>
+
+            {errorMessage && <p className="text-danger">{errorMessage}</p>}
+
+            <Button variant="primary" type="submit" disabled={isLoading} className="button button-primary">
+              {isLoading ? 'Signing In...' : 'Sign In'}
+            </Button>
+          </Form>
+
+          <div className="footer-links">
+            <p>
+              <a href="/forgot-password">Forgot password?</a>
+            </p>
+            <p>
+              Don't have an account? <a href="/register">Sign up</a>
+            </p>
+          </div>
+        </div>
       </Container>
     </div>
   );

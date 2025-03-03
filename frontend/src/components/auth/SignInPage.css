@@ -1,61 +1,98 @@
 /* SignInPage.css */
-
 .signin-page {
-  background-color: #f4f4f4; /* Light grey background */
-  min-height: 100vh; /* Full viewport height */
+  background-color: #f8f9fa;
+  min-height: 100vh;
   display: flex;
   align-items: center;
-  justify-content: center;
-  margin-top: 70px;
+  padding: 2rem 0;
 }
 
 .signin-form {
-  background: #ffffff; /* White background for the form */
-  padding: 7ch;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  background: #ffffff;
+  padding: 2.5rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  max-width: 450px;
+  width: 100%;
+  margin: 0 auto;
 }
 
 .signin-form h2 {
-  margin-bottom: 30px;
-  font-size: 2rem;
-  color: #003366; /* Deep blue color for headings */
+  margin-bottom: 0.5rem;
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #2c3e50;
 }
 
 .signin-form .description {
-  font-size: 1.2rem;
-  color: #555555; /* Dark grey color for the description */
-  
+  font-size: 1rem;
+  color: #6c757d;
+  margin-bottom: 1.5rem;
 }
 
-.signin-form .form-group {
-  margin-bottom: 30px;
-  padding-top: 20px;
+.form-group {
+  margin-bottom: 1.25rem;
 }
 
-.signin-form .form-control {
-  border-radius: 5px;
-  border: 1px solid #ddd; /* Light grey border */
+.form-label {
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: #495057;
+  margin-bottom: 0.5rem;
+  display: block;
 }
 
-.signin-form .btn-primary {
-  background-color: #003366; /* Deep blue background for the button */
+.form-control {
+  height: 45px;
+  border-radius: 8px;
+  border: 1px solid #ced4da;
+  padding: 0.75rem;
+  transition: border-color 0.2s;
+}
+
+.form-control:focus {
+  border-color: #3498db;
+  box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+}
+
+.button {
+  height: 45px;
+  font-weight: 500;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.button-primary {
+  background-color: #3498db;
   border: none;
-  border-radius: 5px;
-  margin-top: 30px; /* Added margin-top to create space */
+  width: 100%;
+  margin-top: 0.5rem;
 }
 
-.signin-form .btn-primary:hover {
-  background-color: #002244; /* Darker blue for hover effect */
+.button-primary:hover {
+  background-color: #2980b9;
+  transform: translateY(-1px);
+}
+
+.button-primary:active {
+  transform: translateY(0);
 }
 
 .footer-links {
-  margin-top: 20px;
+  margin-top: 1.5rem;
   text-align: center;
+  font-size: 0.9rem;
+}
+
+.footer-links p {
+  margin-bottom: 0.5rem;
 }
 
 .footer-links a {
-  color: #003366; /* Deep blue color for links */
+  color: #3498db;
+  text-decoration: none;
+  font-weight: 500;
 }
 
 .footer-links a:hover {
@@ -63,61 +100,86 @@
 }
 
 .google-signin-container {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 20px;
+  margin-bottom: 1.5rem;
 }
 
-.or-divider {
-  text-align: center;
-  margin: 20px 0;
-  position: relative;
-}
-
-.or-divider span {
-  background: white;
-  padding: 0 10px;
-  position: relative;
-  z-index: 1;
-}
-
-.or-divider::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  border-top: 1px solid #ccc;
-  z-index: 0;
-}
 .google-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
-  padding: 8px 16px;
   background-color: white;
-  border: 1px solid #ddd;
-  color: #757575;
+  border: 1px solid #ced4da;
+  color: #4d4d4d;
+  font-weight: 500;
+  height: 45px;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.google-btn:hover {
+  background-color: #f8f9fa;
+  border-color: #bdc3c7;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
 .google-icon {
   width: 18px;
   height: 18px;
-  margin-right: 8px;
+  margin-right: 10px;
 }
 
-/* Add this at the end of your CSS file */
-@media (max-width: 768px) {
-.signin-form {
-  padding: 4ch; /* Reduced padding for mobile */
+.or-divider {
+  display: flex;
+  align-items: center;
+  margin: 1.5rem 0;
+  color: #6c757d;
+  font-size: 0.9rem;
 }
 
-.signin-form h2 {
-  font-size: 1.75rem; /* Slightly smaller heading on mobile */
+.or-divider::before,
+.or-divider::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid #e0e0e0;
 }
 
-.signin-form .description {
-  font-size: 1.1rem; /* Slightly smaller description on mobile */
+.or-divider span {
+  padding: 0 10px;
 }
+
+.alert {
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.alert-info {
+  background-color: #e3f2fd;
+  color: #0c63e4;
+  border: 1px solid #b6d4fe;
+}
+
+.text-danger {
+  color: #dc3545;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+  .signin-form {
+    padding: 1.75rem;
+    border-radius: 8px;
+  }
+  
+  .signin-form h2 {
+    font-size: 1.5rem;
+  }
+  
+  .form-control, .btn, .google-btn {
+    height: 42px;
+  }
 }
