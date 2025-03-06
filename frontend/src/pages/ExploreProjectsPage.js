@@ -22,7 +22,6 @@ const ExploreProjectsPage = () => {
   });
   const [sortOption, setSortOption] = useState('newest');
   const [categories, setCategories] = useState([]);
-  const [totalProjects, setTotalProjects] = useState(0);
 
   // Helper functions
   const stripHtml = (html) => {
@@ -53,7 +52,7 @@ const ExploreProjectsPage = () => {
           include: ['categories']
         });
         
-        // Handle different response structures
+        // Defensive handling of different possible response structures
         const projectsData = response?.data?.projects || 
                              response?.projects || 
                              response?.data || 
@@ -65,14 +64,14 @@ const ExploreProjectsPage = () => {
         
         setProjects(projectsList);
         
-        // Set total projects count and pages
-        setTotalProjects(response?.data?.total || response?.total || 0);
+        // Handle categories and pagination
+        setCategories(response?.data?.categories || response?.categories || []);
         setTotalPages(response?.data?.pages || response?.pages || 1);
         
         setError(null);
       } catch (err) {
         setError('Failed to load projects. Please try again later.');
-        console.error('Error fetching projects:', err);
+        console.error(err);
         // Set to empty array to prevent map error
         setProjects([]);
       } finally {
@@ -82,21 +81,6 @@ const ExploreProjectsPage = () => {
   
     fetchExploreProjects();
   }, [currentPage, searchTerm, selectedFilters, sortOption]);
-
-  // Fetch categories
-  useEffect(() => {
-    const loadCategories = async () => {
-      try {
-        const categoriesResponse = await fetchCategories();
-        setCategories(categoriesResponse.data || []);
-      } catch (error) {
-        console.error('Failed to load categories', error);
-        setCategories([]);
-      }
-    };
-  
-    loadCategories();
-  }, []);
 
   // Format helpers
   const formatCurrency = (amount) => {
@@ -136,7 +120,7 @@ const ExploreProjectsPage = () => {
     return `${daysLeft} days left`;
   };
 
-  // Fetch backer stats for each project
+  // Fetch backer stats
   useEffect(() => {
     const fetchBackerStatsForProjects = async () => {
       if (!projects.length) return;
@@ -184,6 +168,25 @@ const ExploreProjectsPage = () => {
       fetchBackerStatsForProjects();
     }
   }, [projects.length, loading]);
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const categoriesResponse = await fetchCategories();
+        
+        // Add some logging to verify categories
+        console.log('Fetched Categories:', categoriesResponse.data);
+        
+        // Ensure you're setting the full category objects
+        setCategories(categoriesResponse.data || []);
+      } catch (error) {
+        console.error('Failed to load categories', error);
+        setCategories([]);
+      }
+    };
+  
+    loadCategories();
+  }, []); // Empty dependency array means this runs once on component mount
 
   // Search handler
   const handleSearch = (e) => {
@@ -465,16 +468,16 @@ const ExploreProjectsPage = () => {
             <Form.Group className="mb-3">
               <Form.Label>Categories</Form.Label>
               <div style={{maxHeight: '150px', overflowY: 'auto'}}>
-                {categories.map(category => (
-                  <Form.Check 
+              {categories.map(category => (
+                <Form.Check 
                     key={category.id}
                     type="checkbox"
                     id={`category-${category.id}`}
                     label={category.name}
                     checked={selectedFilters.category.includes(category.id.toString())}
                     onChange={() => toggleFilter('category', category.id.toString())}
-                  />
-                ))}
+                />
+            ))}
               </div>
             </Form.Group>
           </Col>
@@ -513,7 +516,7 @@ const ExploreProjectsPage = () => {
         <div className="title-section">
           <h1 className="mb-0">Explore Projects</h1>
           <Badge bg="primary" className="project-count">
-            {loading ? '...' : `${totalProjects} Projects`}
+            {loading ? '...' : `${projects.length} Projects`}
           </Badge>
         </div>
       </div>
@@ -593,17 +596,17 @@ const ExploreProjectsPage = () => {
               </Badge>
             ))}
             {selectedFilters.category.map(catId => {
-              const catName = categories.find(c => c.id.toString() === catId)?.name || catId;
-              return (
-                <Badge 
-                  key={`cat-${catId}`} 
-                  bg="info" 
-                  className="me-2 mb-2 filter-badge"
-                  onClick={() => toggleFilter('category', catId)}
-                >
-                  Category: {catName} &times;
-                </Badge>
-              );
+                const catName = categories.find(c => c.id.toString() === catId)?.name || catId;
+                return (
+                    <Badge 
+                        key={`cat-${catId}`} 
+                        bg="info" 
+                        className="me-2 mb-2 filter-badge"
+                        onClick={() => toggleFilter('category', catId)}
+                    >
+                        Category: {catName} &times;
+                    </Badge>
+                );
             })}
             {selectedFilters.progress.map(progress => {
               const labels = {

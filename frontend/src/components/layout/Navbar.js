@@ -13,12 +13,16 @@ const AppNavbar = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
+  const [navExpanded, setNavExpanded] = useState(false);
   const searchRef = useRef(null);
   const navigate = useNavigate();
+  const desktopSearchRef = useRef(null);
+  const mobileSearchRef = useRef(null);
 
   const fetchSearchResults = debounce(async (query) => {
     if (!query.trim()) {
       setSearchResults([]);
+      setShowDropdown(false);
       return;
     }
 
@@ -29,6 +33,7 @@ const AppNavbar = () => {
       setShowDropdown(true);
     } catch (error) {
       console.error('Error fetching search results:', error);
+      setSearchResults([]);
     } finally {
       setIsLoading(false);
     }
@@ -45,15 +50,11 @@ const AppNavbar = () => {
     };
 
     const checkAuthStatus = async () => {
-      // Check if user is authenticated (using token from localStorage)
-      // Updated to match the token key used in axiosConfig.js
       const token = localStorage.getItem('accessToken');
       if (token) {
         try {
-          // Use the profile endpoint to validate token and get user data
           const response = await axiosInstance.get('api/v1/profile/');
           
-          // Based on your API response structure from profile_routes.py
           if (response.data.data && response.data.data.user) {
             setUser(response.data.data.user);
             setIsAuthenticated(true);
@@ -61,7 +62,6 @@ const AppNavbar = () => {
             throw new Error('Invalid user data structure');
           }
         } catch (error) {
-          // Token might be invalid or expired
           console.error('Auth validation error:', error);
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');
@@ -79,7 +79,8 @@ const AppNavbar = () => {
 
     // Close dropdown when clicking outside
     const handleClickOutside = (event) => {
-      if (searchRef.current && !searchRef.current.contains(event.target)) {
+      if ((desktopSearchRef.current && !desktopSearchRef.current.contains(event.target)) &&
+          (mobileSearchRef.current && !mobileSearchRef.current.contains(event.target))) {
         setShowDropdown(false);
       }
     };
@@ -99,6 +100,7 @@ const AppNavbar = () => {
     if (searchQuery.trim()) {
       navigate(`/projects?search=${encodeURIComponent(searchQuery.trim())}`);
       setShowDropdown(false);
+      setNavExpanded(false); // Close mobile navbar if open
     }
   };
 
@@ -106,23 +108,20 @@ const AppNavbar = () => {
     navigate(`/projects/${projectId}`);
     setSearchQuery('');
     setShowDropdown(false);
+    setNavExpanded(false); // Close mobile navbar if open
   };
 
   const handleSignOut = async () => {
     try {
-      // Call the logout endpoint from your auth_routes.py
       await axiosInstance.delete('api/v1/auth/logout');
     } catch (error) {
       console.error('Error during logout:', error);
     } finally {
-      // Even if the API call fails, clear local auth data
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('userId');
       setIsAuthenticated(false);
       setUser(null);
-      
-      // Redirect to home page
       navigate('/');
     }
   };
@@ -168,7 +167,14 @@ const AppNavbar = () => {
   };
 
   return (
-    <Navbar bg="white" expand="lg" fixed="top" className="py-2">
+    <Navbar 
+      bg="white" 
+      expand="lg" 
+      fixed="top" 
+      className="py-2" 
+      expanded={navExpanded}
+      onToggle={(expanded) => setNavExpanded(expanded)}
+    >
       <Container fluid className="px-2">
         <Navbar.Brand as={Link} to="/" className="me-4">
           <i className="bi bi-piggy-bank me-2"></i>
@@ -177,7 +183,47 @@ const AppNavbar = () => {
 
         <Navbar.Toggle aria-controls="basic-navbar-nav"/>
         <Navbar.Collapse id="basic-navbar-nav">
-          <div className="search-container position-relative me-auto" ref={searchRef}>
+          {/* Move search to outside the collapse on mobile for better UX */}
+          <div className="d-lg-none w-100 mb-3">
+            <div className="search-container position-relative" ref={searchRef}>
+              <Form onSubmit={handleSearchSubmit}>
+                <Form.Control
+                  type="search"
+                  placeholder="Search projects..."
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  aria-label="Search"
+                />
+              </Form>
+
+              {showDropdown && searchResults.length > 0 && (
+                <div className="search-results-dropdown bg-white border rounded mt-1">
+                  {searchResults.map((project) => (
+                    <div
+                      key={project.id}
+                      className="search-result-item d-flex align-items-center"
+                      onClick={() => handleResultClick(project.id)}
+                    >
+                      <div>
+                        <div className="search-result-title">{project.title}</div>
+                        <small className="text-muted">
+                          {project.category_name || 'Uncategorized'}
+                        </small>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {isLoading && (
+                <div className="search-results-dropdown bg-white border rounded mt-1 p-3 text-center">
+                  Loading...
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="search-container position-relative me-auto d-none d-lg-block" ref={searchRef}>
             <Form onSubmit={handleSearchSubmit}>
               <Form.Control
                 type="search"
@@ -194,7 +240,7 @@ const AppNavbar = () => {
                 {searchResults.map((project) => (
                   <div
                     key={project.id}
-                    className="search-result-item d-flex align-items-center hover:bg-gray-100"
+                    className="search-result-item d-flex align-items-center"
                     onClick={() => handleResultClick(project.id)}
                   >
                     <div>
@@ -222,16 +268,18 @@ const AppNavbar = () => {
                   key={category.id}
                   as={Link} 
                   to={`/category/${category.id}`}
+                  onClick={() => setNavExpanded(false)}
                 >
                   {category.name}
                 </NavDropdown.Item>
               ))}
             </NavDropdown>
 
-            <Nav.Link as={Link} to="/about" className="me-2">About</Nav.Link>
-            <Nav.Link as={Link} to="/faqs" className="me-2">FAQs</Nav.Link>
-            {isAuthenticated && <Nav.Link as=
-            {Link} to="/dashboard" className="me-2">Dashboard</Nav.Link>}
+            <Nav.Link as={Link} to="/about" className="me-2" onClick={() => setNavExpanded(false)}>About</Nav.Link>
+            <Nav.Link as={Link} to="/faqs" className="me-2" onClick={() => setNavExpanded(false)}>FAQs</Nav.Link>
+            {isAuthenticated && (
+              <Nav.Link as={Link} to="/dashboard" className="me-2" onClick={() => setNavExpanded(false)}>Dashboard</Nav.Link>
+            )}
             
             {/* Conditionally render auth-dependent buttons */}
             {renderAuthButtons()}

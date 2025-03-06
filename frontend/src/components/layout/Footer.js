@@ -55,8 +55,8 @@ function Footer() {
       </div>
 
       <div className="footer-bottom">
-        <p>© 2024 PayForMe. All rights reserved.</p>
-        <p>Get it on <a href="https://play.google.com/store" target="_blank" rel="noopener noreferrer">Google Play</a> | Available on <a href="https://apps.apple.com" target="_blank" rel="noopener noreferrer">the App Store</a></p>
+        <p>© 2025 PayForMe. All rights reserved.</p>
+        <p>Coming Soon on <a href="https://play.google.com/store" target="_blank" rel="noopener noreferrer">Google Play</a> | Available on <a href="https://apps.apple.com" target="_blank" rel="noopener noreferrer">the App Store</a></p>
       </div>
     </footer>
   );

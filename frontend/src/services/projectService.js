@@ -339,42 +339,25 @@ export const fetchFeaturedProjects = async (count = 5) => {
  */
 export const getAllProjects = async (options = {}) => {
   try {
-    const { 
-      page = 1, 
-      search = '', 
-      filters = {}, 
-      sort = 'newest',
-      include = [] 
-    } = options;
+    const { page = 1, search = '', filters = {}, sort = 'newest' } = options;
     
     // Build query parameters
     const queryParams = new URLSearchParams();
     queryParams.append('page', page);
-    queryParams.append('per_page', 12); // Adjust as needed
     
-    // Add search parameter
     if (search) {
-      queryParams.append('q', search);
+      queryParams.append('search', search);
     }
     
-    // Add status filters
-    if (filters.status && filters.status.length) {
-      filters.status.forEach(status => {
-        queryParams.append('status', status);
-      });
-    } else {
-      // Default to active projects if no status filter
-      queryParams.append('status', 'active');
-    }
+    // Add filter parameters
+    queryParams.append('status', 'active');
     
-    // Add category filters
     if (filters.category && filters.category.length) {
       filters.category.forEach(catId => {
-        queryParams.append('category_id', catId);
+        queryParams.append('category', catId);
       });
     }
     
-    // Add progress filters
     if (filters.progress && filters.progress.length) {
       filters.progress.forEach(progress => {
         queryParams.append('progress', progress);
@@ -386,24 +369,16 @@ export const getAllProjects = async (options = {}) => {
       queryParams.append('sort', sort);
     }
     
-    // Include related data
-    if (include && include.length) {
-      include.forEach(item => {
-        queryParams.append('include', item);
-      });
-    }
-    
-    // Use the search endpoint
-    const response = await api.get(`/api/v1/projects/search?${queryParams.toString()}`);
+    // FIXED: Use template literal and api.get instead of fetch
+    const response = await api.get(`/api/v1/projects?${queryParams.toString()}`);
     
     // Return the actual data
     return response.data;
   } catch (error) {
-    console.error('Error fetching projects:', error);
-    throw error;
+    console.error('Error fetching all projects:', error);
+    throw error; // Re-throw to allow error handling in component
   }
 };
-
 
 
 // Get top projects in different categories
