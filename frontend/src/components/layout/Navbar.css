@@ -9,7 +9,7 @@
 
 .navbar .container {
   max-width: 1200px; /* Adjust max-width as needed */
-  padding: 0 15px; /* Add some minimal side padding */
+  padding: 0 8px; /* Add some minimal side padding */
 }
 
 /* Brand/Logo styling */
@@ -126,7 +126,7 @@
 @media (max-width: 991.98px) {
   .navbar {
     height: auto;
-    padding: 16px 24px !important;
+    padding: 10px 12px !important;
   }
 
   .navbar .form-control {

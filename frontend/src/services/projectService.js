@@ -205,13 +205,16 @@ export const fetchDraft = async (draftId) => {
 export const fetchCategories = async () => {
     try {
         const response = await api.get('/api/v1/categories/');
-        // Make sure we're returning the data in the correct format
-        return response.data.data ? { data: response.data.data } : { data: [] };
+        // Ensure we're returning an object with a 'data' property
+        return {
+            data: response.data.data || response.data || []
+        };
     } catch (error) {
         console.error('Error fetching categories:', error);
-        throw error;
+        // Return an empty list in case of error
+        return { data: [] };
     }
-};    
+};
 
 export const fetchBackedProjects = async (userId, page = 1, perPage = 20, status = null) => {
     try {
@@ -321,6 +324,87 @@ export const fetchFeaturedProjects = async (count = 5) => {
     throw error;
   }
 };
+
+// Add this to your existing projectService.js file
+
+/**
+ * Get all projects with filtering, sorting and pagination
+ * 
+ * @param {Object} options - Query options
+ * @param {number} options.page - Page number
+ * @param {string} options.search - Search term
+ * @param {Object} options.filters - Filter options
+ * @param {string} options.sort - Sort option
+ * @returns {Promise} - Promise with response data
+ */
+export const getAllProjects = async (options = {}) => {
+  try {
+    const { 
+      page = 1, 
+      search = '', 
+      filters = {}, 
+      sort = 'newest',
+      include = [] 
+    } = options;
+    
+    // Build query parameters
+    const queryParams = new URLSearchParams();
+    queryParams.append('page', page);
+    queryParams.append('per_page', 12); // Adjust as needed
+    
+    // Add search parameter
+    if (search) {
+      queryParams.append('q', search);
+    }
+    
+    // Add status filters
+    if (filters.status && filters.status.length) {
+      filters.status.forEach(status => {
+        queryParams.append('status', status);
+      });
+    } else {
+      // Default to active projects if no status filter
+      queryParams.append('status', 'active');
+    }
+    
+    // Add category filters
+    if (filters.category && filters.category.length) {
+      filters.category.forEach(catId => {
+        queryParams.append('category_id', catId);
+      });
+    }
+    
+    // Add progress filters
+    if (filters.progress && filters.progress.length) {
+      filters.progress.forEach(progress => {
+        queryParams.append('progress', progress);
+      });
+    }
+    
+    // Add sort parameter
+    if (sort) {
+      queryParams.append('sort', sort);
+    }
+    
+    // Include related data
+    if (include && include.length) {
+      include.forEach(item => {
+        queryParams.append('include', item);
+      });
+    }
+    
+    // Use the search endpoint
+    const response = await api.get(`/api/v1/projects/search?${queryParams.toString()}`);
+    
+    // Return the actual data
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching projects:', error);
+    throw error;
+  }
+};
+
+
 
 // Get top projects in different categories
 export const fetchTopCategoryProjects = async (categoryId, count = 3) => {

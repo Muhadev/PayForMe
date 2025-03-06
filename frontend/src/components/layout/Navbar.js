@@ -169,13 +169,13 @@ const AppNavbar = () => {
 
   return (
     <Navbar bg="white" expand="lg" fixed="top" className="py-2">
-      <Container fluid className="px-4">
+      <Container fluid className="px-2">
         <Navbar.Brand as={Link} to="/" className="me-4">
           <i className="bi bi-piggy-bank me-2"></i>
           PayForMe
         </Navbar.Brand>
 
-        <Navbar.Toggle aria-controls="basic-navbar-nav" className="ms-auto" />
+        <Navbar.Toggle aria-controls="basic-navbar-nav"/>
         <Navbar.Collapse id="basic-navbar-nav">
           <div className="search-container position-relative me-auto" ref={searchRef}>
             <Form onSubmit={handleSearchSubmit}>

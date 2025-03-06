@@ -1,167 +1,14 @@
-.explore-projects .header-section {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-  }
+/* ExploreProjects.css */
 
-  /* Add these styles to your ExploreProjectsPage.css file */
-
-.project-card {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    overflow: hidden;
-  }
-  
-  .project-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
-  }
-  
-  .project-image {
-    height: 200px;
-    object-fit: cover;
-    width: 100%;
-  }
-  
-  .default-project-image {
-    background-color: #e9ecef;
-    color: #495057;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 3rem;
-    font-weight: bold;
-    height: 200px;
-    width: 100%;
-  }
-  
-  .status-badge {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    font-size: 0.75rem;
-    padding: 0.35rem 0.65rem;
-    border-radius: 20px;
-    font-weight: 500;
-    text-transform: capitalize;
-  }
-  
-  .category-label {
-    font-size: 0.8rem;
-    color: #6c757d;
-    font-weight: 500;
-    text-transform: uppercase;
-    margin-bottom: 0.5rem;
-  }
-  
-  .project-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    line-height: 1.3;
-    height: 3.2rem;
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-  }
-  
-  .project-brief {
-    color: #6c757d;
-    font-size: 0.875rem;
-    height: 3rem;
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-  }
-  
-  .funding-progress {
-    margin: 1rem 0;
-  }
-  
-  .funding-progress .progress {
-    height: 6px;
-    background-color: #e9ecef;
-    border-radius: 3px;
-    margin-bottom: 0.5rem;
-  }
-  
-  .funding-progress .progress-bar {
-    background-color: #0d6efd;
-    border-radius: 3px;
-  }
-  
-  .funding-stats {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.875rem;
-  }
-  
-  .funding-raised {
-    font-weight: 600;
-  }
-  
-  .funding-label {
-    margin-left: 0.25rem;
-    font-weight: normal;
-    color: #6c757d;
-  }
-  
-  .funding-percentage {
-    font-weight: 600;
-    color: #0d6efd;
-  }
-  
-  .project-meta {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 1rem;
-    font-size: 0.8rem;
-    color: #6c757d;
-  }
-  
-  .meta-item {
-    display: flex;
-    align-items: center;
-  }
-  
-  .meta-item i, .meta-item svg {
-    margin-right: 0.3rem;
-  }
-  
-  .bookmark-btn {
-    color: #6c757d;
-    padding: 0;
-    margin: 0;
-    transition: color 0.2s ease;
-  }
-  
-  .bookmark-btn:hover {
-    color: #0d6efd;
-  }
-  
-  .bookmark-btn.saved {
-    color: #0d6efd;
-  }
-  
-  .card-footer-content {
-    display: flex;
-    justify-content: center;
-  }
-  
-  .view-button {
-    transition: all 0.3s ease;
-  }
-  
-  .view-button:hover {
-    transform: translateY(-2px);
+.explore-projects-page {
+    padding-bottom: 3rem;
   }
   
   .header-section {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 2rem;
   }
   
   .title-section {
@@ -171,147 +18,35 @@
   
   .project-count {
     margin-left: 1rem;
-    font-size: 0.875rem;
-    padding: 0.35rem 0.65rem;
-  }
-  
-  .search-form {
-    background-color: #f8f9fa;
-    padding: 1.5rem;
-    border-radius: 0.5rem;
-  }
-  
-  .search-input-group {
-    position: relative;
-  }
-  
-  .search-icon {
-    position: absolute;
-    left: 1rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #6c757d;
-  }
-  
-  .search-input {
-    padding-left: 2.5rem;
-  }
-  
-  .explore-projects .title-section {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
-  
-  .explore-projects .project-count {
     font-size: 0.9rem;
-    padding: 0.5rem 0.75rem;
-    border-radius: 20px;
+    font-weight: normal;
+    padding: 0.4em 0.8em;
   }
   
-  .explore-projects .search-form {
-    background-color: #f9f9f9;
-    padding: 1.25rem;
-    border-radius: 8px;
-    margin-bottom: 2rem;
-  }
-  
-  .explore-projects .search-input-group {
-    position: relative;
-  }
-  
-  .explore-projects .search-icon {
-    position: absolute;
-    top: 50%;
-    left: 12px;
-    transform: translateY(-50%);
-    color: #6c757d;
-  }
-  
-  .explore-projects .search-input {
-    padding-left: 2.5rem;
-    height: 45px;
-  }
-  
-  .explore-projects .category-select,
-  .explore-projects .search-button {
-    height: 45px;
-  }
-  
-  .explore-projects .auth-banner {
-    background-color: #f8f9fa;
-    border-radius: 6px;
-    padding: 1rem;
-    text-align: center;
-    margin-bottom: 1.5rem;
-  }
-  
-  .explore-projects .signin-link {
-    font-weight: 600;
-    text-decoration: none;
-  }
-  
-  /* Project Card Styles */
   .project-card {
-    border-radius: 8px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: none;
     overflow: hidden;
-    transition: transform 0.2s, box-shadow 0.2s;
-    height: 100%;
   }
   
   .project-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
   }
   
-  .project-image-container {
-    position: relative;
+  .project-card .card-img-top {
     height: 180px;
-    overflow: hidden;
-  }
-  
-  .project-image {
-    height: 100%;
-    width: 100%;
     object-fit: cover;
-  }
-  
-  .default-project-image {
-    background-color: #e9ecef;
-    color: #495057;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 3rem;
-    font-weight: bold;
-    height: 200px;
-    width: 100%;
-  }
-  
-  .default-project-image span {
-    font-size: 3rem;
-    font-weight: bold;
-    color: #9e9e9e;
-  }
-  
-  .status-badge {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    font-size: 0.7rem;
-    padding: 0.35rem 0.65rem;
-    border-radius: 30px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    border-top-left-radius: 0.25rem;
+    border-top-right-radius: 0.25rem;
   }
   
   .category-label {
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     color: #6c757d;
+    margin-bottom: 0.5rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 0.5rem;
-    margin-top: 0.5rem;
   }
   
   .project-title {
@@ -323,38 +58,38 @@
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    height: 2.8rem;
   }
   
   .project-brief {
-    font-size: 0.85rem;
-    color: #666;
-    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    color: #6c757d;
+    line-height: 1.4;
+    height: 3.8rem;
+    overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
-    overflow: hidden;
   }
   
   .funding-progress {
-    margin-bottom: 1rem;
+    margin: 1rem 0;
   }
   
-  .progress {
-    height: 0.5rem;
+  .funding-progress .progress {
+    height: 8px;
     margin-bottom: 0.5rem;
-    border-radius: 0.25rem;
     background-color: #e9ecef;
   }
   
-  .progress-bar {
-    background-color: #4CAF50;
-    border-radius: 0.25rem;
+  .funding-progress .progress-bar {
+    background-color: #4caf50;
   }
   
   .funding-stats {
     display: flex;
     justify-content: space-between;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
   }
   
   .funding-raised {
@@ -362,22 +97,25 @@
   }
   
   .funding-label {
-    margin-left: 0.4rem;
-    color: #6c757d;
     font-weight: normal;
+    color: #6c757d;
+    margin-left: 0.25rem;
+    font-size: 0.8rem;
   }
   
   .funding-percentage {
     font-weight: 600;
-    color: #4CAF50;
+    color: #4caf50;
   }
   
   .project-meta {
     display: flex;
     justify-content: space-between;
-    font-size: 0.8rem;
+    margin-top: 0.75rem;
+    border-top: 1px solid #f0f0f0;
+    padding-top: 0.75rem;
+    font-size: 0.85rem;
     color: #6c757d;
-    margin-bottom: 0.5rem;
   }
   
   .meta-item {
@@ -386,67 +124,86 @@
   }
   
   .meta-item i, .meta-item svg {
-    margin-right: 0.35rem;
-    font-size: 0.9rem;
+    margin-right: 0.25rem;
+    font-size: 1rem;
   }
   
   .card-footer-content {
     display: flex;
-    justify-content: center;
-    width: 100%;
+    justify-content: space-between;
+    align-items: center;
   }
   
   .view-button {
-    width: 100%;
-    font-weight: 500;
-    border-radius: 4px;
-    font-size: 0.875rem;
+    border-radius: 50px;
+    font-size: 0.85rem;
+    padding: 0.25rem 1rem;
+    transition: all 0.2s ease;
   }
   
-  .bookmark-btn {
-    color: #6c757d;
-    padding: 0;
-    margin: 0;
-    display: flex;
+  .view-button:hover {
+    background-color: #007bff;
+    color: white;
+  }
+  
+  .status-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 0.25em 0.8em;
+    font-size: 0.75rem;
+    border-radius: 50px;
+    letter-spacing: 0.5px;
+  }
+  
+  .filter-panel {
+    margin-bottom: 1.5rem;
+    transition: all 0.3s ease;
+  }
+  
+  .filter-badge {
+    cursor: pointer;
+    padding: 0.5em 0.8em;
+    font-weight: normal;
+    border-radius: 50px;
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    transition: color 0.2s, background-color 0.2s;
   }
   
-  .bookmark-btn:hover {
-    background-color: rgba(108, 117, 125, 0.1);
+  .filter-badge:hover {
+    opacity: 0.9;
   }
   
-  .bookmark-btn.saved {
-    color: #ff6b6b;
+  .empty-state {
+    padding: 3rem 0;
   }
   
-  .bookmark-btn.saved:hover {
-    color: #ff4f4f;
+  .empty-state .empty-icon {
+    font-size: 3rem;
+    color: #e0e0e0;
+    display: block;
   }
   
-  .no-projects {
-    padding: 3rem 1rem;
-    background-color: #f8f9fa;
-    border-radius: 8px;
+  .search-sort-bar {
+    margin-bottom: 1.5rem;
   }
   
-  /* Ensure all rows are equal height */
-  .project-grid {
-    display: flex;
-    flex-wrap: wrap;
+  .filter-toggle-btn {
+    border-radius: 50px;
   }
   
-  /* Responsive adjustments */
   @media (max-width: 767.98px) {
-    .search-form {
-      padding: 1rem;
+    .header-section {
+      flex-direction: column;
+      align-items: flex-start;
     }
     
-    .search-button {
+    .title-section {
+      margin-bottom: 1rem;
+    }
+    
+    .search-sort-bar .col-md-6:last-child {
       margin-top: 1rem;
+      justify-content: flex-start;
     }
   }

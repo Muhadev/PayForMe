@@ -79,16 +79,19 @@
   z-index: 2;
 }
 
-.category-badge {
-  position: absolute;
-  bottom: 20px;
-  right: 20px;
-  padding: 8px 12px;
-  border-radius: 30px;
-  font-size: 0.85rem;
+.category-label {
+  display: inline-block;
+  padding: 4px 12px;
+  margin-bottom: 8px;
+  border-radius: 16px;
+  font-size: 0.8rem;
   font-weight: 500;
-  background-color: rgba(0, 0, 0, 0.7);
-  z-index: 2;
+  background-color: rgba(52, 152, 219, 0.1);
+  color: #3498db;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  width: auto;
+  max-width: fit-content;
 }
 
 .featured-card .card-body {
