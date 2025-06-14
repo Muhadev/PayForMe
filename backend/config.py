@@ -4,12 +4,11 @@ from pathlib import Path
 from datetime import timedelta
 import stripe
 
-
 load_dotenv()
 
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY')
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') 
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY')
     SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
@@ -19,11 +18,10 @@ class Config:
     FRONTEND_URL = os.environ.get('FRONTEND_URL')  # React app URL
     FRONTEND_SUCCESS_URL = f'{FRONTEND_URL}/donation/success'
     FRONTEND_CANCEL_URL = f'{FRONTEND_URL}/donation/cancel'
-
-
+    
     # Base upload folder
     UPLOAD_FOLDERS = os.path.abspath(os.path.join(os.getcwd(), 'uploads'))
-
+    
     UPLOADS_DEFAULT_URL = os.getenv('UPLOADS_DEFAULT_URL', 'http://localhost:5000/uploads/')
     MAX_CONTENT_LENGTH = int(os.getenv('MAX_CONTENT_LENGTH', 100 * 1024 * 1024))  # Increase to 100 MB
     ALLOWED_EXTENSIONS = set(os.getenv('ALLOWED_EXTENSIONS', 'png,jpg,jpeg,gif').split(','))
@@ -32,16 +30,16 @@ class Config:
     # Specific upload destinations
     UPLOADED_PHOTOS_DEST = os.path.abspath(os.path.join(UPLOAD_FOLDERS, 'photos'))
     UPLOADED_VIDEOS_DEST = os.path.abspath(os.path.join(UPLOAD_FOLDERS, 'videos'))
-
+    
     FIRST_ADMIN_SECRET_KEY = os.environ.get('FIRST_ADMIN_SECRET_KEY')
-
+    
     # Set JWT expiration times
     # Convert seconds from env to timedelta, with fallback values
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(
-        seconds=int(os.environ.get('JWT_ACCESS_TOKEN_EXPIRES', 86400))  # <-- FIXED
+        seconds=int(os.environ.get('JWT_ACCESS_TOKEN_EXPIRES', 86400))
     )
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(
-        seconds=int(os.environ.get('JWT_REFRESH_TOKEN_EXPIRES', 2592000))  # <-- FIXED
+        seconds=int(os.environ.get('JWT_REFRESH_TOKEN_EXPIRES', 2592000))
     )
     
     # Redis configuration
@@ -49,38 +47,16 @@ class Config:
     REDIS_PORT = os.getenv('REDIS_PORT', 6379)
     REDIS_DB = os.getenv('REDIS_DB', 0)
     REDIS_URL = os.getenv('REDIS_URL', f'redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}')
-
+    
     # Configure Flask-Caching with Redis
     CACHE_TYPE = 'redis'
     CACHE_REDIS_URL = REDIS_URL  # Use the same URL for caching
     
-    # SECRET_KEY = os.getenv('SECRET_KEY')
+    # Stripe configuration
     STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
     STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
     STRIPE_LOGGING = os.getenv('STRIPE_LOGGING', False)
     STRIPE_CONNECT_WEBHOOK_SECRET = os.getenv('STRIPE_CONNECT_WEBHOOK_SECRET')
-
+    
     # Platform fee configuration for payouts (defaults to 5% if not set)
     PLATFORM_FEE_PERCENTAGE = os.getenv('PLATFORM_FEE_PERCENTAGE', '5')
-    
-# class StripeConfig:
-#     SECRET_KEY = 'your_stripe_secret_key'
-#     WEBHOOK_SECRET = 'your_webhook_secret'
-#     PAYMENT_RETURN_URL = 'https://your-domain.com/payment/return'
-#     WEBHOOK_TOLERANCE = 300  # 5 minutes
-# class DevelopmentConfig(Config):
-#     DEBUG = True
-
-# class ProductionConfig(Config):
-#     DEBUG = False
-
-# # You can add more configurations as needed, like TestingConfig
-
-# config = {
-#     'development': DevelopmentConfig,
-#     'production': ProductionConfig,
-#     'default': DevelopmentConfig
-# }
-
-# def get_config():
-#     return config[os.environ.get('FLASK_ENV') or 'default']
