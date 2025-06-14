@@ -1,3 +1,6 @@
+import pymysql
+pymysql.install_as_MySQLdb()
+
 from flask import Flask, jsonify, request
 import logging
 from flask_sqlalchemy import SQLAlchemy
